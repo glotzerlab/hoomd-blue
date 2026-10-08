@@ -6,7 +6,7 @@
 */
 
 #ifdef ENABLE_MPI
-#ifdef ENABLE_HIP
+#ifdef ENABLE_GPU
 
 #include "CommunicatorGPU.h"
 #include "System.h"
@@ -33,14 +33,14 @@ CommunicatorGPU::CommunicatorGPU(std::shared_ptr<SystemDefinition> sysdef,
     initializeCommunicationStages();
 
     // create cuda event
-    hipEventCreateWithFlags(&m_event, hipEventDisableTiming);
+    cudaEventCreateWithFlags(&m_event, cudaEventDisableTiming);
     }
 
 //! Destructor
 CommunicatorGPU::~CommunicatorGPU()
     {
     m_exec_conf->msg->notice(5) << "Destroying CommunicatorGPU";
-    hipEventDestroy(m_event);
+    cudaEventDestroy(m_event);
     }
 
 void CommunicatorGPU::updateMeshDefinition()
@@ -2583,7 +2583,7 @@ void CommunicatorGPU::exchangeGhosts()
                                                                    access_mode::read);
 
             // lump together into one synchronization call
-            hipDeviceSynchronize();
+            cudaDeviceSynchronize();
 
             ArrayHandle<unsigned int> h_unique_neighbors(m_unique_neighbors,
                                                          access_location::host,
@@ -3187,8 +3187,8 @@ void CommunicatorGPU::beginUpdateGhosts(uint64_t timestep)
                                                          access_mode::read);
 
             // lump together into one synchronization call
-            hipEventRecord(m_event);
-            hipEventSynchronize(m_event);
+            cudaEventRecord(m_event);
+            cudaEventSynchronize(m_event);
 
             // access send buffers
             m_reqs.clear();
@@ -3880,5 +3880,5 @@ void export_CommunicatorGPU(pybind11::module& m)
 
     } // end namespace hoomd
 
-#endif // ENABLE_HIP
+#endif // ENABLE_GPU
 #endif // ENABLE_MPI

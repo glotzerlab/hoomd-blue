@@ -1,7 +1,7 @@
 // Copyright (c) 2009-2026 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
-#include "hip/hip_runtime.h"
+#include <cuda_runtime.h>
 // Copyright (c) 2009-2019 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
@@ -41,7 +41,7 @@ struct rattle_bd_step_one_args
                             Scalar _tolerance,
                             uint64_t _timestep,
                             uint16_t _seed,
-                            const hipDeviceProp_t& _devprop)
+                            const cudaDeviceProp& _devprop)
         : d_gamma(_d_gamma), n_types(_n_types), T(_T), tolerance(_tolerance), timestep(_timestep),
           seed(_seed), devprop(_devprop)
         {
@@ -51,47 +51,47 @@ struct rattle_bd_step_one_args
     size_t n_types;  //!< Number of types in \a d_gamma
     Scalar T;        //!< Current temperature
     Scalar tolerance;
-    uint64_t timestep;              //!< Current timestep
-    uint16_t seed;                  //!< User chosen random number seed
-    const hipDeviceProp_t& devprop; //!< Device properties.
+    uint64_t timestep;             //!< Current timestep
+    uint16_t seed;                 //!< User chosen random number seed
+    const cudaDeviceProp& devprop; //!< Device properties.
     };
 
 template<class Manifold>
-hipError_t gpu_rattle_brownian_step_one(Scalar4* d_pos,
-                                        int3* d_image,
-                                        Scalar4* d_vel,
-                                        const BoxDim& box,
+cudaError_t gpu_rattle_brownian_step_one(Scalar4* d_pos,
+                                         int3* d_image,
+                                         Scalar4* d_vel,
+                                         const BoxDim& box,
+                                         const unsigned int* d_tag,
+                                         const unsigned int* d_group_members,
+                                         const unsigned int group_size,
+                                         const Scalar4* d_net_force,
+                                         const Scalar3* d_gamma_r,
+                                         Scalar4* d_orientation,
+                                         Scalar4* d_torque,
+                                         const Scalar3* d_inertia,
+                                         Scalar4* d_angmom,
+                                         const rattle_bd_step_one_args& rattle_bd_args,
+                                         Manifold manifold,
+                                         const bool aniso,
+                                         const Scalar deltaT,
+                                         const unsigned int D,
+                                         const bool d_noiseless_t,
+                                         const bool d_noiseless_r);
+
+template<class Manifold>
+cudaError_t gpu_include_rattle_force_bd(const Scalar4* d_pos,
+                                        Scalar4* d_net_force,
+                                        Scalar* d_net_virial,
                                         const unsigned int* d_tag,
                                         const unsigned int* d_group_members,
                                         const unsigned int group_size,
-                                        const Scalar4* d_net_force,
-                                        const Scalar3* d_gamma_r,
-                                        Scalar4* d_orientation,
-                                        Scalar4* d_torque,
-                                        const Scalar3* d_inertia,
-                                        Scalar4* d_angmom,
                                         const rattle_bd_step_one_args& rattle_bd_args,
                                         Manifold manifold,
-                                        const bool aniso,
+                                        size_t net_virial_pitch,
                                         const Scalar deltaT,
-                                        const unsigned int D,
-                                        const bool d_noiseless_t,
-                                        const bool d_noiseless_r);
+                                        const bool d_noiseless_t);
 
-template<class Manifold>
-hipError_t gpu_include_rattle_force_bd(const Scalar4* d_pos,
-                                       Scalar4* d_net_force,
-                                       Scalar* d_net_virial,
-                                       const unsigned int* d_tag,
-                                       const unsigned int* d_group_members,
-                                       const unsigned int group_size,
-                                       const rattle_bd_step_one_args& rattle_bd_args,
-                                       Manifold manifold,
-                                       size_t net_virial_pitch,
-                                       const Scalar deltaT,
-                                       const bool d_noiseless_t);
-
-#ifdef __HIPCC__
+#ifdef __NVCC__
 
 template<class Manifold>
 __global__ void gpu_rattle_brownian_step_one_kernel(Scalar4* d_pos,
@@ -119,7 +119,7 @@ __global__ void gpu_rattle_brownian_step_one_kernel(Scalar4* d_pos,
                                                     const bool d_noiseless_t,
                                                     const bool d_noiseless_r)
     {
-    HIP_DYNAMIC_SHARED(char, s_data)
+    extern __shared__ char s_data[];
 
     Scalar3* s_gammas_r = (Scalar3*)s_data;
     Scalar* s_gammas = (Scalar*)(s_gammas_r + n_types);
@@ -350,34 +350,30 @@ __global__ void gpu_rattle_brownian_step_one_kernel(Scalar4* d_pos,
     }
 
 template<class Manifold>
-hipError_t gpu_rattle_brownian_step_one(Scalar4* d_pos,
-                                        int3* d_image,
-                                        Scalar4* d_vel,
-                                        const BoxDim& box,
-                                        const unsigned int* d_tag,
-                                        const unsigned int* d_group_members,
-                                        const unsigned int group_size,
-                                        const Scalar4* d_net_force,
-                                        const Scalar3* d_gamma_r,
-                                        Scalar4* d_orientation,
-                                        Scalar4* d_torque,
-                                        const Scalar3* d_inertia,
-                                        Scalar4* d_angmom,
-                                        const rattle_bd_step_one_args& rattle_bd_args,
-                                        Manifold manifold,
-                                        const bool aniso,
-                                        const Scalar deltaT,
-                                        const unsigned int D,
-                                        const bool d_noiseless_t,
-                                        const bool d_noiseless_r)
+cudaError_t gpu_rattle_brownian_step_one(Scalar4* d_pos,
+                                         int3* d_image,
+                                         Scalar4* d_vel,
+                                         const BoxDim& box,
+                                         const unsigned int* d_tag,
+                                         const unsigned int* d_group_members,
+                                         const unsigned int group_size,
+                                         const Scalar4* d_net_force,
+                                         const Scalar3* d_gamma_r,
+                                         Scalar4* d_orientation,
+                                         Scalar4* d_torque,
+                                         const Scalar3* d_inertia,
+                                         Scalar4* d_angmom,
+                                         const rattle_bd_step_one_args& rattle_bd_args,
+                                         Manifold manifold,
+                                         const bool aniso,
+                                         const Scalar deltaT,
+                                         const unsigned int D,
+                                         const bool d_noiseless_t,
+                                         const bool d_noiseless_r)
     {
     unsigned int run_block_size = 256;
 
     unsigned int nwork = group_size;
-
-    // setup the grid to run the kernel
-    dim3 grid((nwork / run_block_size) + 1, 1, 1);
-    dim3 threads(run_block_size, 1, 1);
 
     const auto shared_bytes
         = (sizeof(Scalar) * rattle_bd_args.n_types + sizeof(Scalar3) * rattle_bd_args.n_types);
@@ -389,37 +385,33 @@ hipError_t gpu_rattle_brownian_step_one(Scalar4* d_pos,
         }
 
     // run the kernel
-    hipLaunchKernelGGL((gpu_rattle_brownian_step_one_kernel<Manifold>),
-                       dim3(grid),
-                       dim3(threads),
-                       shared_bytes,
-                       0,
-                       d_pos,
-                       d_image,
-                       d_vel,
-                       box,
-                       d_tag,
-                       d_group_members,
-                       nwork,
-                       d_net_force,
-                       d_gamma_r,
-                       d_orientation,
-                       d_torque,
-                       d_inertia,
-                       d_angmom,
-                       rattle_bd_args.d_gamma,
-                       rattle_bd_args.n_types,
-                       rattle_bd_args.timestep,
-                       rattle_bd_args.seed,
-                       rattle_bd_args.T,
-                       manifold,
-                       aniso,
-                       deltaT,
-                       D,
-                       d_noiseless_t,
-                       d_noiseless_r);
+    gpu_rattle_brownian_step_one_kernel<Manifold>
+        <<<(nwork / run_block_size) + 1, run_block_size, shared_bytes>>>(d_pos,
+                                                                         d_image,
+                                                                         d_vel,
+                                                                         box,
+                                                                         d_tag,
+                                                                         d_group_members,
+                                                                         nwork,
+                                                                         d_net_force,
+                                                                         d_gamma_r,
+                                                                         d_orientation,
+                                                                         d_torque,
+                                                                         d_inertia,
+                                                                         d_angmom,
+                                                                         rattle_bd_args.d_gamma,
+                                                                         rattle_bd_args.n_types,
+                                                                         rattle_bd_args.timestep,
+                                                                         rattle_bd_args.seed,
+                                                                         rattle_bd_args.T,
+                                                                         manifold,
+                                                                         aniso,
+                                                                         deltaT,
+                                                                         D,
+                                                                         d_noiseless_t,
+                                                                         d_noiseless_r);
 
-    return hipSuccess;
+    return cudaSuccess;
     }
 
 template<class Manifold>
@@ -440,7 +432,7 @@ __global__ void gpu_include_rattle_force_bd_kernel(const Scalar4* d_pos,
                                                    const Scalar deltaT,
                                                    const bool d_noiseless_t)
     {
-    HIP_DYNAMIC_SHARED(char, s_data2)
+    extern __shared__ char s_data2[];
 
     Scalar3* s_gammas_r = (Scalar3*)s_data2;
     Scalar* s_gammas = (Scalar*)(s_gammas_r + n_types);
@@ -595,25 +587,21 @@ __global__ void gpu_include_rattle_force_bd_kernel(const Scalar4* d_pos,
     }
 
 template<class Manifold>
-hipError_t gpu_include_rattle_force_bd(const Scalar4* d_pos,
-                                       Scalar4* d_net_force,
-                                       Scalar* d_net_virial,
-                                       const unsigned int* d_tag,
-                                       const unsigned int* d_group_members,
-                                       const unsigned int group_size,
-                                       const rattle_bd_step_one_args& rattle_bd_args,
-                                       Manifold manifold,
-                                       size_t net_virial_pitch,
-                                       const Scalar deltaT,
-                                       const bool d_noiseless_t)
+cudaError_t gpu_include_rattle_force_bd(const Scalar4* d_pos,
+                                        Scalar4* d_net_force,
+                                        Scalar* d_net_virial,
+                                        const unsigned int* d_tag,
+                                        const unsigned int* d_group_members,
+                                        const unsigned int group_size,
+                                        const rattle_bd_step_one_args& rattle_bd_args,
+                                        Manifold manifold,
+                                        size_t net_virial_pitch,
+                                        const Scalar deltaT,
+                                        const bool d_noiseless_t)
     {
     unsigned int run_block_size = 256;
 
     unsigned int nwork = group_size;
-
-    // setup the grid to run the kernel
-    dim3 grid((nwork / run_block_size) + 1, 1, 1);
-    dim3 threads(run_block_size, 1, 1);
 
     const auto shared_bytes
         = (sizeof(Scalar) * rattle_bd_args.n_types + sizeof(Scalar3) * rattle_bd_args.n_types);
@@ -625,29 +613,25 @@ hipError_t gpu_include_rattle_force_bd(const Scalar4* d_pos,
         }
 
     // run the kernel
-    hipLaunchKernelGGL((gpu_include_rattle_force_bd_kernel<Manifold>),
-                       dim3(grid),
-                       dim3(threads),
-                       shared_bytes,
-                       0,
-                       d_pos,
-                       d_net_force,
-                       d_net_virial,
-                       d_tag,
-                       d_group_members,
-                       nwork,
-                       rattle_bd_args.d_gamma,
-                       rattle_bd_args.n_types,
-                       rattle_bd_args.timestep,
-                       rattle_bd_args.seed,
-                       rattle_bd_args.T,
-                       rattle_bd_args.tolerance,
-                       manifold,
-                       net_virial_pitch,
-                       deltaT,
-                       d_noiseless_t);
+    gpu_include_rattle_force_bd_kernel<Manifold>
+        <<<(nwork / run_block_size) + 1, run_block_size, shared_bytes>>>(d_pos,
+                                                                         d_net_force,
+                                                                         d_net_virial,
+                                                                         d_tag,
+                                                                         d_group_members,
+                                                                         nwork,
+                                                                         rattle_bd_args.d_gamma,
+                                                                         rattle_bd_args.n_types,
+                                                                         rattle_bd_args.timestep,
+                                                                         rattle_bd_args.seed,
+                                                                         rattle_bd_args.T,
+                                                                         rattle_bd_args.tolerance,
+                                                                         manifold,
+                                                                         net_virial_pitch,
+                                                                         deltaT,
+                                                                         d_noiseless_t);
 
-    return hipSuccess;
+    return cudaSuccess;
     }
 
 #endif

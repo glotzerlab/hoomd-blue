@@ -5,7 +5,7 @@
     \brief Declares the ParticleGroup and related classes
 */
 
-#ifdef __HIPCC__
+#ifdef __NVCC__
 #error This header cannot be compiled by nvcc
 #endif
 
@@ -347,7 +347,7 @@ class PYBIND11_EXPORT ParticleGroup
     //! Helper function to build the 1:1 hash for tag membership
     void buildTagHash();
 
-#ifdef ENABLE_HIP
+#ifdef ENABLE_GPU
     //! Helper function to rebuild the index lists after the particles have been sorted
     void rebuildIndexListGPU();
 #endif

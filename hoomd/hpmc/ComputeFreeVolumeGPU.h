@@ -4,7 +4,7 @@
 #ifndef __COMPUTE_FREE_VOLUME_GPU_H__
 #define __COMPUTE_FREE_VOLUME_GPU_H__
 
-#ifdef ENABLE_HIP
+#ifdef ENABLE_GPU
 
 #include "hoomd/Autotuner.h"
 #include "hoomd/CellList.h"
@@ -20,7 +20,7 @@
     \note This header cannot be compiled by nvcc
 */
 
-#ifdef __HIPCC__
+#ifdef __NVCC__
 #error This header cannot be compiled by nvcc
 #endif
 
@@ -320,6 +320,6 @@ template<class Shape> void export_ComputeFreeVolumeGPU(pybind11::module& m, cons
 
     } // end namespace hoomd
 
-#endif // ENABLE_HIP
+#endif // ENABLE_GPU
 
 #endif // __COMPUTE_FREE_VOLUME_GPU_H__

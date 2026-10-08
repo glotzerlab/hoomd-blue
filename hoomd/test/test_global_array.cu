@@ -30,7 +30,7 @@ __global__ void gpu_add_one_kernel(int* d_data, size_t num)
 
     gpu_add_one is just a driver for gpu_add_one_kernel()
 */
-hipError_t gpu_add_one(int* d_data, size_t num)
+cudaError_t gpu_add_one(int* d_data, size_t num)
     {
     unsigned int block_size = 256;
 
@@ -40,8 +40,8 @@ hipError_t gpu_add_one(int* d_data, size_t num)
 
     hipLaunchKernelGGL((gpu_add_one_kernel), dim3(grid), dim3(threads), 0, 0, d_data, num);
 
-    hipDeviceSynchronize();
-    return hipPeekAtLastError();
+    cudaDeviceSynchronize();
+    return cudaPeekAtLastError();
     }
 
 /*! \param d_data Device pointer to the array where the data is held
@@ -62,7 +62,7 @@ __global__ void gpu_fill_test_pattern_kernel(int* d_data, size_t num)
 
     gpu_fill_test_pattern is just a driver for gpu_fill_test_pattern_kernel()
 */
-hipError_t gpu_fill_test_pattern(int* d_data, size_t num)
+cudaError_t gpu_fill_test_pattern(int* d_data, size_t num)
     {
     unsigned int block_size = 256;
 
@@ -78,8 +78,8 @@ hipError_t gpu_fill_test_pattern(int* d_data, size_t num)
                        d_data,
                        num);
 
-    hipDeviceSynchronize();
-    return hipPeekAtLastError();
+    cudaDeviceSynchronize();
+    return cudaPeekAtLastError();
     }
 
     } // end namespace test

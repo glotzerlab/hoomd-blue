@@ -15,7 +15,7 @@
     \brief Implements XenoCollide in 3D
 */
 
-#ifdef __HIPCC__
+#ifdef __NVCC__
 #define DEVICE __device__
 #else
 #define DEVICE

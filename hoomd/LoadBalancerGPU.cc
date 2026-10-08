@@ -5,10 +5,10 @@
     \brief Defines the LoadBalancerGPU class
 */
 
-#ifdef ENABLE_HIP
+#ifdef ENABLE_GPU
 #include "LoadBalancerGPU.h"
 #include "LoadBalancerGPU.cuh"
-#include <hip/hip_runtime.h>
+#include <cuda_runtime.h>
 
 #include "CachedAllocator.h"
 
@@ -99,10 +99,10 @@ void LoadBalancerGPU::countParticlesOffRank(std::map<unsigned int, unsigned int>
         // copy just the subset of particles that are off rank on the device into host memory
         // this can save substantially on the memcpy if there are many particles on a rank
         off_rank.resize(n_off_rank);
-        hipMemcpy(&off_rank[0],
-                  d_off_ranks.data,
-                  sizeof(unsigned int) * n_off_rank,
-                  hipMemcpyDeviceToHost);
+        cudaMemcpy(&off_rank[0],
+                   d_off_ranks.data,
+                   sizeof(unsigned int) * n_off_rank,
+                   cudaMemcpyDeviceToHost);
         }
 
     // perform the counting on the host
@@ -127,4 +127,4 @@ void export_LoadBalancerGPU(pybind11::module& m)
 
     } // end namespace hoomd
 
-#endif // ENABLE_HIP
+#endif // ENABLE_GPU

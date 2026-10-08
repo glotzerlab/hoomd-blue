@@ -11,7 +11,7 @@
 
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wconversion"
-#include <hipcub/hipcub.hpp>
+#include <cub/cub.cuh>
 
 #include <thrust/binary_search.h>
 #include <thrust/copy.h>
@@ -155,16 +155,7 @@ void gpu_stage_particles(const unsigned int N,
     unsigned int block_size = 256;
     unsigned int n_blocks = N / block_size + 1;
 
-    hipLaunchKernelGGL(HIP_KERNEL_NAME(gpu_select_particle_migrate),
-                       dim3(n_blocks),
-                       dim3(block_size),
-                       0,
-                       0,
-                       N,
-                       d_pos,
-                       d_comm_flag,
-                       comm_mask,
-                       box);
+    gpu_select_particle_migrate<<<n_blocks, block_size>>>(N, d_pos, d_comm_flag, comm_mask, box);
     }
 
 /*! \param nsend Number of particles in buffer
@@ -226,14 +217,7 @@ void gpu_sort_migrating_particles(const size_t nsend,
                  thrust::make_zip_iterator(thrust::make_tuple(tmp_ptr, in_copy_ptr)));
 
     // sort buffer by neighbors
-#ifdef __HIP_PLATFORM_HCC__
-    thrust::sort_by_key(thrust::hip::par(alloc),
-#else
-    thrust::sort_by_key(thrust::cuda::par(alloc),
-#endif
-                        keys_ptr,
-                        keys_ptr + nsend,
-                        tmp_ptr);
+    thrust::sort_by_key(thrust::cuda::par(alloc), keys_ptr, keys_ptr + nsend, tmp_ptr);
 
     // reorder send buf
     thrust::gather(tmp_ptr, tmp_ptr + nsend, in_copy_ptr, in_ptr);
@@ -275,14 +259,7 @@ void gpu_wrap_particles(const unsigned int n_recv, detail::pdata_element* d_in, 
     unsigned int block_size = 256;
     unsigned int n_blocks = n_recv / block_size + 1;
 
-    hipLaunchKernelGGL(gpu_wrap_particles_kernel,
-                       dim3(n_blocks),
-                       dim3(block_size),
-                       0,
-                       0,
-                       n_recv,
-                       d_in,
-                       box);
+    gpu_wrap_particles_kernel<<<n_blocks, block_size>>>(n_recv, d_in, box);
     }
 
 //! Reset reverse lookup tags of particles we are removing
@@ -384,21 +361,16 @@ void gpu_make_ghost_exchange_plan(unsigned int* d_plan,
     unsigned int block_size = 256;
     unsigned int n_blocks = N / block_size + 1;
 
-    hipLaunchKernelGGL(gpu_make_ghost_exchange_plan_kernel,
-                       dim3(n_blocks),
-                       dim3(block_size),
-                       0,
-                       0,
-                       N,
-                       d_pos,
-                       d_body,
-                       d_plan,
-                       box,
-                       d_r_ghost,
-                       d_r_ghost_body,
-                       r_ghost_max,
-                       ntypes,
-                       mask);
+    gpu_make_ghost_exchange_plan_kernel<<<n_blocks, block_size>>>(N,
+                                                                  d_pos,
+                                                                  d_body,
+                                                                  d_plan,
+                                                                  box,
+                                                                  d_r_ghost,
+                                                                  d_r_ghost_body,
+                                                                  r_ghost_max,
+                                                                  ntypes,
+                                                                  mask);
     }
 
 __device__ unsigned int get_direction_mask(unsigned int plan)
@@ -486,17 +458,8 @@ void gpu_make_ghost_group_exchange_plan(unsigned int* d_ghost_group_plan,
     unsigned int block_size = 256;
     unsigned int n_blocks = N / block_size + 1;
 
-    hipLaunchKernelGGL(HIP_KERNEL_NAME(gpu_make_ghost_group_exchange_plan_kernel<group_size>),
-                       dim3(n_blocks),
-                       dim3(block_size),
-                       0,
-                       0,
-                       N,
-                       d_groups,
-                       d_ghost_group_plan,
-                       d_rtag,
-                       d_plans,
-                       n_local);
+    gpu_make_ghost_group_exchange_plan_kernel<group_size>
+        <<<n_blocks, block_size>>>(N, d_groups, d_ghost_group_plan, d_rtag, d_plans, n_local);
     }
 
 //! Apply adjacency masks to plan and return number of matching neighbors
@@ -578,16 +541,7 @@ unsigned int gpu_exchange_ghosts_count_neighbors(unsigned int N,
     unsigned int n_blocks = N / block_size + 1;
 
     // compute neighbor counts
-    hipLaunchKernelGGL(gpu_ghost_neighbor_counts,
-                       dim3(n_blocks),
-                       dim3(block_size),
-                       0,
-                       0,
-                       N,
-                       d_ghost_plan,
-                       d_counts,
-                       d_adj,
-                       nneigh);
+    gpu_ghost_neighbor_counts<<<n_blocks, block_size>>>(N, d_ghost_plan, d_counts, d_adj, nneigh);
 
     // determine output size
     unsigned int total;
@@ -597,10 +551,10 @@ unsigned int gpu_exchange_ghosts_count_neighbors(unsigned int N,
     size_t temp_storage_bytes = 0;
 
     // determine size of temporary storage
-    hipcub::DeviceScan::ExclusiveSum(d_temp_storage, temp_storage_bytes, d_counts, d_scan, N);
+    cub::DeviceScan::ExclusiveSum(d_temp_storage, temp_storage_bytes, d_counts, d_scan, N);
 
     d_temp_storage = alloc.getTemporaryBuffer<char>(temp_storage_bytes);
-    hipcub::DeviceScan::ExclusiveSum(d_temp_storage, temp_storage_bytes, d_counts, d_scan, N);
+    cub::DeviceScan::ExclusiveSum(d_temp_storage, temp_storage_bytes, d_counts, d_scan, N);
     alloc.deallocate((char*)d_temp_storage);
 
     // determine total number of ghosts
@@ -608,12 +562,12 @@ unsigned int gpu_exchange_ghosts_count_neighbors(unsigned int N,
     temp_storage_bytes = 0;
     unsigned int* d_total = alloc.getTemporaryBuffer<unsigned int>(1);
     assert(d_total);
-    hipcub::DeviceReduce::Sum(d_temp_storage, temp_storage_bytes, d_counts, d_total, N);
+    cub::DeviceReduce::Sum(d_temp_storage, temp_storage_bytes, d_counts, d_total, N);
     d_temp_storage = alloc.allocate(temp_storage_bytes);
-    hipcub::DeviceReduce::Sum(d_temp_storage, temp_storage_bytes, d_counts, d_total, N);
+    cub::DeviceReduce::Sum(d_temp_storage, temp_storage_bytes, d_counts, d_total, N);
     alloc.deallocate((char*)d_temp_storage);
 
-    hipMemcpy(&total, d_total, sizeof(unsigned int), hipMemcpyDeviceToHost);
+    cudaMemcpy(&total, d_total, sizeof(unsigned int), cudaMemcpyDeviceToHost);
     alloc.deallocate((char*)d_total);
 
     return total;
@@ -688,32 +642,17 @@ void gpu_exchange_ghosts_make_indices(unsigned int N,
         assert(d_output_indices);
 
         thrust::device_ptr<unsigned int> output_indices(d_output_indices);
-#ifdef __HIP_PLATFORM_HCC__
-        thrust::fill(thrust::hip::par(alloc),
-#else
-        thrust::fill(thrust::cuda::par(alloc),
-#endif
-                     output_indices,
-                     output_indices + n_out,
-                     0);
+        thrust::fill(thrust::cuda::par(alloc), output_indices, output_indices + n_out, 0);
 
-#ifdef __HIP_PLATFORM_HCC__
-        thrust::scatter_if(thrust::hip::par(alloc),
-#else
         thrust::scatter_if(thrust::cuda::par(alloc),
-#endif
                            thrust::counting_iterator<unsigned int>(0),
                            thrust::counting_iterator<unsigned int>(N),
                            scan,
                            counts,
                            output_indices);
 
-// compute max-scan over the output indices, filling in the holes
-#ifdef __HIP_PLATFORM_HCC__
-        thrust::inclusive_scan(thrust::hip::par(alloc),
-#else
+        // compute max-scan over the output indices, filling in the holes
         thrust::inclusive_scan(thrust::cuda::par(alloc),
-#endif
                                output_indices,
                                output_indices + n_out,
                                output_indices,
@@ -724,30 +663,21 @@ void gpu_exchange_ghosts_make_indices(unsigned int N,
         unsigned int block_size = 256;
         unsigned int n_blocks = n_out / block_size + 1;
 
-        hipLaunchKernelGGL(gpu_expand_neighbors_kernel,
-                           dim3(n_blocks),
-                           dim3(block_size),
-                           0,
-                           0,
-                           n_out,
-                           d_output_indices,
-                           d_scan,
-                           d_ghost_plan,
-                           d_ghost_idx_adj,
-                           d_unique_neighbors,
-                           d_adj,
-                           n_unique_neigh,
-                           d_ghost_neigh);
+        gpu_expand_neighbors_kernel<<<n_blocks, block_size>>>(n_out,
+                                                              d_output_indices,
+                                                              d_scan,
+                                                              d_ghost_plan,
+                                                              d_ghost_idx_adj,
+                                                              d_unique_neighbors,
+                                                              d_adj,
+                                                              n_unique_neigh,
+                                                              d_ghost_neigh);
         alloc.deallocate((char*)d_output_indices);
 
         // sort by neighbor
         thrust::device_ptr<unsigned int> ghost_neigh(d_ghost_neigh);
         thrust::device_ptr<uint2> ghost_idx_adj(d_ghost_idx_adj);
-#ifdef __HIP_PLATFORM_HCC__
-        thrust::sort_by_key(thrust::hip::par(alloc),
-#else
         thrust::sort_by_key(thrust::cuda::par(alloc),
-#endif
                             ghost_neigh,
                             ghost_neigh + n_out,
                             ghost_idx_adj);
@@ -770,8 +700,8 @@ void gpu_exchange_ghosts_make_indices(unsigned int N,
         }
     else
         {
-        hipMemset(d_ghost_begin, 0, sizeof(unsigned int) * n_unique_neigh);
-        hipMemset(d_ghost_end, 0, sizeof(unsigned int) * n_unique_neigh);
+        cudaMemset(d_ghost_begin, 0, sizeof(unsigned int) * n_unique_neigh);
+        cudaMemset(d_ghost_end, 0, sizeof(unsigned int) * n_unique_neigh);
         }
     }
 
@@ -930,15 +860,7 @@ void gpu_exchange_ghosts_pack(unsigned int n_out,
         {
         assert(d_tag);
         assert(d_tag_sendbuf);
-        hipLaunchKernelGGL(gpu_pack_kernel,
-                           dim3(n_blocks),
-                           dim3(block_size),
-                           0,
-                           0,
-                           n_out,
-                           d_ghost_idx_adj,
-                           d_tag,
-                           d_tag_sendbuf);
+        gpu_pack_kernel<<<n_blocks, block_size>>>(n_out, d_ghost_idx_adj, d_tag, d_tag_sendbuf);
         }
     /*
      * combined packing pathway for positions , velocities and images
@@ -957,106 +879,68 @@ void gpu_exchange_ghosts_pack(unsigned int n_out,
             {
             assert(d_img);
             }
-        hipLaunchKernelGGL(gpu_pack_wrap_kernel,
-                           dim3(n_blocks),
-                           dim3(block_size),
-                           0,
-                           0,
-                           n_out,
-                           d_ghost_idx_adj,
-                           d_pos,
-                           d_vel,
-                           d_img,
-                           d_pos_sendbuf,
-                           send_vel ? d_vel_sendbuf : 0,
-                           send_image ? d_img_sendbuf : 0,
-                           di,
-                           my_pos,
-                           box);
+        gpu_pack_wrap_kernel<<<n_blocks, block_size>>>(n_out,
+                                                       d_ghost_idx_adj,
+                                                       d_pos,
+                                                       d_vel,
+                                                       d_img,
+                                                       d_pos_sendbuf,
+                                                       send_vel ? d_vel_sendbuf : 0,
+                                                       send_image ? d_img_sendbuf : 0,
+                                                       di,
+                                                       my_pos,
+                                                       box);
         }
     if (send_charge)
         {
         assert(d_charge);
         assert(d_charge_sendbuf);
-        hipLaunchKernelGGL(gpu_pack_kernel,
-                           dim3(n_blocks),
-                           dim3(block_size),
-                           0,
-                           0,
-                           n_out,
-                           d_ghost_idx_adj,
-                           d_charge,
-                           d_charge_sendbuf);
+        gpu_pack_kernel<<<n_blocks, block_size>>>(n_out,
+                                                  d_ghost_idx_adj,
+                                                  d_charge,
+                                                  d_charge_sendbuf);
         }
     if (send_diameter)
         {
         assert(d_diameter);
         assert(d_diameter_sendbuf);
-        hipLaunchKernelGGL(gpu_pack_kernel,
-                           dim3(n_blocks),
-                           dim3(block_size),
-                           0,
-                           0,
-                           n_out,
-                           d_ghost_idx_adj,
-                           d_diameter,
-                           d_diameter_sendbuf);
+        gpu_pack_kernel<<<n_blocks, block_size>>>(n_out,
+                                                  d_ghost_idx_adj,
+                                                  d_diameter,
+                                                  d_diameter_sendbuf);
         }
     if (send_body)
         {
         assert(d_body);
         assert(d_body_sendbuf);
-        hipLaunchKernelGGL(gpu_pack_kernel,
-                           dim3(n_blocks),
-                           dim3(block_size),
-                           0,
-                           0,
-                           n_out,
-                           d_ghost_idx_adj,
-                           d_body,
-                           d_body_sendbuf);
+        gpu_pack_kernel<<<n_blocks, block_size>>>(n_out, d_ghost_idx_adj, d_body, d_body_sendbuf);
         }
     if (send_orientation)
         {
         assert(d_orientation);
         assert(d_orientation_sendbuf);
-        hipLaunchKernelGGL(gpu_pack_kernel,
-                           dim3(n_blocks),
-                           dim3(block_size),
-                           0,
-                           0,
-                           n_out,
-                           d_ghost_idx_adj,
-                           d_orientation,
-                           d_orientation_sendbuf);
+        gpu_pack_kernel<<<n_blocks, block_size>>>(n_out,
+                                                  d_ghost_idx_adj,
+                                                  d_orientation,
+                                                  d_orientation_sendbuf);
         }
     if (send_angmom)
         {
         assert(d_angmom);
         assert(d_angmom_sendbuf);
-        hipLaunchKernelGGL(gpu_pack_kernel,
-                           dim3(n_blocks),
-                           dim3(block_size),
-                           0,
-                           0,
-                           n_out,
-                           d_ghost_idx_adj,
-                           d_angmom,
-                           d_angmom_sendbuf);
+        gpu_pack_kernel<<<n_blocks, block_size>>>(n_out,
+                                                  d_ghost_idx_adj,
+                                                  d_angmom,
+                                                  d_angmom_sendbuf);
         }
     if (send_inertia)
         {
         assert(d_inertia);
         assert(d_inertia_sendbuf);
-        hipLaunchKernelGGL(gpu_pack_kernel,
-                           dim3(n_blocks),
-                           dim3(block_size),
-                           0,
-                           0,
-                           n_out,
-                           d_ghost_idx_adj,
-                           d_inertia,
-                           d_inertia_sendbuf);
+        gpu_pack_kernel<<<n_blocks, block_size>>>(n_out,
+                                                  d_ghost_idx_adj,
+                                                  d_inertia,
+                                                  d_inertia_sendbuf);
         }
     }
 
@@ -1071,15 +955,10 @@ void gpu_exchange_ghosts_pack_netforce(unsigned int n_out,
 
     unsigned int block_size = 256;
     unsigned int n_blocks = n_out / block_size + 1;
-    hipLaunchKernelGGL(gpu_pack_kernel,
-                       dim3(n_blocks),
-                       dim3(block_size),
-                       0,
-                       0,
-                       n_out,
-                       d_ghost_idx_adj,
-                       d_netforce,
-                       d_netforce_sendbuf);
+    gpu_pack_kernel<<<n_blocks, block_size>>>(n_out,
+                                              d_ghost_idx_adj,
+                                              d_netforce,
+                                              d_netforce_sendbuf);
     }
 
 __global__ void gpu_pack_netvirial_kernel(unsigned int n_out,
@@ -1112,16 +991,11 @@ void gpu_exchange_ghosts_pack_netvirial(unsigned int n_out,
 
     unsigned int block_size = 256;
     unsigned int n_blocks = n_out / block_size + 1;
-    hipLaunchKernelGGL(gpu_pack_netvirial_kernel,
-                       dim3(n_blocks),
-                       dim3(block_size),
-                       0,
-                       0,
-                       n_out,
-                       d_ghost_idx_adj,
-                       d_netvirial,
-                       d_netvirial_sendbuf,
-                       pitch_in);
+    gpu_pack_netvirial_kernel<<<n_blocks, block_size>>>(n_out,
+                                                        d_ghost_idx_adj,
+                                                        d_netvirial,
+                                                        d_netvirial_sendbuf,
+                                                        pitch_in);
     }
 
 template<class members_t, class ranks_t, class group_element_t>
@@ -1167,18 +1041,13 @@ void gpu_exchange_ghost_groups_pack(unsigned int n_out,
     unsigned int block_size = 256;
     unsigned int n_blocks = n_out / block_size + 1;
 
-    hipLaunchKernelGGL(gpu_group_pack_kernel,
-                       dim3(n_blocks),
-                       dim3(block_size),
-                       0,
-                       0,
-                       n_out,
-                       d_ghost_idx_adj,
-                       d_group_tag,
-                       d_groups,
-                       d_group_typeval,
-                       d_group_ranks,
-                       d_groups_sendbuf);
+    gpu_group_pack_kernel<<<n_blocks, block_size>>>(n_out,
+                                                    d_ghost_idx_adj,
+                                                    d_group_tag,
+                                                    d_groups,
+                                                    d_group_typeval,
+                                                    d_group_ranks,
+                                                    d_groups_sendbuf);
     }
 
 template<typename T> __global__ void gpu_unpack_kernel(unsigned int n_in, const T* in, T* out)
@@ -1225,113 +1094,44 @@ void gpu_exchange_ghosts_copy_buf(unsigned int n_recv,
     unsigned int n_blocks = n_recv / block_size + 1;
     if (send_tag)
         {
-        hipLaunchKernelGGL(HIP_KERNEL_NAME(gpu_unpack_kernel<unsigned int>),
-                           dim3(n_blocks),
-                           dim3(block_size),
-                           0,
-                           0,
-                           n_recv,
-                           d_tag_recvbuf,
-                           d_tag);
+        gpu_unpack_kernel<unsigned int><<<n_blocks, block_size>>>(n_recv, d_tag_recvbuf, d_tag);
         }
     if (send_pos)
         {
-        hipLaunchKernelGGL(HIP_KERNEL_NAME(gpu_unpack_kernel<Scalar4>),
-                           dim3(n_blocks),
-                           dim3(block_size),
-                           0,
-                           0,
-                           n_recv,
-                           d_pos_recvbuf,
-                           d_pos);
+        gpu_unpack_kernel<Scalar4><<<n_blocks, block_size>>>(n_recv, d_pos_recvbuf, d_pos);
         }
     if (send_vel)
         {
-        hipLaunchKernelGGL(HIP_KERNEL_NAME(gpu_unpack_kernel<Scalar4>),
-                           dim3(n_blocks),
-                           dim3(block_size),
-                           0,
-                           0,
-                           n_recv,
-                           d_vel_recvbuf,
-                           d_vel);
+        gpu_unpack_kernel<Scalar4><<<n_blocks, block_size>>>(n_recv, d_vel_recvbuf, d_vel);
         }
     if (send_charge)
         {
-        hipLaunchKernelGGL(HIP_KERNEL_NAME(gpu_unpack_kernel<Scalar>),
-                           dim3(n_blocks),
-                           dim3(block_size),
-                           0,
-                           0,
-                           n_recv,
-                           d_charge_recvbuf,
-                           d_charge);
+        gpu_unpack_kernel<Scalar><<<n_blocks, block_size>>>(n_recv, d_charge_recvbuf, d_charge);
         }
     if (send_diameter)
         {
-        hipLaunchKernelGGL(HIP_KERNEL_NAME(gpu_unpack_kernel<Scalar>),
-                           dim3(n_blocks),
-                           dim3(block_size),
-                           0,
-                           0,
-                           n_recv,
-                           d_diameter_recvbuf,
-                           d_diameter);
+        gpu_unpack_kernel<Scalar><<<n_blocks, block_size>>>(n_recv, d_diameter_recvbuf, d_diameter);
         }
     if (send_body)
         {
-        hipLaunchKernelGGL(HIP_KERNEL_NAME(gpu_unpack_kernel<unsigned int>),
-                           dim3(n_blocks),
-                           dim3(block_size),
-                           0,
-                           0,
-                           n_recv,
-                           d_body_recvbuf,
-                           d_body);
+        gpu_unpack_kernel<unsigned int><<<n_blocks, block_size>>>(n_recv, d_body_recvbuf, d_body);
         }
     if (send_image)
         {
-        hipLaunchKernelGGL(HIP_KERNEL_NAME(gpu_unpack_kernel<int3>),
-                           dim3(n_blocks),
-                           dim3(block_size),
-                           0,
-                           0,
-                           n_recv,
-                           d_image_recvbuf,
-                           d_image);
+        gpu_unpack_kernel<int3><<<n_blocks, block_size>>>(n_recv, d_image_recvbuf, d_image);
         }
     if (send_orientation)
         {
-        hipLaunchKernelGGL(HIP_KERNEL_NAME(gpu_unpack_kernel<Scalar4>),
-                           dim3(n_blocks),
-                           dim3(block_size),
-                           0,
-                           0,
-                           n_recv,
-                           d_orientation_recvbuf,
-                           d_orientation);
+        gpu_unpack_kernel<Scalar4>
+            <<<n_blocks, block_size>>>(n_recv, d_orientation_recvbuf, d_orientation);
         }
     if (send_angmom)
         {
-        hipLaunchKernelGGL(HIP_KERNEL_NAME(gpu_unpack_kernel<Scalar4>),
-                           dim3(n_blocks),
-                           dim3(block_size),
-                           0,
-                           0,
-                           n_recv,
-                           d_angmom_recvbuf,
-                           d_angmom);
+        gpu_unpack_kernel<Scalar4><<<n_blocks, block_size>>>(n_recv, d_angmom_recvbuf, d_angmom);
         }
     if (send_inertia)
         {
-        hipLaunchKernelGGL(HIP_KERNEL_NAME(gpu_unpack_kernel<Scalar3>),
-                           dim3(n_blocks),
-                           dim3(block_size),
-                           0,
-                           0,
-                           n_recv,
-                           d_inertia_recvbuf,
-                           d_inertia);
+        gpu_unpack_kernel<Scalar3><<<n_blocks, block_size>>>(n_recv, d_inertia_recvbuf, d_inertia);
         }
     }
 
@@ -1344,14 +1144,7 @@ void gpu_exchange_ghosts_copy_netforce_buf(unsigned int n_recv,
 
     unsigned int block_size = 256;
     unsigned int n_blocks = n_recv / block_size + 1;
-    hipLaunchKernelGGL(HIP_KERNEL_NAME(gpu_unpack_kernel<Scalar4>),
-                       dim3(n_blocks),
-                       dim3(block_size),
-                       0,
-                       0,
-                       n_recv,
-                       d_netforce_recvbuf,
-                       d_netforce);
+    gpu_unpack_kernel<Scalar4><<<n_blocks, block_size>>>(n_recv, d_netforce_recvbuf, d_netforce);
     }
 
 __global__ void gpu_unpack_netvirial_kernel(unsigned int n_in,
@@ -1380,15 +1173,10 @@ void gpu_exchange_ghosts_copy_netvirial_buf(unsigned int n_recv,
 
     unsigned int block_size = 256;
     unsigned int n_blocks = n_recv / block_size + 1;
-    hipLaunchKernelGGL(gpu_unpack_netvirial_kernel,
-                       dim3(n_blocks),
-                       dim3(block_size),
-                       0,
-                       0,
-                       n_recv,
-                       d_netvirial_recvbuf,
-                       d_netvirial,
-                       pitch_out);
+    gpu_unpack_netvirial_kernel<<<n_blocks, block_size>>>(n_recv,
+                                                          d_netvirial_recvbuf,
+                                                          d_netvirial,
+                                                          pitch_out);
     }
 
 template<class members_t, class ranks_t, class group_element_t>
@@ -1488,19 +1276,14 @@ void gpu_exchange_ghost_groups_copy_buf(unsigned int nrecv,
     unsigned int block_size = 256;
     unsigned int n_blocks = nrecv / block_size + 1;
 
-    hipLaunchKernelGGL(HIP_KERNEL_NAME(gpu_mark_received_ghost_groups_kernel<size>),
-                       dim3(n_blocks),
-                       dim3(block_size),
-                       0,
-                       0,
-                       nrecv,
-                       d_groups_recvbuf,
-                       d_group_tag,
-                       d_groups,
-                       d_keep,
-                       d_group_rtag,
-                       d_rtag,
-                       max_n_local);
+    gpu_mark_received_ghost_groups_kernel<size><<<n_blocks, block_size>>>(nrecv,
+                                                                          d_groups_recvbuf,
+                                                                          d_group_tag,
+                                                                          d_groups,
+                                                                          d_keep,
+                                                                          d_group_rtag,
+                                                                          d_rtag,
+                                                                          max_n_local);
 
     assert(d_scan);
 
@@ -1508,10 +1291,10 @@ void gpu_exchange_ghost_groups_copy_buf(unsigned int nrecv,
     size_t temp_storage_bytes = 0;
 
     // determine size of temporary storage
-    hipcub::DeviceScan::ExclusiveSum(d_temp_storage, temp_storage_bytes, d_keep, d_scan, nrecv);
+    cub::DeviceScan::ExclusiveSum(d_temp_storage, temp_storage_bytes, d_keep, d_scan, nrecv);
 
     d_temp_storage = alloc.getTemporaryBuffer<char>(temp_storage_bytes);
-    hipcub::DeviceScan::ExclusiveSum(d_temp_storage, temp_storage_bytes, d_keep, d_scan, nrecv);
+    cub::DeviceScan::ExclusiveSum(d_temp_storage, temp_storage_bytes, d_keep, d_scan, nrecv);
     alloc.deallocate((char*)d_temp_storage);
 
     // determine total number of received groups
@@ -1519,27 +1302,22 @@ void gpu_exchange_ghost_groups_copy_buf(unsigned int nrecv,
     temp_storage_bytes = 0;
     unsigned int* d_n_keep = alloc.getTemporaryBuffer<unsigned int>(1);
     assert(d_n_keep);
-    hipcub::DeviceReduce::Sum(d_temp_storage, temp_storage_bytes, d_keep, d_n_keep, nrecv);
+    cub::DeviceReduce::Sum(d_temp_storage, temp_storage_bytes, d_keep, d_n_keep, nrecv);
     d_temp_storage = alloc.allocate(temp_storage_bytes);
-    hipcub::DeviceReduce::Sum(d_temp_storage, temp_storage_bytes, d_keep, d_n_keep, nrecv);
+    cub::DeviceReduce::Sum(d_temp_storage, temp_storage_bytes, d_keep, d_n_keep, nrecv);
     alloc.deallocate((char*)d_temp_storage);
 
-    hipMemcpy(&n_keep, d_n_keep, sizeof(unsigned int), hipMemcpyDeviceToHost);
+    cudaMemcpy(&n_keep, d_n_keep, sizeof(unsigned int), cudaMemcpyDeviceToHost);
     alloc.deallocate((char*)d_n_keep);
 
-    hipLaunchKernelGGL(gpu_unpack_groups_kernel,
-                       dim3(n_blocks),
-                       dim3(block_size),
-                       0,
-                       0,
-                       nrecv,
-                       d_groups_recvbuf,
-                       d_group_tag,
-                       d_groups,
-                       d_group_typeval,
-                       d_group_ranks,
-                       d_keep,
-                       d_scan);
+    gpu_unpack_groups_kernel<<<n_blocks, block_size>>>(nrecv,
+                                                       d_groups_recvbuf,
+                                                       d_group_tag,
+                                                       d_groups,
+                                                       d_group_typeval,
+                                                       d_group_ranks,
+                                                       d_keep,
+                                                       d_scan);
     }
 
 void gpu_compute_ghost_rtags(unsigned int first_idx,
@@ -1725,41 +1503,36 @@ void gpu_mark_groups(unsigned int N,
     unsigned int block_size = 256;
     unsigned int n_blocks = n_groups / block_size + 1;
 
-    hipLaunchKernelGGL(HIP_KERNEL_NAME(gpu_mark_groups_kernel<group_size>),
-                       dim3(n_blocks),
-                       dim3(block_size),
-                       0,
-                       0,
-                       N,
-                       d_comm_flags,
-                       n_groups,
-                       d_members,
-                       d_group_ranks,
-                       d_rank_mask,
-                       d_marked_groups,
-                       d_rtag,
-                       di,
-                       my_pos,
-                       d_cart_ranks,
-                       incomplete);
+    gpu_mark_groups_kernel<group_size><<<n_blocks, block_size>>>(N,
+                                                                 d_comm_flags,
+                                                                 n_groups,
+                                                                 d_members,
+                                                                 d_group_ranks,
+                                                                 d_rank_mask,
+                                                                 d_marked_groups,
+                                                                 d_rtag,
+                                                                 di,
+                                                                 my_pos,
+                                                                 d_cart_ranks,
+                                                                 incomplete);
 
     // scan over marked groups
     void* d_temp_storage = NULL;
     size_t temp_storage_bytes = 0;
 
     // determine size of temporary storage
-    hipcub::DeviceScan::ExclusiveSum(d_temp_storage,
-                                     temp_storage_bytes,
-                                     d_marked_groups,
-                                     d_scan,
-                                     n_groups);
+    cub::DeviceScan::ExclusiveSum(d_temp_storage,
+                                  temp_storage_bytes,
+                                  d_marked_groups,
+                                  d_scan,
+                                  n_groups);
 
     d_temp_storage = alloc.getTemporaryBuffer<char>(temp_storage_bytes);
-    hipcub::DeviceScan::ExclusiveSum(d_temp_storage,
-                                     temp_storage_bytes,
-                                     d_marked_groups,
-                                     d_scan,
-                                     n_groups);
+    cub::DeviceScan::ExclusiveSum(d_temp_storage,
+                                  temp_storage_bytes,
+                                  d_marked_groups,
+                                  d_scan,
+                                  n_groups);
     alloc.deallocate((char*)d_temp_storage);
 
     // determine total number of sent groups
@@ -1767,20 +1540,12 @@ void gpu_mark_groups(unsigned int N,
     temp_storage_bytes = 0;
     unsigned int* d_n_out = alloc.getTemporaryBuffer<unsigned int>(1);
     assert(d_n_out);
-    hipcub::DeviceReduce::Sum(d_temp_storage,
-                              temp_storage_bytes,
-                              d_marked_groups,
-                              d_n_out,
-                              n_groups);
+    cub::DeviceReduce::Sum(d_temp_storage, temp_storage_bytes, d_marked_groups, d_n_out, n_groups);
     d_temp_storage = alloc.allocate(temp_storage_bytes);
-    hipcub::DeviceReduce::Sum(d_temp_storage,
-                              temp_storage_bytes,
-                              d_marked_groups,
-                              d_n_out,
-                              n_groups);
+    cub::DeviceReduce::Sum(d_temp_storage, temp_storage_bytes, d_marked_groups, d_n_out, n_groups);
     alloc.deallocate((char*)d_temp_storage);
 
-    hipMemcpy(&n_out, d_n_out, sizeof(unsigned int), hipMemcpyDeviceToHost);
+    cudaMemcpy(&n_out, d_n_out, sizeof(unsigned int), cudaMemcpyDeviceToHost);
     alloc.deallocate((char*)d_n_out);
     }
 
@@ -1865,39 +1630,35 @@ void gpu_scatter_ranks_and_mark_send_groups(unsigned int n_groups,
     unsigned int block_size = 256;
     unsigned int n_blocks = n_groups / block_size + 1;
 
-    hipLaunchKernelGGL(HIP_KERNEL_NAME(gpu_scatter_ranks_and_mark_send_groups_kernel<group_size>),
-                       dim3(n_blocks),
-                       dim3(block_size),
-                       0,
-                       0,
-                       n_groups,
-                       d_group_tag,
-                       d_group_ranks,
-                       d_rank_mask,
-                       d_groups,
-                       d_rtag,
-                       d_comm_flags,
-                       d_marked_send_groups,
-                       d_scan,
-                       d_out_ranks);
+    gpu_scatter_ranks_and_mark_send_groups_kernel<group_size>
+        <<<n_blocks, block_size>>>(n_groups,
+                                   d_group_tag,
+                                   d_group_ranks,
+                                   d_rank_mask,
+                                   d_groups,
+                                   d_rtag,
+                                   d_comm_flags,
+                                   d_marked_send_groups,
+                                   d_scan,
+                                   d_out_ranks);
 
     // scan over groups marked for sending
     void* d_temp_storage = NULL;
     size_t temp_storage_bytes = 0;
 
     // determine size of temporary storage
-    hipcub::DeviceScan::ExclusiveSum(d_temp_storage,
-                                     temp_storage_bytes,
-                                     d_marked_send_groups,
-                                     d_scan,
-                                     n_groups);
+    cub::DeviceScan::ExclusiveSum(d_temp_storage,
+                                  temp_storage_bytes,
+                                  d_marked_send_groups,
+                                  d_scan,
+                                  n_groups);
 
     d_temp_storage = alloc.getTemporaryBuffer<char>(temp_storage_bytes);
-    hipcub::DeviceScan::ExclusiveSum(d_temp_storage,
-                                     temp_storage_bytes,
-                                     d_marked_send_groups,
-                                     d_scan,
-                                     n_groups);
+    cub::DeviceScan::ExclusiveSum(d_temp_storage,
+                                  temp_storage_bytes,
+                                  d_marked_send_groups,
+                                  d_scan,
+                                  n_groups);
     alloc.deallocate((char*)d_temp_storage);
 
     // determine total number of sent groups
@@ -1905,20 +1666,20 @@ void gpu_scatter_ranks_and_mark_send_groups(unsigned int n_groups,
     temp_storage_bytes = 0;
     unsigned int* d_n_send = alloc.getTemporaryBuffer<unsigned int>(1);
     assert(d_n_send);
-    hipcub::DeviceReduce::Sum(d_temp_storage,
-                              temp_storage_bytes,
-                              d_marked_send_groups,
-                              d_n_send,
-                              n_groups);
+    cub::DeviceReduce::Sum(d_temp_storage,
+                           temp_storage_bytes,
+                           d_marked_send_groups,
+                           d_n_send,
+                           n_groups);
     d_temp_storage = alloc.allocate(temp_storage_bytes);
-    hipcub::DeviceReduce::Sum(d_temp_storage,
-                              temp_storage_bytes,
-                              d_marked_send_groups,
-                              d_n_send,
-                              n_groups);
+    cub::DeviceReduce::Sum(d_temp_storage,
+                           temp_storage_bytes,
+                           d_marked_send_groups,
+                           d_n_send,
+                           n_groups);
     alloc.deallocate((char*)d_temp_storage);
 
-    hipMemcpy(&n_send, d_n_send, sizeof(unsigned int), hipMemcpyDeviceToHost);
+    cudaMemcpy(&n_send, d_n_send, sizeof(unsigned int), cudaMemcpyDeviceToHost);
     alloc.deallocate((char*)d_n_send);
     }
 
@@ -1969,16 +1730,8 @@ void gpu_update_ranks_table(unsigned int n_groups,
     unsigned int block_size = 256;
     unsigned int n_blocks = n_recv / block_size + 1;
 
-    hipLaunchKernelGGL(HIP_KERNEL_NAME(gpu_update_ranks_table_kernel<group_size>),
-                       dim3(n_blocks),
-                       dim3(block_size),
-                       0,
-                       0,
-                       n_groups,
-                       d_group_ranks,
-                       d_group_rtag,
-                       n_recv,
-                       d_ranks_recvbuf);
+    gpu_update_ranks_table_kernel<group_size>
+        <<<n_blocks, block_size>>>(n_groups, d_group_ranks, d_group_rtag, n_recv, d_ranks_recvbuf);
     }
 
 template<unsigned int group_size, typename group_t, typename ranks_t, typename packed_t>
@@ -2080,26 +1833,22 @@ void gpu_scatter_and_mark_groups_for_removal(unsigned int n_groups,
     unsigned int block_size = 256;
     unsigned int n_blocks = n_groups / block_size + 1;
 
-    hipLaunchKernelGGL(HIP_KERNEL_NAME(gpu_scatter_and_mark_groups_for_removal_kernel<group_size>),
-                       dim3(n_blocks),
-                       dim3(block_size),
-                       0,
-                       0,
-                       n_groups,
-                       d_groups,
-                       d_group_typeval,
-                       d_group_tag,
-                       d_group_rtag,
-                       d_group_ranks,
-                       d_rank_mask,
-                       d_rtag,
-                       d_comm_flags,
-                       my_rank,
-                       d_scan,
-                       d_marked_groups,
-                       d_out_groups,
-                       d_out_rank_mask,
-                       local_multiple);
+    gpu_scatter_and_mark_groups_for_removal_kernel<group_size>
+        <<<n_blocks, block_size>>>(n_groups,
+                                   d_groups,
+                                   d_group_typeval,
+                                   d_group_tag,
+                                   d_group_rtag,
+                                   d_group_ranks,
+                                   d_rank_mask,
+                                   d_rtag,
+                                   d_comm_flags,
+                                   my_rank,
+                                   d_scan,
+                                   d_marked_groups,
+                                   d_out_groups,
+                                   d_out_rank_mask,
+                                   local_multiple);
     }
 
 template<typename group_t, typename ranks_t>
@@ -2175,18 +1924,18 @@ void gpu_remove_groups(unsigned int n_groups,
     size_t temp_storage_bytes = 0;
 
     // determine size of temporary storage
-    hipcub::DeviceScan::ExclusiveSum(d_temp_storage,
-                                     temp_storage_bytes,
-                                     d_marked_groups,
-                                     d_scan,
-                                     n_groups);
+    cub::DeviceScan::ExclusiveSum(d_temp_storage,
+                                  temp_storage_bytes,
+                                  d_marked_groups,
+                                  d_scan,
+                                  n_groups);
 
     d_temp_storage = alloc.getTemporaryBuffer<char>(temp_storage_bytes);
-    hipcub::DeviceScan::ExclusiveSum(d_temp_storage,
-                                     temp_storage_bytes,
-                                     d_marked_groups,
-                                     d_scan,
-                                     n_groups);
+    cub::DeviceScan::ExclusiveSum(d_temp_storage,
+                                  temp_storage_bytes,
+                                  d_marked_groups,
+                                  d_scan,
+                                  n_groups);
     alloc.deallocate((char*)d_temp_storage);
 
     // determine new_ngroups number of ghosts
@@ -2194,41 +1943,36 @@ void gpu_remove_groups(unsigned int n_groups,
     temp_storage_bytes = 0;
     unsigned int* d_new_ngroups = alloc.getTemporaryBuffer<unsigned int>(1);
     assert(d_new_ngroups);
-    hipcub::DeviceReduce::Sum(d_temp_storage,
-                              temp_storage_bytes,
-                              d_marked_groups,
-                              d_new_ngroups,
-                              n_groups);
+    cub::DeviceReduce::Sum(d_temp_storage,
+                           temp_storage_bytes,
+                           d_marked_groups,
+                           d_new_ngroups,
+                           n_groups);
     d_temp_storage = alloc.allocate(temp_storage_bytes);
-    hipcub::DeviceReduce::Sum(d_temp_storage,
-                              temp_storage_bytes,
-                              d_marked_groups,
-                              d_new_ngroups,
-                              n_groups);
+    cub::DeviceReduce::Sum(d_temp_storage,
+                           temp_storage_bytes,
+                           d_marked_groups,
+                           d_new_ngroups,
+                           n_groups);
     alloc.deallocate((char*)d_temp_storage);
 
-    hipMemcpy(&new_ngroups, d_new_ngroups, sizeof(unsigned int), hipMemcpyDeviceToHost);
+    cudaMemcpy(&new_ngroups, d_new_ngroups, sizeof(unsigned int), cudaMemcpyDeviceToHost);
     alloc.deallocate((char*)d_new_ngroups);
 
     unsigned int block_size = 256;
     unsigned int n_blocks = n_groups / block_size + 1;
 
-    hipLaunchKernelGGL(gpu_remove_groups_kernel,
-                       dim3(n_blocks),
-                       dim3(block_size),
-                       0,
-                       0,
-                       n_groups,
-                       d_groups,
-                       d_groups_alt,
-                       d_group_typeval,
-                       d_group_typeval_alt,
-                       d_group_tag,
-                       d_group_tag_alt,
-                       d_group_ranks,
-                       d_group_ranks_alt,
-                       d_group_rtag,
-                       d_scan);
+    gpu_remove_groups_kernel<<<n_blocks, block_size>>>(n_groups,
+                                                       d_groups,
+                                                       d_groups_alt,
+                                                       d_group_typeval,
+                                                       d_group_typeval_alt,
+                                                       d_group_tag,
+                                                       d_group_tag_alt,
+                                                       d_group_ranks,
+                                                       d_group_ranks_alt,
+                                                       d_group_rtag,
+                                                       d_scan);
     }
 
 template<typename packed_t>
@@ -2340,17 +2084,12 @@ void gpu_add_groups(unsigned int n_groups,
     unsigned int n_blocks = n_recv / block_size + 1;
 
     // update locally existing groups
-    hipLaunchKernelGGL(gpu_count_unique_groups_kernel,
-                       dim3(n_blocks),
-                       dim3(block_size),
-                       0,
-                       0,
-                       n_recv,
-                       d_groups_in,
-                       d_group_rtag,
-                       d_marked_groups,
-                       local_multiple,
-                       myrank);
+    gpu_count_unique_groups_kernel<<<n_blocks, block_size>>>(n_recv,
+                                                             d_groups_in,
+                                                             d_group_rtag,
+                                                             d_marked_groups,
+                                                             local_multiple,
+                                                             myrank);
 
     unsigned int n_unique;
 
@@ -2359,18 +2098,18 @@ void gpu_add_groups(unsigned int n_groups,
     size_t temp_storage_bytes = 0;
 
     // determine size of temporary storage
-    hipcub::DeviceScan::ExclusiveSum(d_temp_storage,
-                                     temp_storage_bytes,
-                                     d_marked_groups,
-                                     d_tmp,
-                                     n_recv);
+    cub::DeviceScan::ExclusiveSum(d_temp_storage,
+                                  temp_storage_bytes,
+                                  d_marked_groups,
+                                  d_tmp,
+                                  n_recv);
 
     d_temp_storage = alloc.getTemporaryBuffer<char>(temp_storage_bytes);
-    hipcub::DeviceScan::ExclusiveSum(d_temp_storage,
-                                     temp_storage_bytes,
-                                     d_marked_groups,
-                                     d_tmp,
-                                     n_recv);
+    cub::DeviceScan::ExclusiveSum(d_temp_storage,
+                                  temp_storage_bytes,
+                                  d_marked_groups,
+                                  d_tmp,
+                                  n_recv);
     alloc.deallocate((char*)d_temp_storage);
 
     // determine n_unique number of ghosts
@@ -2379,41 +2118,28 @@ void gpu_add_groups(unsigned int n_groups,
     unsigned int* d_n_unique = alloc.getTemporaryBuffer<unsigned int>(1);
     assert(d_n_unique);
 
-    hipcub::DeviceReduce::Sum(d_temp_storage,
-                              temp_storage_bytes,
-                              d_marked_groups,
-                              d_n_unique,
-                              n_recv);
+    cub::DeviceReduce::Sum(d_temp_storage, temp_storage_bytes, d_marked_groups, d_n_unique, n_recv);
     d_temp_storage = alloc.allocate(temp_storage_bytes);
-    hipcub::DeviceReduce::Sum(d_temp_storage,
-                              temp_storage_bytes,
-                              d_marked_groups,
-                              d_n_unique,
-                              n_recv);
+    cub::DeviceReduce::Sum(d_temp_storage, temp_storage_bytes, d_marked_groups, d_n_unique, n_recv);
     alloc.deallocate((char*)d_temp_storage);
 
-    hipMemcpy(&n_unique, d_n_unique, sizeof(unsigned int), hipMemcpyDeviceToHost);
+    cudaMemcpy(&n_unique, d_n_unique, sizeof(unsigned int), cudaMemcpyDeviceToHost);
     alloc.deallocate((char*)d_n_unique);
 
     new_ngroups += n_unique;
 
     // add new groups at the end
-    hipLaunchKernelGGL(gpu_add_groups_kernel,
-                       dim3(n_blocks),
-                       dim3(block_size),
-                       0,
-                       0,
-                       n_recv,
-                       n_groups,
-                       d_groups_in,
-                       d_tmp,
-                       d_groups,
-                       d_group_typeval,
-                       d_group_tag,
-                       d_group_ranks,
-                       d_group_rtag,
-                       local_multiple,
-                       myrank);
+    gpu_add_groups_kernel<<<n_blocks, block_size>>>(n_recv,
+                                                    n_groups,
+                                                    d_groups_in,
+                                                    d_tmp,
+                                                    d_groups,
+                                                    d_group_typeval,
+                                                    d_group_tag,
+                                                    d_group_ranks,
+                                                    d_group_rtag,
+                                                    local_multiple,
+                                                    myrank);
     }
 
 template<unsigned int group_size, typename members_t, typename ranks_t>
@@ -2539,28 +2265,23 @@ void gpu_mark_bonded_ghosts(unsigned int n_groups,
     unsigned int block_size = 256;
     unsigned int n_blocks = n_groups / block_size + 1;
 
-    hipLaunchKernelGGL(HIP_KERNEL_NAME(gpu_mark_bonded_ghosts_kernel<group_size>),
-                       dim3(n_blocks),
-                       dim3(block_size),
-                       0,
-                       0,
-                       n_groups,
-                       d_groups,
-                       d_ranks,
-                       d_postype,
-                       box,
-                       d_rtag,
-                       d_plan,
-                       di,
-                       my_pos,
-                       d_cart_ranks_inv,
-                       my_rank,
-                       mask);
+    gpu_mark_bonded_ghosts_kernel<group_size><<<n_blocks, block_size>>>(n_groups,
+                                                                        d_groups,
+                                                                        d_ranks,
+                                                                        d_postype,
+                                                                        box,
+                                                                        d_rtag,
+                                                                        d_plan,
+                                                                        di,
+                                                                        my_pos,
+                                                                        d_cart_ranks_inv,
+                                                                        my_rank,
+                                                                        mask);
     }
 
 void gpu_reset_exchange_plan(unsigned int N, unsigned int* d_plan)
     {
-    hipMemsetAsync(d_plan, 0, sizeof(unsigned int) * N);
+    cudaMemsetAsync(d_plan, 0, sizeof(unsigned int) * N);
     }
 /*
  *! Explicit template instantiations for BondData (n=2)

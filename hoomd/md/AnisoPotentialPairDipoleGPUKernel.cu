@@ -10,7 +10,7 @@ namespace md
     {
 namespace kernel
     {
-template hipError_t __attribute__((visibility("default")))
+template cudaError_t __attribute__((visibility("default")))
 gpu_compute_pair_aniso_forces<EvaluatorPairDipole>(
     const a_pair_args_t& pair_args,
     const EvaluatorPairDipole::param_type* d_param,

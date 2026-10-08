@@ -1,7 +1,7 @@
 // Copyright (c) 2009-2026 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
-#include "hip/hip_runtime.h"
+#include <cuda_runtime.h>
 // Copyright (c) 2009-2021 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
@@ -119,68 +119,58 @@ __global__ void gpu_npt_mtk_step_one_kernel(Scalar4* d_pos,
 
     This is just a kernel driver for gpu_npt_mtk_step_one_kernel(). See it for more details.
 */
-hipError_t gpu_npt_rescale_step_one(Scalar4* d_pos,
-                                    Scalar4* d_vel,
-                                    const Scalar3* d_accel,
-                                    unsigned int* d_group_members,
-                                    const unsigned int group_size,
-                                    Scalar thermo_rescale,
-                                    Scalar* mat_exp_v,
-                                    Scalar* mat_exp_r,
-                                    Scalar* mat_exp_r_int,
-                                    Scalar deltaT,
-                                    bool rescale_all,
-                                    const unsigned int block_size,
-                                    unsigned int n_dimensions)
+cudaError_t gpu_npt_rescale_step_one(Scalar4* d_pos,
+                                     Scalar4* d_vel,
+                                     const Scalar3* d_accel,
+                                     unsigned int* d_group_members,
+                                     const unsigned int group_size,
+                                     Scalar thermo_rescale,
+                                     Scalar* mat_exp_v,
+                                     Scalar* mat_exp_r,
+                                     Scalar* mat_exp_r_int,
+                                     Scalar deltaT,
+                                     bool rescale_all,
+                                     const unsigned int block_size,
+                                     unsigned int n_dimensions)
     {
     unsigned int max_block_size;
-    hipFuncAttributes attr;
-    hipFuncGetAttributes(&attr, (const void*)gpu_npt_mtk_step_one_kernel);
+    cudaFuncAttributes attr;
+    cudaFuncGetAttributes(&attr, (const void*)gpu_npt_mtk_step_one_kernel);
     max_block_size = attr.maxThreadsPerBlock;
 
     unsigned int run_block_size = min(block_size, max_block_size);
 
     unsigned int nwork = group_size;
 
-    // setup the grid to run the kernel
-    dim3 grid((nwork / run_block_size) + 1, 1, 1);
-    dim3 threads(run_block_size, 1, 1);
+    gpu_npt_mtk_step_one_kernel<<<(nwork / run_block_size) + 1, run_block_size>>>(d_pos,
+                                                                                  d_vel,
+                                                                                  d_accel,
+                                                                                  d_group_members,
+                                                                                  nwork,
+                                                                                  thermo_rescale,
+                                                                                  mat_exp_v[0],
+                                                                                  mat_exp_v[1],
+                                                                                  mat_exp_v[2],
+                                                                                  mat_exp_v[3],
+                                                                                  mat_exp_v[4],
+                                                                                  mat_exp_v[5],
+                                                                                  mat_exp_r[0],
+                                                                                  mat_exp_r[1],
+                                                                                  mat_exp_r[2],
+                                                                                  mat_exp_r[3],
+                                                                                  mat_exp_r[4],
+                                                                                  mat_exp_r[5],
+                                                                                  mat_exp_r_int[0],
+                                                                                  mat_exp_r_int[1],
+                                                                                  mat_exp_r_int[2],
+                                                                                  mat_exp_r_int[3],
+                                                                                  mat_exp_r_int[4],
+                                                                                  mat_exp_r_int[5],
+                                                                                  deltaT,
+                                                                                  rescale_all,
+                                                                                  n_dimensions);
 
-    // run the kernel
-    hipLaunchKernelGGL((gpu_npt_mtk_step_one_kernel),
-                       dim3(grid),
-                       dim3(threads),
-                       0,
-                       0,
-                       d_pos,
-                       d_vel,
-                       d_accel,
-                       d_group_members,
-                       nwork,
-                       thermo_rescale,
-                       mat_exp_v[0],
-                       mat_exp_v[1],
-                       mat_exp_v[2],
-                       mat_exp_v[3],
-                       mat_exp_v[4],
-                       mat_exp_v[5],
-                       mat_exp_r[0],
-                       mat_exp_r[1],
-                       mat_exp_r[2],
-                       mat_exp_r[3],
-                       mat_exp_r[4],
-                       mat_exp_r[5],
-                       mat_exp_r_int[0],
-                       mat_exp_r_int[1],
-                       mat_exp_r_int[2],
-                       mat_exp_r_int[3],
-                       mat_exp_r_int[4],
-                       mat_exp_r_int[5],
-                       deltaT,
-                       rescale_all,
-                       n_dimensions);
-
-    return hipSuccess;
+    return cudaSuccess;
     }
 
 /*! \param N number of particles in the system
@@ -230,39 +220,29 @@ __global__ void gpu_npt_mtk_wrap_kernel(const unsigned int nwork,
 
     This is just a kernel driver for gpu_npt_mtk_wrap_kernel(). See it for more details.
 */
-hipError_t gpu_npt_rescale_wrap(const unsigned int N,
-                                Scalar4* d_pos,
-                                Scalar4* d_vel,
-                                int3* d_image,
-                                const BoxDim& box,
-                                const unsigned int block_size)
+cudaError_t gpu_npt_rescale_wrap(const unsigned int N,
+                                 Scalar4* d_pos,
+                                 Scalar4* d_vel,
+                                 int3* d_image,
+                                 const BoxDim& box,
+                                 const unsigned int block_size)
     {
     unsigned int max_block_size;
-    hipFuncAttributes attr;
-    hipFuncGetAttributes(&attr, (const void*)gpu_npt_mtk_wrap_kernel);
+    cudaFuncAttributes attr;
+    cudaFuncGetAttributes(&attr, (const void*)gpu_npt_mtk_wrap_kernel);
     max_block_size = attr.maxThreadsPerBlock;
 
     unsigned int run_block_size = min(block_size, max_block_size);
 
     unsigned int nwork = N;
 
-    // setup the grid to run the kernel
-    dim3 grid((nwork / run_block_size) + 1, 1, 1);
-    dim3 threads(run_block_size, 1, 1);
+    gpu_npt_mtk_wrap_kernel<<<(nwork / run_block_size) + 1, run_block_size>>>(nwork,
+                                                                              d_pos,
+                                                                              d_vel,
+                                                                              d_image,
+                                                                              box);
 
-    // run the kernel
-    hipLaunchKernelGGL((gpu_npt_mtk_wrap_kernel),
-                       dim3(grid),
-                       dim3(threads),
-                       0,
-                       0,
-                       nwork,
-                       d_pos,
-                       d_vel,
-                       d_image,
-                       box);
-
-    return hipSuccess;
+    return cudaSuccess;
     }
 
 //! Kernel to propagate the positions and velocities, second half of NPT update
@@ -336,52 +316,42 @@ __global__ void gpu_npt_mtk_step_two_kernel(Scalar4* d_vel,
 
     This is just a kernel driver for gpu_npt_mtk_step_kernel(). See it for more details.
 */
-hipError_t gpu_npt_rescale_step_two(Scalar4* d_vel,
-                                    Scalar3* d_accel,
-                                    unsigned int* d_group_members,
-                                    const unsigned int group_size,
-                                    Scalar4* d_net_force,
-                                    Scalar* mat_exp_v,
-                                    Scalar deltaT,
-                                    Scalar thermo_rescale,
-                                    const unsigned int block_size,
-                                    unsigned int n_dimensions)
+cudaError_t gpu_npt_rescale_step_two(Scalar4* d_vel,
+                                     Scalar3* d_accel,
+                                     unsigned int* d_group_members,
+                                     const unsigned int group_size,
+                                     Scalar4* d_net_force,
+                                     Scalar* mat_exp_v,
+                                     Scalar deltaT,
+                                     Scalar thermo_rescale,
+                                     const unsigned int block_size,
+                                     unsigned int n_dimensions)
     {
     unsigned int max_block_size;
-    hipFuncAttributes attr;
-    hipFuncGetAttributes(&attr, (const void*)gpu_npt_mtk_step_two_kernel);
+    cudaFuncAttributes attr;
+    cudaFuncGetAttributes(&attr, (const void*)gpu_npt_mtk_step_two_kernel);
     max_block_size = attr.maxThreadsPerBlock;
 
     unsigned int run_block_size = min(block_size, max_block_size);
 
     unsigned int nwork = group_size;
 
-    // setup the grid to run the kernel
-    dim3 grid((nwork / run_block_size) + 1, 1, 1);
-    dim3 threads(run_block_size, 1, 1);
+    gpu_npt_mtk_step_two_kernel<<<(nwork / run_block_size) + 1, run_block_size>>>(d_vel,
+                                                                                  d_accel,
+                                                                                  d_net_force,
+                                                                                  d_group_members,
+                                                                                  nwork,
+                                                                                  mat_exp_v[0],
+                                                                                  mat_exp_v[1],
+                                                                                  mat_exp_v[2],
+                                                                                  mat_exp_v[3],
+                                                                                  mat_exp_v[4],
+                                                                                  mat_exp_v[5],
+                                                                                  deltaT,
+                                                                                  thermo_rescale,
+                                                                                  n_dimensions);
 
-    // run the kernel
-    hipLaunchKernelGGL((gpu_npt_mtk_step_two_kernel),
-                       dim3(grid),
-                       dim3(threads),
-                       0,
-                       0,
-                       d_vel,
-                       d_accel,
-                       d_net_force,
-                       d_group_members,
-                       nwork,
-                       mat_exp_v[0],
-                       mat_exp_v[1],
-                       mat_exp_v[2],
-                       mat_exp_v[3],
-                       mat_exp_v[4],
-                       mat_exp_v[5],
-                       deltaT,
-                       thermo_rescale,
-                       n_dimensions);
-
-    return hipSuccess;
+    return cudaSuccess;
     }
 
 __global__ void gpu_npt_mtk_rescale_kernel(const unsigned int nwork,
@@ -420,31 +390,22 @@ void gpu_npt_rescale_rescale(const unsigned int N,
                              const unsigned int block_size)
     {
     unsigned int max_block_size;
-    hipFuncAttributes attr;
-    hipFuncGetAttributes(&attr, (const void*)gpu_npt_mtk_rescale_kernel);
+    cudaFuncAttributes attr;
+    cudaFuncGetAttributes(&attr, (const void*)gpu_npt_mtk_rescale_kernel);
     max_block_size = attr.maxThreadsPerBlock;
 
     unsigned int run_block_size = min(block_size, max_block_size);
 
     unsigned int nwork = N;
 
-    // setup the grid to run the kernel
-    dim3 grid((nwork / run_block_size) + 1, 1, 1);
-    dim3 threads(run_block_size, 1, 1);
-
-    hipLaunchKernelGGL((gpu_npt_mtk_rescale_kernel),
-                       dim3(grid),
-                       dim3(threads),
-                       0,
-                       0,
-                       nwork,
-                       d_postype,
-                       mat_exp_r_xx,
-                       mat_exp_r_xy,
-                       mat_exp_r_xz,
-                       mat_exp_r_yy,
-                       mat_exp_r_yz,
-                       mat_exp_r_zz);
+    gpu_npt_mtk_rescale_kernel<<<(nwork / run_block_size) + 1, run_block_size>>>(nwork,
+                                                                                 d_postype,
+                                                                                 mat_exp_r_xx,
+                                                                                 mat_exp_r_xy,
+                                                                                 mat_exp_r_xz,
+                                                                                 mat_exp_r_yy,
+                                                                                 mat_exp_r_yz,
+                                                                                 mat_exp_r_zz);
     }
     } // end namespace kernel
     } // end namespace md

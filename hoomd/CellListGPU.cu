@@ -191,8 +191,8 @@ void gpu_compute_cell_list(unsigned int* d_cell_size,
                            const unsigned int block_size)
     {
     unsigned int max_block_size;
-    hipFuncAttributes attr;
-    hipFuncGetAttributes(&attr, reinterpret_cast<const void*>(&gpu_compute_cell_list_kernel));
+    cudaFuncAttributes attr;
+    cudaFuncGetAttributes(&attr, reinterpret_cast<const void*>(&gpu_compute_cell_list_kernel));
     max_block_size = attr.maxThreadsPerBlock;
 
     unsigned int nwork = N + n_ghost;
@@ -200,32 +200,27 @@ void gpu_compute_cell_list(unsigned int* d_cell_size,
     unsigned int run_block_size = min(block_size, max_block_size);
     int n_blocks = nwork / run_block_size + 1;
 
-    hipLaunchKernelGGL(HIP_KERNEL_NAME(gpu_compute_cell_list_kernel),
-                       dim3(n_blocks),
-                       dim3(run_block_size),
-                       0,
-                       0,
-                       d_cell_size,
-                       d_xyzf,
-                       d_type_body,
-                       d_cell_orientation,
-                       d_cell_idx,
-                       d_conditions,
-                       d_pos,
-                       d_orientation,
-                       d_charge,
-                       d_diameter,
-                       d_body,
-                       N,
-                       n_ghost,
-                       Nmax,
-                       flag_charge,
-                       flag_type,
-                       box,
-                       ci,
-                       cli,
-                       ghost_width,
-                       nwork);
+    gpu_compute_cell_list_kernel<<<n_blocks, run_block_size>>>(d_cell_size,
+                                                               d_xyzf,
+                                                               d_type_body,
+                                                               d_cell_orientation,
+                                                               d_cell_idx,
+                                                               d_conditions,
+                                                               d_pos,
+                                                               d_orientation,
+                                                               d_charge,
+                                                               d_diameter,
+                                                               d_body,
+                                                               N,
+                                                               n_ghost,
+                                                               Nmax,
+                                                               flag_charge,
+                                                               flag_type,
+                                                               box,
+                                                               ci,
+                                                               cli,
+                                                               ghost_width,
+                                                               nwork);
     }
 
 __global__ void gpu_fill_indices_kernel(unsigned int cl_size,
@@ -314,19 +309,19 @@ __global__ void gpu_apply_sorted_cell_list_order(unsigned int cl_size,
    \param ci Cell indexer
    \param cli Cell list indexer
  */
-hipError_t gpu_sort_cell_list(unsigned int* d_cell_size,
-                              Scalar4* d_xyzf,
-                              Scalar4* d_xyzf_new,
-                              uint2* d_type_body,
-                              uint2* d_type_body_new,
-                              Scalar4* d_cell_orientation,
-                              Scalar4* d_cell_orientation_new,
-                              unsigned int* d_cell_idx,
-                              unsigned int* d_cell_idx_new,
-                              uint2* d_sort_idx,
-                              unsigned int* d_sort_permutation,
-                              const Index3D ci,
-                              const Index2D cli)
+cudaError_t gpu_sort_cell_list(unsigned int* d_cell_size,
+                               Scalar4* d_xyzf,
+                               Scalar4* d_xyzf_new,
+                               uint2* d_type_body,
+                               uint2* d_type_body_new,
+                               Scalar4* d_cell_orientation,
+                               Scalar4* d_cell_orientation_new,
+                               unsigned int* d_cell_idx,
+                               unsigned int* d_cell_idx_new,
+                               uint2* d_sort_idx,
+                               unsigned int* d_sort_permutation,
+                               const Index3D ci,
+                               const Index2D cli)
     {
     unsigned int block_size = 256;
 
@@ -334,18 +329,13 @@ hipError_t gpu_sort_cell_list(unsigned int* d_cell_size,
     dim3 threads(block_size);
     dim3 grid(cli.getNumElements() / block_size + 1);
 
-    hipLaunchKernelGGL(HIP_KERNEL_NAME(gpu_fill_indices_kernel),
-                       grid,
-                       threads,
-                       0,
-                       0,
-                       cli.getNumElements(),
-                       d_sort_idx,
-                       d_sort_permutation,
-                       d_cell_idx,
-                       d_cell_size,
-                       ci,
-                       cli);
+    gpu_fill_indices_kernel<<<grid, threads>>>(cli.getNumElements(),
+                                               d_sort_idx,
+                                               d_sort_permutation,
+                                               d_cell_idx,
+                                               d_cell_size,
+                                               ci,
+                                               cli);
 
     // locality sort on those pairs
     thrust::device_ptr<uint2> d_sort_idx_thrust(d_sort_idx);
@@ -356,51 +346,46 @@ hipError_t gpu_sort_cell_list(unsigned int* d_cell_size,
                         comp_less_uint2());
 
     // apply sorted order
-    hipLaunchKernelGGL(HIP_KERNEL_NAME(gpu_apply_sorted_cell_list_order),
-                       grid,
-                       threads,
-                       0,
-                       0,
-                       cli.getNumElements(),
-                       d_cell_idx,
-                       d_cell_idx_new,
-                       d_xyzf,
-                       d_xyzf_new,
-                       d_type_body,
-                       d_type_body_new,
-                       d_cell_orientation,
-                       d_cell_orientation_new,
-                       d_sort_permutation,
-                       cli);
+    gpu_apply_sorted_cell_list_order<<<grid, threads>>>(cli.getNumElements(),
+                                                        d_cell_idx,
+                                                        d_cell_idx_new,
+                                                        d_xyzf,
+                                                        d_xyzf_new,
+                                                        d_type_body,
+                                                        d_type_body_new,
+                                                        d_cell_orientation,
+                                                        d_cell_orientation_new,
+                                                        d_sort_permutation,
+                                                        cli);
 
     // copy back permuted arrays to original ones
     if (d_xyzf)
-        hipMemcpy(d_xyzf,
-                  d_xyzf_new,
-                  sizeof(Scalar4) * cli.getNumElements(),
-                  hipMemcpyDeviceToDevice);
+        cudaMemcpy(d_xyzf,
+                   d_xyzf_new,
+                   sizeof(Scalar4) * cli.getNumElements(),
+                   cudaMemcpyDeviceToDevice);
 
-    hipMemcpy(d_cell_idx,
-              d_cell_idx_new,
-              sizeof(unsigned int) * cli.getNumElements(),
-              hipMemcpyDeviceToDevice);
+    cudaMemcpy(d_cell_idx,
+               d_cell_idx_new,
+               sizeof(unsigned int) * cli.getNumElements(),
+               cudaMemcpyDeviceToDevice);
 
     if (d_type_body)
         {
-        hipMemcpy(d_type_body,
-                  d_type_body_new,
-                  sizeof(uint2) * cli.getNumElements(),
-                  hipMemcpyDeviceToDevice);
+        cudaMemcpy(d_type_body,
+                   d_type_body_new,
+                   sizeof(uint2) * cli.getNumElements(),
+                   cudaMemcpyDeviceToDevice);
         }
     if (d_cell_orientation)
         {
-        hipMemcpy(d_cell_orientation,
-                  d_cell_orientation_new,
-                  sizeof(Scalar4) * cli.getNumElements(),
-                  hipMemcpyDeviceToDevice);
+        cudaMemcpy(d_cell_orientation,
+                   d_cell_orientation_new,
+                   sizeof(Scalar4) * cli.getNumElements(),
+                   cudaMemcpyDeviceToDevice);
         }
 
-    return hipSuccess;
+    return cudaSuccess;
     }
 
     } // end namespace hoomd

@@ -4,12 +4,12 @@
 #ifndef __EVALUATOR_PAIR_GB_H__
 #define __EVALUATOR_PAIR_GB_H__
 
-#ifndef __HIPCC__
+#ifndef __NVCC__
 #include <string>
 #endif
 
-#ifdef ENABLE_HIP
-#include <hip/hip_runtime.h>
+#ifdef ENABLE_GPU
+#include <cuda_runtime.h>
 #endif
 
 #define HOOMD_GB_MIN(i, j) ((i > j) ? j : i)
@@ -24,7 +24,7 @@
 // need to declare these class methods with __device__ qualifiers when building in nvcc
 //! HOSTDEVICE is __host__ __device__ when included in nvcc and blank when included into the host
 //! compiler
-#ifdef __HIPCC__
+#ifdef __NVCC__
 #define HOSTDEVICE __host__ __device__
 #define DEVICE __device__
 #else
@@ -59,7 +59,7 @@ class EvaluatorPairGB
 
         HOSTDEVICE void allocate_shared(char*& ptr, unsigned int& available_bytes) const { }
 
-#ifdef ENABLE_HIP
+#ifdef ENABLE_GPU
         //! Set CUDA memory hints
         void set_memory_hint() const
             {
@@ -74,7 +74,7 @@ class EvaluatorPairGB
             lpar = 0;
             }
 
-#ifndef __HIPCC__
+#ifndef __NVCC__
 
         param_type(pybind11::dict v, bool managed = false)
             {
@@ -113,7 +113,7 @@ class EvaluatorPairGB
 
         HOSTDEVICE shape_type() { }
 
-#ifndef __HIPCC__
+#ifndef __NVCC__
 
         shape_type(pybind11::object shape_params, bool managed) { }
 
@@ -123,7 +123,7 @@ class EvaluatorPairGB
             }
 #endif
 
-#ifdef ENABLE_HIP
+#ifdef ENABLE_GPU
         //! Attach managed memory to CUDA stream
         void set_memory_hint() const { }
 #endif
@@ -289,7 +289,7 @@ class EvaluatorPairGB
         return 0;
         }
 
-#ifndef __HIPCC__
+#ifndef __NVCC__
     //! Get the name of the potential
     /*! \returns The potential name.
      */

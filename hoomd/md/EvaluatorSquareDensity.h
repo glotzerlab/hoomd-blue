@@ -4,7 +4,7 @@
 #ifndef __EVALUATOR_SQUARE_DENSITY__
 #define __EVALUATOR_SQUARE_DENSITY__
 
-#ifndef __HIPCC__
+#ifndef __NVCC__
 #include <string>
 #endif
 
@@ -17,7 +17,7 @@
    Phys. Rev. E 68, p. 066702 (2003)
 */
 
-#ifdef __HIPCC__
+#ifdef __NVCC__
 #define DEVICE __device__
 #define HOSTDEVICE __host__ __device__
 #else
@@ -38,7 +38,7 @@ class EvaluatorSquareDensity
         Scalar A;
         Scalar B;
 
-#ifdef ENABLE_HIP
+#ifdef ENABLE_GPU
         //! Set CUDA memory hints
         void set_memory_hint() const
             {
@@ -46,7 +46,7 @@ class EvaluatorSquareDensity
             }
 #endif
 
-#ifndef __HIPCC__
+#ifndef __NVCC__
         param_type() : A(0), B(0) { }
 
         param_type(pybind11::dict v)
@@ -196,7 +196,7 @@ class EvaluatorSquareDensity
         return false;
         }
 
-#ifndef __HIPCC__
+#ifndef __NVCC__
     //! Get the name of this potential
     /*! \returns The potential name.
      */

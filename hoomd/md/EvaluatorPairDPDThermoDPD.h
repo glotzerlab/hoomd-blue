@@ -4,7 +4,7 @@
 #ifndef __PAIR_EVALUATOR_DPD_H__
 #define __PAIR_EVALUATOR_DPD_H__
 
-#ifndef __HIPCC__
+#ifndef __NVCC__
 #include <string>
 #endif
 
@@ -20,7 +20,7 @@
 // need to declare these class methods with __device__ qualifiers when building in nvcc
 // DEVICE is __host__ __device__ when included in nvcc and blank when included into the host
 // compiler
-#ifdef __HIPCC__
+#ifdef __NVCC__
 #define DEVICE __device__
 #define HOSTDEVICE __host__ __device__
 #else
@@ -87,11 +87,11 @@ class EvaluatorPairDPDThermoDPD
 
         HOSTDEVICE void allocate_shared(char*& ptr, unsigned int& available_bytes) const { }
 
-#ifdef ENABLE_HIP
+#ifdef ENABLE_GPU
         // CUDA memory hints
         void set_memory_hints() const { }
 #endif
-#ifndef __HIPCC__
+#ifndef __NVCC__
         param_type() : A(0), gamma(0) { }
 
         param_type(pybind11::dict v, bool managed = false)
@@ -287,7 +287,7 @@ class EvaluatorPairDPDThermoDPD
         return 0;
         }
 
-#ifndef __HIPCC__
+#ifndef __NVCC__
     //! Get the name of this potential
     /*! \returns The potential name.
      */

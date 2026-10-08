@@ -4,7 +4,7 @@
 #ifndef __PAIR_EVALUATOR_ZBL__
 #define __PAIR_EVALUATOR_ZBL__
 
-#ifndef __HIPCC__
+#ifndef __NVCC__
 #include <string>
 #endif
 
@@ -16,7 +16,7 @@
 */
 
 // need to declare these class methods with __device__ qualifiers when building in nvcc
-#ifdef __HIPCC__
+#ifdef __NVCC__
 #define DEVICE __device__
 #define HOSTDEVICE __host__ __device__
 #else
@@ -55,7 +55,7 @@ class EvaluatorPairZBL
 
     HOSTDEVICE void allocate_shared(char*& ptr, unsigned int& available_bytes) const { }
 
-#ifdef ENABLE_HIP
+#ifdef ENABLE_GPU
     // set CUDA memory hints
     void set_memory_hint() const
         {
@@ -132,7 +132,7 @@ class EvaluatorPairZBL
         return 0;
         }
 
-#ifndef __HIPCC__
+#ifndef __NVCC__
     //! Get the name of this potential
     /*! \returns The potential name.
      */

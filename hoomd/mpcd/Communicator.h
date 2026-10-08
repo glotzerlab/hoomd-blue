@@ -11,7 +11,7 @@
 #ifndef MPCD_COMMUNICATOR_H_
 #define MPCD_COMMUNICATOR_H_
 
-#ifdef __HIPCC__
+#ifdef __NVCC__
 #error This header cannot be compiled by nvcc
 #endif
 

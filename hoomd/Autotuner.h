@@ -25,11 +25,11 @@
 #include <string>
 #include <vector>
 
-#ifdef ENABLE_HIP
-#include <hip/hip_runtime.h>
+#ifdef ENABLE_GPU
+#include <cuda_runtime.h>
 #endif
 
-#ifndef __HIPCC__
+#ifndef __NVCC__
 #include <pybind11/pybind11.h>
 #endif
 
@@ -68,7 +68,7 @@ class PYBIND11_EXPORT AutotunerBase
         return m_name;
         }
 
-#ifndef __HIPCC__
+#ifndef __NVCC__
     /// Get the autotuner parameters as a Python tuple.
     virtual pybind11::tuple getParameterPython()
         {
@@ -79,7 +79,7 @@ class PYBIND11_EXPORT AutotunerBase
     virtual void setParameterPython(pybind11::tuple parameter) { };
 #endif
 
-#ifdef ENABLE_HIP
+#ifdef ENABLE_GPU
     /// Build a block size range that steps on the warp size.
     static std::vector<unsigned int>
     makeBlockSizeRange(const std::shared_ptr<const ExecutionConfiguration> exec_conf)
@@ -152,7 +152,7 @@ class PYBIND11_EXPORT AutotunerBase
     Each Autotuner instance has a string name to help identify it's output on the notice stream.
 
     Autotuner is not useful in non-GPU builds. Timing is performed with CUDA events and requires
-    ENABLE_HIP=on. Behavior of Autotuner is undefined when ENABLE_HIP=off.
+    ENABLE_GPU=on. Behavior of Autotuner is undefined when ENABLE_GPU=off.
 
     Internally, m_n_samples is the number of samples to take (odd for median computation).
     m_current_sample is the current sample being taken, and m_current_element is the index of the
@@ -183,9 +183,9 @@ template<size_t n_dimensions> class PYBIND11_EXPORT Autotuner : public Autotuner
     ~Autotuner()
         {
         m_exec_conf->msg->notice(5) << "Destroying Autotuner " << m_name << std::endl;
-#ifdef ENABLE_HIP
-        hipEventDestroy(m_start);
-        hipEventDestroy(m_stop);
+#ifdef ENABLE_GPU
+        cudaEventDestroy(m_start);
+        cudaEventDestroy(m_stop);
 #endif
         }
 
@@ -215,11 +215,11 @@ template<size_t n_dimensions> class PYBIND11_EXPORT Autotuner : public Autotuner
             m_state = SCANNING;
             }
 
-#ifdef ENABLE_HIP
+#ifdef ENABLE_GPU
         // if we are scanning, record a cuda event - otherwise do nothing
         if (m_state == SCANNING)
             {
-            hipEventRecord(m_start, 0);
+            cudaEventRecord(m_start, 0);
             if (this->m_exec_conf->isCUDAErrorCheckingEnabled())
                 CHECK_CUDA_ERROR();
             }
@@ -376,9 +376,9 @@ template<size_t n_dimensions> class PYBIND11_EXPORT Autotuner : public Autotuner
     /// The Execution configuration.
     std::shared_ptr<const ExecutionConfiguration> m_exec_conf;
 
-#ifdef ENABLE_HIP
-    hipEvent_t m_start; //!< CUDA event for recording start times
-    hipEvent_t m_stop;  //!< CUDA event for recording end times
+#ifdef ENABLE_GPU
+    cudaEvent_t m_start; //!< CUDA event for recording start times
+    cudaEvent_t m_stop;  //!< CUDA event for recording end times
 #endif
 
     /// Synchronize results over MPI when true.
@@ -491,9 +491,9 @@ Autotuner<n_dimensions>::Autotuner(
         }
 
 // create CUDA events
-#ifdef ENABLE_HIP
-    hipEventCreate(&m_start);
-    hipEventCreate(&m_stop);
+#ifdef ENABLE_GPU
+    cudaEventCreate(&m_start);
+    cudaEventCreate(&m_stop);
     CHECK_CUDA_ERROR();
 #endif
 
@@ -502,13 +502,13 @@ Autotuner<n_dimensions>::Autotuner(
 
 template<size_t n_dimensions> void Autotuner<n_dimensions>::end()
     {
-#ifdef ENABLE_HIP
+#ifdef ENABLE_GPU
     // handle timing updates if scanning
     if (m_state == SCANNING)
         {
-        hipEventRecord(m_stop, 0);
-        hipEventSynchronize(m_stop);
-        hipEventElapsedTime(&m_samples[m_current_element][m_current_sample], m_start, m_stop);
+        cudaEventRecord(m_stop, 0);
+        cudaEventSynchronize(m_stop);
+        cudaEventElapsedTime(&m_samples[m_current_element][m_current_sample], m_start, m_stop);
 
         m_exec_conf->msg->notice(9)
             << "Autotuner " << m_name << ": t[" << formatParam(m_current_param) << ","

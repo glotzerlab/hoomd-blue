@@ -4,7 +4,7 @@
 #ifndef __EVALUATOR_EXTERNAL_ELECTRIC_FIELD_H__
 #define __EVALUATOR_EXTERNAL_ELECTRIC_FIELD_H__
 
-#ifndef __HIPCC__
+#ifndef __NVCC__
 #include <string>
 #endif
 
@@ -20,7 +20,7 @@
 // need to declare these class methods with __device__ qualifiers when building in nvcc
 // DEVICE is __host__ __device__ when included in nvcc and blank when included into the host
 // compiler
-#ifdef __HIPCC__
+#ifdef __NVCC__
 #define DEVICE __device__
 #else
 #define DEVICE
@@ -48,7 +48,7 @@ class EvaluatorExternalElectricField
         {
         Scalar3 E;
 
-#ifndef __HIPCC__
+#ifndef __NVCC__
         param_type() : E(make_scalar3(0, 0, 0)) { }
 
         param_type(pybind11::object params)
@@ -65,7 +65,7 @@ class EvaluatorExternalElectricField
             params = pybind11::make_tuple(E.x, E.y, E.z);
             return std::move(params);
             }
-#endif // ifndef __HIPCC__
+#endif // ifndef __NVCC__
         } __attribute__((aligned(16)));
 
     typedef void* field_type;
@@ -130,7 +130,7 @@ class EvaluatorExternalElectricField
         T.z = Scalar(0.0);
         }
 
-#ifndef __HIPCC__
+#ifndef __NVCC__
     //! Get the name of this potential
     /*! \returns The potential name.
      */

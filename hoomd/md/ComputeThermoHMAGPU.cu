@@ -254,15 +254,15 @@ __global__ void gpu_compute_thermo_hma_final_sums(Scalar* d_properties,
    for details.
 */
 
-hipError_t gpu_compute_thermo_hma_partial(Scalar4* d_pos,
-                                          Scalar3* d_lattice_site,
-                                          int3* d_image,
-                                          unsigned int* d_body,
-                                          unsigned int* d_tag,
-                                          unsigned int* d_group_members,
-                                          unsigned int group_size,
-                                          const BoxDim& box,
-                                          const compute_thermo_hma_args& args)
+cudaError_t gpu_compute_thermo_hma_partial(Scalar4* d_pos,
+                                           Scalar3* d_lattice_site,
+                                           int3* d_image,
+                                           unsigned int* d_body,
+                                           unsigned int* d_tag,
+                                           unsigned int* d_group_members,
+                                           unsigned int group_size,
+                                           const BoxDim& box,
+                                           const compute_thermo_hma_args& args)
     {
     assert(d_pos);
     assert(d_group_members);
@@ -289,7 +289,7 @@ hipError_t gpu_compute_thermo_hma_partial(Scalar4* d_pos,
                                                                          d_tag,
                                                                          d_group_members,
                                                                          nwork);
-    return hipSuccess;
+    return cudaSuccess;
     }
 
 //! Compute thermodynamic properties of a group on the GPU
@@ -306,13 +306,13 @@ hipError_t gpu_compute_thermo_hma_partial(Scalar4* d_pos,
    for details.
 */
 
-hipError_t gpu_compute_thermo_hma_final(Scalar* d_properties,
-                                        unsigned int* d_body,
-                                        unsigned int* d_tag,
-                                        unsigned int* d_group_members,
-                                        unsigned int group_size,
-                                        const BoxDim& box,
-                                        const compute_thermo_hma_args& args)
+cudaError_t gpu_compute_thermo_hma_final(Scalar* d_properties,
+                                         unsigned int* d_body,
+                                         unsigned int* d_tag,
+                                         unsigned int* d_group_members,
+                                         unsigned int group_size,
+                                         const BoxDim& box,
+                                         const compute_thermo_hma_args& args)
     {
     assert(d_properties);
     assert(d_group_members);
@@ -343,7 +343,7 @@ hipError_t gpu_compute_thermo_hma_final(Scalar* d_properties,
                                                                        external_virial,
                                                                        args.external_energy);
 
-    return hipSuccess;
+    return cudaSuccess;
     }
 
     } // end namespace kernel

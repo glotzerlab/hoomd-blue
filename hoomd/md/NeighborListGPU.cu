@@ -1,7 +1,7 @@
 // Copyright (c) 2009-2026 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
-#include "hip/hip_runtime.h"
+#include <cuda_runtime.h>
 // Copyright (c) 2009-2021 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
@@ -79,41 +79,36 @@ __global__ void gpu_nlist_needs_update_check_new_kernel(unsigned int* d_result,
         }
     }
 
-hipError_t gpu_nlist_needs_update_check_new(unsigned int* d_result,
-                                            const Scalar4* d_last_pos,
-                                            const Scalar4* d_pos,
-                                            const unsigned int N,
-                                            const BoxDim& box,
-                                            const Scalar* d_rcut_max,
-                                            const Scalar r_buff,
-                                            const unsigned int ntypes,
-                                            const Scalar lambda_min,
-                                            const Scalar3 lambda,
-                                            const unsigned int checkn)
+cudaError_t gpu_nlist_needs_update_check_new(unsigned int* d_result,
+                                             const Scalar4* d_last_pos,
+                                             const Scalar4* d_pos,
+                                             const unsigned int N,
+                                             const BoxDim& box,
+                                             const Scalar* d_rcut_max,
+                                             const Scalar r_buff,
+                                             const unsigned int ntypes,
+                                             const Scalar lambda_min,
+                                             const Scalar3 lambda,
+                                             const unsigned int checkn)
     {
     unsigned int block_size = 128;
 
     unsigned int nwork = N;
 
     int n_blocks = nwork / block_size + 1;
-    hipLaunchKernelGGL((gpu_nlist_needs_update_check_new_kernel),
-                       dim3(n_blocks),
-                       dim3(block_size),
-                       0,
-                       0,
-                       d_result,
-                       d_last_pos,
-                       d_pos,
-                       nwork,
-                       box,
-                       d_rcut_max,
-                       r_buff,
-                       ntypes,
-                       lambda_min,
-                       lambda,
-                       checkn);
+    gpu_nlist_needs_update_check_new_kernel<<<n_blocks, block_size>>>(d_result,
+                                                                      d_last_pos,
+                                                                      d_pos,
+                                                                      nwork,
+                                                                      box,
+                                                                      d_rcut_max,
+                                                                      r_buff,
+                                                                      ntypes,
+                                                                      lambda_min,
+                                                                      lambda,
+                                                                      checkn);
 
-    return hipSuccess;
+    return cudaSuccess;
     }
 
 //! Number of elements of the exclusion list to process in each batch
@@ -211,18 +206,18 @@ __global__ void gpu_nlist_filter_kernel(unsigned int* d_n_neigh,
     d_n_neigh[idx] = new_n_neigh;
     }
 
-hipError_t gpu_nlist_filter(unsigned int* d_n_neigh,
-                            unsigned int* d_nlist,
-                            const size_t* d_head_list,
-                            const unsigned int* d_n_ex,
-                            const unsigned int* d_ex_list,
-                            const Index2D& exli,
-                            const unsigned int N,
-                            const unsigned int block_size)
+cudaError_t gpu_nlist_filter(unsigned int* d_n_neigh,
+                             unsigned int* d_nlist,
+                             const size_t* d_head_list,
+                             const unsigned int* d_n_ex,
+                             const unsigned int* d_ex_list,
+                             const Index2D& exli,
+                             const unsigned int N,
+                             const unsigned int block_size)
     {
     unsigned int max_block_size;
-    hipFuncAttributes attr;
-    hipFuncGetAttributes(&attr, (const void*)gpu_nlist_filter_kernel);
+    cudaFuncAttributes attr;
+    cudaFuncGetAttributes(&attr, (const void*)gpu_nlist_filter_kernel);
     max_block_size = attr.maxThreadsPerBlock;
 
     unsigned int run_block_size = min(block_size, max_block_size);
@@ -235,24 +230,19 @@ hipError_t gpu_nlist_filter(unsigned int* d_n_neigh,
     unsigned int ex_start = 0;
     for (unsigned int batch = 0; batch < n_batches; batch++)
         {
-        hipLaunchKernelGGL((gpu_nlist_filter_kernel),
-                           dim3(n_blocks),
-                           dim3(run_block_size),
-                           0,
-                           0,
-                           d_n_neigh,
-                           d_nlist,
-                           d_head_list,
-                           d_n_ex,
-                           d_ex_list,
-                           exli,
-                           N,
-                           ex_start);
+        gpu_nlist_filter_kernel<<<n_blocks, run_block_size>>>(d_n_neigh,
+                                                              d_nlist,
+                                                              d_head_list,
+                                                              d_n_ex,
+                                                              d_ex_list,
+                                                              exli,
+                                                              N,
+                                                              ex_start);
 
         ex_start += FILTER_BATCH_SIZE;
         }
 
-    return hipSuccess;
+    return cudaSuccess;
     }
 
 //! GPU kernel to update the exclusions list
@@ -298,34 +288,29 @@ __global__ void gpu_update_exclusion_list_kernel(const unsigned int* tags,
     \param ex_list_indexer Indexer for per-idx exclusion list
     \param N number of particles
  */
-hipError_t gpu_update_exclusion_list(const unsigned int* d_tag,
-                                     const unsigned int* d_rtag,
-                                     const unsigned int* d_n_ex_tag,
-                                     const unsigned int* d_ex_list_tag,
-                                     const Index2D& ex_list_tag_indexer,
-                                     unsigned int* d_n_ex_idx,
-                                     unsigned int* d_ex_list_idx,
-                                     const Index2D& ex_list_indexer,
-                                     const unsigned int N)
+cudaError_t gpu_update_exclusion_list(const unsigned int* d_tag,
+                                      const unsigned int* d_rtag,
+                                      const unsigned int* d_n_ex_tag,
+                                      const unsigned int* d_ex_list_tag,
+                                      const Index2D& ex_list_tag_indexer,
+                                      unsigned int* d_n_ex_idx,
+                                      unsigned int* d_ex_list_idx,
+                                      const Index2D& ex_list_indexer,
+                                      const unsigned int N)
     {
     unsigned int block_size = 256;
 
-    hipLaunchKernelGGL((gpu_update_exclusion_list_kernel),
-                       dim3(N / block_size + 1),
-                       dim3(block_size),
-                       0,
-                       0,
-                       d_tag,
-                       d_rtag,
-                       d_n_ex_tag,
-                       d_ex_list_tag,
-                       ex_list_tag_indexer,
-                       d_n_ex_idx,
-                       d_ex_list_idx,
-                       ex_list_indexer,
-                       N);
+    gpu_update_exclusion_list_kernel<<<N / block_size + 1, block_size>>>(d_tag,
+                                                                         d_rtag,
+                                                                         d_n_ex_tag,
+                                                                         d_ex_list_tag,
+                                                                         ex_list_tag_indexer,
+                                                                         d_n_ex_idx,
+                                                                         d_ex_list_idx,
+                                                                         ex_list_indexer,
+                                                                         N);
 
-    return hipSuccess;
+    return cudaSuccess;
     }
 
 //! GPU kernel to do a preliminary sizing on particles
@@ -394,54 +379,42 @@ __global__ void gpu_nlist_get_nlist_size_kernel(size_t* d_req_size_nlist,
  * \param ntypes the number of types in the system
  * \param block_size Number of threads per block for gpu_nlist_init_head_list_kernel()
  *
- * \return hipSuccess on completion
+ * \return cudaSuccess on completion
  *
  * \b Implementation
  * \a d_head_list is filled with the number of neighbors per particle. An exclusive prefix sum is
  * performed in place on \a d_head_list using the thrust libraries and a single thread is used to
  * perform compute the total size of the neighbor list while still on device.
  */
-hipError_t gpu_nlist_build_head_list(size_t* d_head_list,
-                                     size_t* d_req_size_nlist,
-                                     const unsigned int* d_Nmax,
-                                     const Scalar4* d_pos,
-                                     const unsigned int N,
-                                     const unsigned int ntypes,
-                                     const unsigned int block_size)
+cudaError_t gpu_nlist_build_head_list(size_t* d_head_list,
+                                      size_t* d_req_size_nlist,
+                                      const unsigned int* d_Nmax,
+                                      const Scalar4* d_pos,
+                                      const unsigned int N,
+                                      const unsigned int ntypes,
+                                      const unsigned int block_size)
     {
     unsigned int max_block_size;
-    hipFuncAttributes attr;
-    hipFuncGetAttributes(&attr, (const void*)gpu_nlist_init_head_list_kernel);
+    cudaFuncAttributes attr;
+    cudaFuncGetAttributes(&attr, (const void*)gpu_nlist_init_head_list_kernel);
     max_block_size = attr.maxThreadsPerBlock;
 
     unsigned int run_block_size = min(block_size, max_block_size);
 
     // initialize each particle with its number of neighbors
-    hipLaunchKernelGGL((gpu_nlist_init_head_list_kernel),
-                       dim3(N / run_block_size + 1),
-                       dim3(run_block_size),
-                       0,
-                       0,
-                       d_head_list,
-                       d_req_size_nlist,
-                       d_Nmax,
-                       d_pos,
-                       N,
-                       ntypes);
+    gpu_nlist_init_head_list_kernel<<<N / run_block_size + 1, run_block_size>>>(d_head_list,
+                                                                                d_req_size_nlist,
+                                                                                d_Nmax,
+                                                                                d_pos,
+                                                                                N,
+                                                                                ntypes);
 
     thrust::device_ptr<size_t> t_head_list = thrust::device_pointer_cast(d_head_list);
     thrust::exclusive_scan(t_head_list, t_head_list + N, t_head_list);
 
-    hipLaunchKernelGGL((gpu_nlist_get_nlist_size_kernel),
-                       dim3(1),
-                       dim3(1),
-                       0,
-                       0,
-                       d_req_size_nlist,
-                       d_head_list,
-                       N);
+    gpu_nlist_get_nlist_size_kernel<<<1, 1>>>(d_req_size_nlist, d_head_list, N);
 
-    return hipSuccess;
+    return cudaSuccess;
     }
 
     } // end namespace kernel

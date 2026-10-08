@@ -4,7 +4,7 @@
 #ifndef __EVALUATOR_EXTERNAL_PERIODIC_H__
 #define __EVALUATOR_EXTERNAL_PERIODIC_H__
 
-#ifndef __HIPCC__
+#ifndef __NVCC__
 #include <string>
 #endif
 
@@ -20,7 +20,7 @@
 // need to declare these class methods with __device__ qualifiers when building in nvcc
 // DEVICE is __host__ __device__ when included in nvcc and blank when included into the host
 // compiler
-#ifdef __HIPCC__
+#ifdef __NVCC__
 #define DEVICE __device__
 #else
 #define DEVICE
@@ -57,7 +57,7 @@ class EvaluatorExternalPeriodic
         int i;
         int p;
 
-#ifndef __HIPCC__
+#ifndef __NVCC__
         param_type() : A(1.0), w(1.0), i(0), p(1) { }
 
         param_type(pybind11::dict params)
@@ -179,7 +179,7 @@ class EvaluatorExternalPeriodic
         energy = m_orderParameter * tanH;
         }
 
-#ifndef __HIPCC__
+#ifndef __NVCC__
     //! Get the name of this potential
     /*! \returns The potential name.
      */

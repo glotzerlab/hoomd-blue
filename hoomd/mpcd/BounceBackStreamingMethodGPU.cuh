@@ -49,7 +49,7 @@ template<class Geometry, class Force>
 cudaError_t
 confined_stream(const stream_args_t& args, const Geometry& geom, const Force& solvent_force);
 
-#ifdef __HIPCC__
+#ifdef __NVCC__
 namespace kernel
     {
 //! Kernel to stream particles ballistically
@@ -151,7 +151,7 @@ cudaError_t confined_stream(const stream_args_t& args, const Geometry& geom, con
 
     return cudaSuccess;
     }
-#endif // __HIPCC__
+#endif // __NVCC__
 
     } // end namespace gpu
     } // end namespace mpcd

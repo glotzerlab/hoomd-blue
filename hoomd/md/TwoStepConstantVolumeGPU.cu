@@ -2,8 +2,8 @@
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #include "TwoStepConstantVolumeGPU.cuh"
-#include "hip/hip_runtime.h"
 #include <assert.h>
+#include <cuda_runtime.h>
 
 /*! \file TwoStepNVTGPU.cu
     \brief Defines GPU kernel code for NVT integration on the GPU. Used by TwoStepNVTGPU.
@@ -102,53 +102,45 @@ __global__ void gpu_nvt_rescale_step_one_kernel(Scalar4* d_pos,
     \param rescale_factor Thermostat rescaling factor
     \param deltaT Amount of real time to step forward in one time step
 */
-hipError_t gpu_nvt_rescale_step_one(Scalar4* d_pos,
-                                    Scalar4* d_vel,
-                                    const Scalar3* d_accel,
-                                    int3* d_image,
-                                    unsigned int* d_group_members,
-                                    unsigned int group_size,
-                                    const BoxDim& box,
-                                    unsigned int block_size,
-                                    Scalar rescale_factor,
-                                    Scalar deltaT,
-                                    unsigned int n_dimensions,
-                                    bool use_limit,
-                                    Scalar maximum_displacement)
+cudaError_t gpu_nvt_rescale_step_one(Scalar4* d_pos,
+                                     Scalar4* d_vel,
+                                     const Scalar3* d_accel,
+                                     int3* d_image,
+                                     unsigned int* d_group_members,
+                                     unsigned int group_size,
+                                     const BoxDim& box,
+                                     unsigned int block_size,
+                                     Scalar rescale_factor,
+                                     Scalar deltaT,
+                                     unsigned int n_dimensions,
+                                     bool use_limit,
+                                     Scalar maximum_displacement)
     {
     unsigned int max_block_size;
-    hipFuncAttributes attr;
-    hipFuncGetAttributes(&attr, (const void*)gpu_nvt_rescale_step_one_kernel);
+    cudaFuncAttributes attr;
+    cudaFuncGetAttributes(&attr, (const void*)gpu_nvt_rescale_step_one_kernel);
     max_block_size = attr.maxThreadsPerBlock;
 
     unsigned int run_block_size = min(block_size, max_block_size);
 
     unsigned int nwork = group_size;
 
-    // setup the grid to run the kernel
-    dim3 grid((nwork / run_block_size) + 1, 1, 1);
-    dim3 threads(run_block_size, 1, 1);
-
     // run the kernel
-    hipLaunchKernelGGL((gpu_nvt_rescale_step_one_kernel),
-                       dim3(grid),
-                       dim3(threads),
-                       0,
-                       0,
-                       d_pos,
-                       d_vel,
-                       d_accel,
-                       d_image,
-                       d_group_members,
-                       nwork,
-                       box,
-                       rescale_factor,
-                       deltaT,
-                       n_dimensions,
-                       use_limit,
-                       maximum_displacement);
+    gpu_nvt_rescale_step_one_kernel<<<(nwork / run_block_size) + 1, run_block_size>>>(
+        d_pos,
+        d_vel,
+        d_accel,
+        d_image,
+        d_group_members,
+        nwork,
+        box,
+        rescale_factor,
+        deltaT,
+        n_dimensions,
+        use_limit,
+        maximum_displacement);
 
-    return hipSuccess;
+    return cudaSuccess;
     }
 
 //! Takes the second 1/2 step forward in the NVT integration step
@@ -215,46 +207,38 @@ __global__ void gpu_nvt_rescale_step_two_kernel(Scalar4* d_vel,
     \param rescale_factor Exponential velocity scaling factor
     \param n_dimensions Number of dimensions in the simulation.
 */
-hipError_t gpu_nvt_rescale_step_two(Scalar4* d_vel,
-                                    Scalar3* d_accel,
-                                    unsigned int* d_group_members,
-                                    unsigned int group_size,
-                                    Scalar4* d_net_force,
-                                    unsigned int block_size,
-                                    Scalar deltaT,
-                                    Scalar rescale_factor,
-                                    unsigned int n_dimensions)
+cudaError_t gpu_nvt_rescale_step_two(Scalar4* d_vel,
+                                     Scalar3* d_accel,
+                                     unsigned int* d_group_members,
+                                     unsigned int group_size,
+                                     Scalar4* d_net_force,
+                                     unsigned int block_size,
+                                     Scalar deltaT,
+                                     Scalar rescale_factor,
+                                     unsigned int n_dimensions)
 
     {
     unsigned int max_block_size;
-    hipFuncAttributes attr;
-    hipFuncGetAttributes(&attr, (const void*)gpu_nvt_rescale_step_two_kernel);
+    cudaFuncAttributes attr;
+    cudaFuncGetAttributes(&attr, (const void*)gpu_nvt_rescale_step_two_kernel);
     max_block_size = attr.maxThreadsPerBlock;
 
     unsigned int run_block_size = min(block_size, max_block_size);
 
     unsigned int nwork = group_size;
 
-    // setup the grid to run the kernel
-    dim3 grid((nwork / run_block_size) + 1, 1, 1);
-    dim3 threads(run_block_size, 1, 1);
-
     // run the kernel
-    hipLaunchKernelGGL((gpu_nvt_rescale_step_two_kernel),
-                       dim3(grid),
-                       dim3(threads),
-                       0,
-                       0,
-                       d_vel,
-                       d_accel,
-                       d_group_members,
-                       nwork,
-                       d_net_force,
-                       deltaT,
-                       rescale_factor,
-                       n_dimensions);
+    gpu_nvt_rescale_step_two_kernel<<<(nwork / run_block_size) + 1, run_block_size>>>(
+        d_vel,
+        d_accel,
+        d_group_members,
+        nwork,
+        d_net_force,
+        deltaT,
+        rescale_factor,
+        n_dimensions);
 
-    return hipSuccess;
+    return cudaSuccess;
     }
 
     } // end namespace kernel

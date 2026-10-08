@@ -66,34 +66,27 @@ __global__ void gpu_lees_edwards_remap_kernel(const unsigned int N,
         }
     }
 
-hipError_t gpu_lees_edwards_remap(const unsigned int N,
-                                  Scalar4* d_pos,
-                                  int3* d_image,
-                                  const BoxDim& flipped_box,
-                                  const Scalar xy,
-                                  unsigned int block_size)
+cudaError_t gpu_lees_edwards_remap(const unsigned int N,
+                                   Scalar4* d_pos,
+                                   int3* d_image,
+                                   const BoxDim& flipped_box,
+                                   const Scalar xy,
+                                   unsigned int block_size)
     {
     unsigned int max_block_size;
-    hipFuncAttributes attr;
-    hipFuncGetAttributes(&attr, (const void*)gpu_lees_edwards_remap_kernel);
+    cudaFuncAttributes attr;
+    cudaFuncGetAttributes(&attr, (const void*)gpu_lees_edwards_remap_kernel);
     max_block_size = attr.maxThreadsPerBlock;
 
     unsigned int run_block_size = min(block_size, max_block_size);
-    dim3 grid((N / run_block_size) + 1, 1, 1);
-    dim3 threads(run_block_size, 1, 1);
 
-    hipLaunchKernelGGL((gpu_lees_edwards_remap_kernel),
-                       grid,
-                       threads,
-                       0,
-                       0,
-                       N,
-                       d_pos,
-                       d_image,
-                       flipped_box,
-                       xy);
+    gpu_lees_edwards_remap_kernel<<<(N / run_block_size) + 1, run_block_size>>>(N,
+                                                                                d_pos,
+                                                                                d_image,
+                                                                                flipped_box,
+                                                                                xy);
 
-    return hipSuccess;
+    return cudaSuccess;
     }
 
     } // namespace kernel

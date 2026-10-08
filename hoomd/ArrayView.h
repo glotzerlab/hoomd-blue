@@ -8,7 +8,7 @@
 #ifndef __ARRAY_VIEW_H__
 #define __ARRAY_VIEW_H__
 
-#ifndef __HIPCC__
+#ifndef __NVCC__
 #include <functional>
 #include <pybind11/pybind11.h>
 #include <string>

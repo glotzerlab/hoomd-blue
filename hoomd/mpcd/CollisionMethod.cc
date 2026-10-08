@@ -39,7 +39,7 @@ mpcd::CollisionMethod::CollisionMethod(std::shared_ptr<SystemDefinition> sysdef,
         m_next_timestep = multiple * m_period + phase;
         }
 
-#ifdef ENABLE_HIP
+#ifdef ENABLE_GPU
     if (m_exec_conf->isCUDAEnabled())
         {
         m_drawrandvec_tuner.reset(new Autotuner<1>({AutotunerBase::makeBlockSizeRange(m_exec_conf)},
@@ -62,7 +62,7 @@ mpcd::CollisionMethod::CollisionMethod(std::shared_ptr<SystemDefinition> sysdef,
                                                 m_exec_conf,
                                                 "mpcd_rigid_transfer"));
         }
-#endif // ENABLE_HIP
+#endif // ENABLE_GPU
     }
 
 void mpcd::CollisionMethod::collide(uint64_t timestep)
@@ -91,13 +91,13 @@ void mpcd::CollisionMethod::collide(uint64_t timestep)
         }
 
     // check the GPU autotuners
-#ifdef ENABLE_HIP
+#ifdef ENABLE_GPU
     if (m_check_rigid_tuners)
         {
         checkRigidAutotuners();
         m_check_rigid_tuners = false;
         }
-#endif // ENABLE_HIP
+#endif // ENABLE_GPU
 
     // set random grid shift
     m_cl->drawGridShift(timestep);
@@ -126,7 +126,7 @@ void mpcd::CollisionMethod::collide(uint64_t timestep)
             m_angmom_accum.swap(angmom_accum);
             }
 
-#ifdef ENABLE_HIP
+#ifdef ENABLE_GPU
         // thermalize rigid bodies and store constituent velocities
         if (m_exec_conf->isCUDAEnabled())
             {
@@ -149,7 +149,7 @@ void mpcd::CollisionMethod::collide(uint64_t timestep)
     // apply collisions to rigid bodies
     if (rigid_body_collision)
         {
-#ifdef ENABLE_HIP
+#ifdef ENABLE_GPU
         if (m_exec_conf->isCUDAEnabled())
             {
             accumulateRigidBodyMomentaGPU(timestep);
@@ -784,7 +784,7 @@ void mpcd::CollisionMethod::transferRigidBodyMomenta(uint64_t timestep)
         }
     }
 
-#ifdef ENABLE_HIP
+#ifdef ENABLE_GPU
 //! Create autotuners
 void mpcd::CollisionMethod::checkRigidAutotuners()
     {
@@ -1055,7 +1055,7 @@ void mpcd::CollisionMethod::transferRigidBodyMomentaGPU(uint64_t timestep)
     m_transfer_tuner->end();
     }
 
-#endif // ENABLE_HIP
+#endif // ENABLE_GPU
 
 /*!
  * \param timestep Current timestep

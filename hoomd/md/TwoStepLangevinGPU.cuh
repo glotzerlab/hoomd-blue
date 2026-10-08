@@ -7,7 +7,9 @@
 
 #include "hoomd/HOOMDMath.h"
 #include "hoomd/ParticleData.cuh"
-#include <hip/hip_runtime.h>
+
+#include <cuda_runtime.h>
+#include <stdint.h>
 
 #ifndef __TWO_STEP_LANGEVIN_GPU_CUH__
 #define __TWO_STEP_LANGEVIN_GPU_CUH__
@@ -33,7 +35,7 @@ struct langevin_step_two_args
                            bool _noiseless_t,
                            bool _noiseless_r,
                            bool _tally,
-                           const hipDeviceProp_t& _devprop)
+                           const cudaDeviceProp& _devprop)
         : d_gamma(_d_gamma), n_types(_n_types), T(_T), timestep(_timestep), seed(_seed),
           d_sum_bdenergy(_d_sum_bdenergy), d_partial_sum_bdenergy(_d_partial_sum_bdenergy),
           block_size(_block_size), num_blocks(_num_blocks), noiseless_t(_noiseless_t),
@@ -53,36 +55,36 @@ struct langevin_step_two_args
     bool noiseless_t; //!<  If set true, there will be no translational noise (random force)
     bool noiseless_r; //!<  If set true, there will be no rotational noise (random torque)
     bool tally;       //!< Set to true is bd thermal reservoir energy tally is to be performed
-    const hipDeviceProp_t& devprop; //!< Device properties.
+    const cudaDeviceProp& devprop; //!< Device properties.
     };
 
 //! Kernel driver for the second part of the Langevin update called by TwoStepLangevinGPU
-hipError_t gpu_langevin_step_two(const Scalar4* d_pos,
-                                 Scalar4* d_vel,
-                                 Scalar3* d_accel,
-                                 const unsigned int* d_tag,
-                                 unsigned int* d_group_members,
-                                 unsigned int group_size,
-                                 Scalar4* d_net_force,
-                                 const langevin_step_two_args& langevin_args,
-                                 Scalar deltaT,
-                                 unsigned int D);
+cudaError_t gpu_langevin_step_two(const Scalar4* d_pos,
+                                  Scalar4* d_vel,
+                                  Scalar3* d_accel,
+                                  const unsigned int* d_tag,
+                                  unsigned int* d_group_members,
+                                  unsigned int group_size,
+                                  Scalar4* d_net_force,
+                                  const langevin_step_two_args& langevin_args,
+                                  Scalar deltaT,
+                                  unsigned int D);
 
 //! Kernel driver for the second part of the angular Langevin update (NO_SQUISH) by
 //! TwoStepLangevinGPU
-hipError_t gpu_langevin_angular_step_two(const Scalar4* d_pos,
-                                         Scalar4* d_orientation,
-                                         Scalar4* d_angmom,
-                                         const Scalar3* d_inertia,
-                                         Scalar4* d_net_torque,
-                                         const unsigned int* d_group_members,
-                                         const Scalar3* d_gamma_r,
-                                         const unsigned int* d_tag,
-                                         unsigned int group_size,
-                                         const langevin_step_two_args& langevin_args,
-                                         Scalar deltaT,
-                                         unsigned int D,
-                                         Scalar scale);
+cudaError_t gpu_langevin_angular_step_two(const Scalar4* d_pos,
+                                          Scalar4* d_orientation,
+                                          Scalar4* d_angmom,
+                                          const Scalar3* d_inertia,
+                                          Scalar4* d_net_torque,
+                                          const unsigned int* d_group_members,
+                                          const Scalar3* d_gamma_r,
+                                          const unsigned int* d_tag,
+                                          unsigned int group_size,
+                                          const langevin_step_two_args& langevin_args,
+                                          Scalar deltaT,
+                                          unsigned int D,
+                                          Scalar scale);
 
     } // end namespace kernel
     } // end namespace md

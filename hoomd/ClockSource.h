@@ -5,7 +5,7 @@
     \brief Declares the ClockSource class
 */
 
-#ifdef __HIPCC__
+#ifdef __NVCC__
 #error This header cannot be compiled by nvcc
 #endif
 
@@ -70,7 +70,7 @@ inline int64_t ClockSource::getTime() const
 namespace detail
     {
 //! Exports the ClockSource class to python
-#ifndef __HIPCC__
+#ifndef __NVCC__
 void export_ClockSource(pybind11::module& m);
 #endif
 

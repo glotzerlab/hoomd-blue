@@ -10,6 +10,7 @@
  */
 
 #include <cuda_runtime.h>
+#include <stdint.h>
 
 #include "hoomd/HOOMDMath.h"
 #include "hoomd/Index1D.h"

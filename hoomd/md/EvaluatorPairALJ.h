@@ -4,7 +4,7 @@
 #ifndef __EVALUATOR_PAIR_ALJ_H__
 #define __EVALUATOR_PAIR_ALJ_H__
 
-#ifndef __HIPCC__
+#ifndef __NVCC__
 #include <sstream>
 #include <string>
 #endif
@@ -13,7 +13,7 @@
 #include "hoomd/ManagedArray.h"
 #include "hoomd/VectorMath.h"
 
-#ifndef __HIPCC__
+#ifndef __NVCC__
 #include "hoomd/ExecutionConfiguration.h"
 #include <pybind11/pybind11.h>
 #endif
@@ -25,14 +25,14 @@
 // need to declare these class methods with __host__ __device__ qualifiers when building in nvcc
 //! HOSTDEVICE is __host__ __device__ when included in nvcc and blank when included into the host
 //! compiler
-#ifdef __HIPCC__
+#ifdef __NVCC__
 #define HOSTDEVICE __host__ __device__
 #define DEVICE __device__
 #else
 #define HOSTDEVICE
 #define DEVICE
 
-#if !defined(__HIPCC__) && defined(__SSE__)
+#if !defined(__NVCC__) && defined(__SSE__)
 #include <immintrin.h>
 #endif
 #endif
@@ -161,7 +161,7 @@ template<unsigned int ndim> class EvaluatorPairALJ
 
         HOSTDEVICE void allocate_shared(char*& ptr, unsigned int& available_bytes) const { }
 
-#ifndef __HIPCC__
+#ifndef __NVCC__
         //! Shape constructor
         param_type(Scalar _epsilon,
                    Scalar _sigma_i,
@@ -203,7 +203,7 @@ template<unsigned int ndim> class EvaluatorPairALJ
 
 #endif
 
-#ifdef ENABLE_HIP
+#ifdef ENABLE_GPU
         //! Attach managed memory to CUDA stream
         void set_memory_hint() const { }
 #endif
@@ -244,7 +244,7 @@ template<unsigned int ndim> class EvaluatorPairALJ
         {
         HOSTDEVICE shape_type() : has_rounding(false) { }
 
-#ifndef __HIPCC__
+#ifndef __NVCC__
 
         //! Shape constructor
         /*! \param vertices Nested pybind list that translates to an Nx3 set of vertices
@@ -416,7 +416,7 @@ template<unsigned int ndim> class EvaluatorPairALJ
             face_offsets.allocate_shared(ptr, available_bytes);
             }
 
-#ifdef ENABLE_HIP
+#ifdef ENABLE_GPU
         //! Attach managed memory to CUDA stream
         void set_memory_hint() const
             {
@@ -710,7 +710,7 @@ template<unsigned int ndim> class EvaluatorPairALJ
             }
         }
 
-#ifndef __HIPCC__
+#ifndef __NVCC__
     //! Get the name of the potential
     /*! \returns The potential name. Must be short and all lowercase, as this is the name energies
        will be logged as via analyze.log.
@@ -1611,7 +1611,7 @@ EvaluatorPairALJ<3>::computeSimplexInteractions(const vec3<Scalar>& a,
     torque_j = vec_to_scalar3(torquej);
     }
 
-#ifndef __HIPCC__
+#ifndef __NVCC__
 
 // Note: This method assumes that shape_i == shape_j. This should be valid for
 // all cases, and this logic will be moved up to the AnisoPotentialPair in

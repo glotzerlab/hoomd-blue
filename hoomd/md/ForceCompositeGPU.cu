@@ -1,7 +1,7 @@
 // Copyright (c) 2009-2026 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
-#include "hip/hip_runtime.h"
+#include <cuda_runtime.h>
 // Copyright (c) 2009-2021 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
@@ -445,39 +445,37 @@ __global__ void gpu_rigid_virial_sliding_kernel(Scalar* d_virial,
 
 /*!
  */
-hipError_t gpu_rigid_force(Scalar4* d_force,
-                           Scalar4* d_torque,
-                           const unsigned int* d_molecule_len,
-                           const unsigned int* d_molecule_list,
-                           const unsigned int* d_molecule_idx,
-                           const unsigned int* d_rigid_center,
-                           Index2D molecule_indexer,
-                           const Scalar4* d_postype,
-                           const Scalar4* d_orientation,
-                           Index2D body_indexer,
-                           Scalar3* d_body_pos,
-                           Scalar4* d_body_orientation,
-                           const unsigned int* d_body_len,
-                           const unsigned int* d_body,
-                           const unsigned int* d_tag,
-                           uint2* d_flag,
-                           Scalar4* d_net_force,
-                           Scalar4* d_net_torque,
-                           unsigned int n_mol,
-                           unsigned int N,
-                           unsigned int n_bodies_per_block,
-                           unsigned int block_size,
-                           const hipDeviceProp_t& dev_prop,
-                           bool zero_force,
-                           unsigned int n_local_bodies)
+cudaError_t gpu_rigid_force(Scalar4* d_force,
+                            Scalar4* d_torque,
+                            const unsigned int* d_molecule_len,
+                            const unsigned int* d_molecule_list,
+                            const unsigned int* d_molecule_idx,
+                            const unsigned int* d_rigid_center,
+                            Index2D molecule_indexer,
+                            const Scalar4* d_postype,
+                            const Scalar4* d_orientation,
+                            Index2D body_indexer,
+                            Scalar3* d_body_pos,
+                            Scalar4* d_body_orientation,
+                            const unsigned int* d_body_len,
+                            const unsigned int* d_body,
+                            const unsigned int* d_tag,
+                            uint2* d_flag,
+                            Scalar4* d_net_force,
+                            Scalar4* d_net_torque,
+                            unsigned int n_mol,
+                            unsigned int N,
+                            unsigned int n_bodies_per_block,
+                            unsigned int block_size,
+                            const cudaDeviceProp& dev_prop,
+                            bool zero_force,
+                            unsigned int n_local_bodies)
     {
     unsigned int nwork = n_local_bodies;
 
-    dim3 force_grid(nwork / n_bodies_per_block + 1, 1, 1);
-
     unsigned int max_block_size;
-    hipFuncAttributes attr;
-    hipFuncGetAttributes(&attr, (const void*)gpu_rigid_force_sliding_kernel);
+    cudaFuncAttributes attr;
+    cudaFuncGetAttributes(&attr, (const void*)gpu_rigid_force_sliding_kernel);
     max_block_size = attr.maxThreadsPerBlock;
 
     unsigned int run_block_size = max_block_size < block_size ? max_block_size : block_size;
@@ -508,70 +506,65 @@ hipError_t gpu_rigid_force(Scalar4* d_force,
         thread_mask = window_size - 1;
         }
 
-    hipLaunchKernelGGL((gpu_rigid_force_sliding_kernel),
-                       dim3(force_grid),
-                       dim3(run_block_size),
-                       shared_bytes,
-                       0,
-                       d_force,
-                       d_torque,
-                       d_molecule_len,
-                       d_molecule_list,
-                       d_molecule_idx,
-                       d_rigid_center,
-                       molecule_indexer,
-                       d_postype,
-                       d_orientation,
-                       body_indexer,
-                       d_body_pos,
-                       d_body_orientation,
-                       d_body_len,
-                       d_body,
-                       d_tag,
-                       d_flag,
-                       d_net_force,
-                       d_net_torque,
-                       n_mol,
-                       N,
-                       window_size,
-                       thread_mask,
-                       n_bodies_per_block,
-                       zero_force,
-                       nwork);
-    return hipSuccess;
+    gpu_rigid_force_sliding_kernel<<<nwork / n_bodies_per_block + 1,
+                                     run_block_size,
+                                     shared_bytes>>>(d_force,
+                                                     d_torque,
+                                                     d_molecule_len,
+                                                     d_molecule_list,
+                                                     d_molecule_idx,
+                                                     d_rigid_center,
+                                                     molecule_indexer,
+                                                     d_postype,
+                                                     d_orientation,
+                                                     body_indexer,
+                                                     d_body_pos,
+                                                     d_body_orientation,
+                                                     d_body_len,
+                                                     d_body,
+                                                     d_tag,
+                                                     d_flag,
+                                                     d_net_force,
+                                                     d_net_torque,
+                                                     n_mol,
+                                                     N,
+                                                     window_size,
+                                                     thread_mask,
+                                                     n_bodies_per_block,
+                                                     zero_force,
+                                                     nwork);
+    return cudaSuccess;
     }
 
-hipError_t gpu_rigid_virial(Scalar* d_virial,
-                            const unsigned int* d_molecule_len,
-                            const unsigned int* d_molecule_list,
-                            const unsigned int* d_molecule_idx,
-                            const unsigned int* d_rigid_center,
-                            Index2D molecule_indexer,
-                            const Scalar4* d_postype,
-                            const Scalar4* d_orientation,
-                            Index2D body_indexer,
-                            Scalar3* d_body_pos,
-                            Scalar4* d_body_orientation,
-                            Scalar4* d_net_force,
-                            Scalar* d_net_virial,
-                            const unsigned int* d_body,
-                            const unsigned int* d_tag,
-                            unsigned int n_mol,
-                            unsigned int N,
-                            unsigned int n_bodies_per_block,
-                            size_t net_virial_pitch,
-                            size_t virial_pitch,
-                            unsigned int block_size,
-                            const hipDeviceProp_t& dev_prop,
-                            unsigned int n_local_bodies)
+cudaError_t gpu_rigid_virial(Scalar* d_virial,
+                             const unsigned int* d_molecule_len,
+                             const unsigned int* d_molecule_list,
+                             const unsigned int* d_molecule_idx,
+                             const unsigned int* d_rigid_center,
+                             Index2D molecule_indexer,
+                             const Scalar4* d_postype,
+                             const Scalar4* d_orientation,
+                             Index2D body_indexer,
+                             Scalar3* d_body_pos,
+                             Scalar4* d_body_orientation,
+                             Scalar4* d_net_force,
+                             Scalar* d_net_virial,
+                             const unsigned int* d_body,
+                             const unsigned int* d_tag,
+                             unsigned int n_mol,
+                             unsigned int N,
+                             unsigned int n_bodies_per_block,
+                             size_t net_virial_pitch,
+                             size_t virial_pitch,
+                             unsigned int block_size,
+                             const cudaDeviceProp& dev_prop,
+                             unsigned int n_local_bodies)
     {
     unsigned int nwork = n_local_bodies;
 
-    dim3 force_grid(nwork / n_bodies_per_block + 1, 1, 1);
-
     unsigned int max_block_size;
-    hipFuncAttributes attr;
-    hipFuncGetAttributes(&attr, (const void*)gpu_rigid_virial_sliding_kernel);
+    cudaFuncAttributes attr;
+    cudaFuncGetAttributes(&attr, (const void*)gpu_rigid_virial_sliding_kernel);
     max_block_size = attr.maxThreadsPerBlock;
 
     unsigned int run_block_size = max_block_size < block_size ? max_block_size : block_size;
@@ -602,36 +595,33 @@ hipError_t gpu_rigid_virial(Scalar* d_virial,
         thread_mask = window_size - 1;
         }
 
-    hipLaunchKernelGGL((gpu_rigid_virial_sliding_kernel),
-                       dim3(force_grid),
-                       dim3(run_block_size),
-                       shared_bytes,
-                       0,
-                       d_virial,
-                       d_molecule_len,
-                       d_molecule_list,
-                       d_molecule_idx,
-                       d_rigid_center,
-                       molecule_indexer,
-                       d_postype,
-                       d_orientation,
-                       body_indexer,
-                       d_body_pos,
-                       d_body_orientation,
-                       d_net_force,
-                       d_net_virial,
-                       d_body,
-                       d_tag,
-                       n_mol,
-                       N,
-                       net_virial_pitch,
-                       virial_pitch,
-                       window_size,
-                       thread_mask,
-                       n_bodies_per_block,
-                       nwork);
+    gpu_rigid_virial_sliding_kernel<<<nwork / n_bodies_per_block + 1,
+                                      run_block_size,
+                                      shared_bytes>>>(d_virial,
+                                                      d_molecule_len,
+                                                      d_molecule_list,
+                                                      d_molecule_idx,
+                                                      d_rigid_center,
+                                                      molecule_indexer,
+                                                      d_postype,
+                                                      d_orientation,
+                                                      body_indexer,
+                                                      d_body_pos,
+                                                      d_body_orientation,
+                                                      d_net_force,
+                                                      d_net_virial,
+                                                      d_body,
+                                                      d_tag,
+                                                      n_mol,
+                                                      N,
+                                                      net_virial_pitch,
+                                                      virial_pitch,
+                                                      window_size,
+                                                      thread_mask,
+                                                      n_bodies_per_block,
+                                                      nwork);
 
-    return hipSuccess;
+    return cudaSuccess;
     }
 
 __global__ void gpu_update_composite_kernel(unsigned int N,
@@ -802,8 +792,8 @@ void gpu_update_composite(unsigned int N,
     unsigned int run_block_size = block_size;
 
     unsigned int max_block_size;
-    hipFuncAttributes attr;
-    hipFuncGetAttributes(&attr, (const void*)gpu_update_composite_kernel);
+    cudaFuncAttributes attr;
+    cudaFuncGetAttributes(&attr, (const void*)gpu_update_composite_kernel);
     max_block_size = attr.maxThreadsPerBlock;
 
     if (max_block_size <= run_block_size)
@@ -814,32 +804,27 @@ void gpu_update_composite(unsigned int N,
     unsigned int nwork = N + n_ghost;
 
     unsigned int n_blocks = nwork / run_block_size + 1;
-    hipLaunchKernelGGL((gpu_update_composite_kernel),
-                       dim3(n_blocks),
-                       dim3(run_block_size),
-                       0,
-                       0,
-                       N,
-                       nwork,
-                       n_ghost,
-                       d_lookup_center,
-                       d_postype,
-                       d_velocity,
-                       d_orientation,
-                       d_angmom,
-                       d_inertia,
-                       body_indexer,
-                       d_body_pos,
-                       d_body_orientation,
-                       d_body_types,
-                       d_body_len,
-                       d_molecule_order,
-                       d_molecule_len,
-                       d_molecule_idx,
-                       d_image,
-                       box,
-                       global_box,
-                       d_flag);
+    gpu_update_composite_kernel<<<n_blocks, run_block_size>>>(N,
+                                                              nwork,
+                                                              n_ghost,
+                                                              d_lookup_center,
+                                                              d_postype,
+                                                              d_velocity,
+                                                              d_orientation,
+                                                              d_angmom,
+                                                              d_inertia,
+                                                              body_indexer,
+                                                              d_body_pos,
+                                                              d_body_orientation,
+                                                              d_body_types,
+                                                              d_body_len,
+                                                              d_molecule_order,
+                                                              d_molecule_len,
+                                                              d_molecule_idx,
+                                                              d_image,
+                                                              box,
+                                                              global_box,
+                                                              d_flag);
     }
 
 struct is_center
@@ -863,14 +848,14 @@ struct lookup_op
     const unsigned int* d_rtag;
     };
 
-hipError_t gpu_find_rigid_centers(const unsigned int* d_body,
-                                  const unsigned int* d_tag,
-                                  const unsigned int* d_rtag,
-                                  const unsigned int N,
-                                  const unsigned int nghost,
-                                  unsigned int* d_rigid_center,
-                                  unsigned int* d_lookup_center,
-                                  unsigned int& n_rigid)
+cudaError_t gpu_find_rigid_centers(const unsigned int* d_body,
+                                   const unsigned int* d_tag,
+                                   const unsigned int* d_rtag,
+                                   const unsigned int N,
+                                   const unsigned int nghost,
+                                   unsigned int* d_rigid_center,
+                                   unsigned int* d_lookup_center,
+                                   unsigned int& n_rigid)
     {
     thrust::device_ptr<const unsigned int> body(d_body);
     thrust::device_ptr<const unsigned int> tag(d_tag);
@@ -889,7 +874,7 @@ hipError_t gpu_find_rigid_centers(const unsigned int* d_body,
     thrust::device_ptr<unsigned int> lookup_center(d_lookup_center);
     thrust::transform(body, body + N + nghost, lookup_center, lookup_op(d_rtag));
 
-    return hipSuccess;
+    return cudaSuccess;
     }
 
     } // end namespace kernel

@@ -4,7 +4,7 @@
 #ifndef __EVALUATOR_EXTERNAL_MAGNETIC_FIELD_H__
 #define __EVALUATOR_EXTERNAL_MAGNETIC_FIELD_H__
 
-#ifndef __HIPCC__
+#ifndef __NVCC__
 #include <string>
 #endif
 
@@ -20,7 +20,7 @@
 // need to declare these class methods with __device__ qualifiers when building in nvcc
 // DEVICE is __host__ __device__ when included in nvcc and blank when included into the host
 // compiler
-#ifdef __HIPCC__
+#ifdef __NVCC__
 #define DEVICE __device__
 #else
 #define DEVICE
@@ -50,7 +50,7 @@ class EvaluatorExternalMagneticField
         Scalar3 B;
         Scalar3 mu;
 
-#ifndef __HIPCC__
+#ifndef __NVCC__
         param_type() : B(make_scalar3(0, 0, 0)), mu(make_scalar3(0, 0, 0)) { }
 
         param_type(pybind11::dict params)
@@ -72,7 +72,7 @@ class EvaluatorExternalMagneticField
             d["mu"] = pybind11::make_tuple(mu.x, mu.y, mu.z);
             return d;
             }
-#endif // ifndef __HIPCC__
+#endif // ifndef __NVCC__
         } __attribute__((aligned(16)));
 
     typedef void* field_type;
@@ -137,7 +137,7 @@ class EvaluatorExternalMagneticField
             virial[i] = Scalar(0.0);
         }
 
-#ifndef __HIPCC__
+#ifndef __NVCC__
     //! Get the name of this potential
     /*! \returns The potential name.
      */

@@ -4,7 +4,7 @@
 #ifndef __PAIR_MODULATOR_H__
 #define __PAIR_MODULATOR_H__
 
-#ifndef __HIPCC__
+#ifndef __NVCC__
 #include <pybind11/pybind11.h>
 #include <string>
 #endif
@@ -16,7 +16,7 @@
     HOSTDEVICE is __host__ __device__ when included in nvcc and blank when included into the host
     compiler
 */
-#ifdef __HIPCC__
+#ifdef __NVCC__
 #define HOSTDEVICE __host__ __device__
 #define DEVICE __device__
 #else
@@ -48,7 +48,7 @@ template<typename PairEvaluator, typename DirectionalEnvelope> class PairModulat
         {
         param_type() { }
 
-#ifndef __HIPCC__
+#ifndef __NVCC__
         param_type(pybind11::dict params, bool managed)
             {
             pair_p = typename PairEvaluator::param_type(params["pair_params"], managed);
@@ -75,7 +75,7 @@ template<typename PairEvaluator, typename DirectionalEnvelope> class PairModulat
             pair_p.allocate_shared(ptr, available_bytes);
             }
 
-#ifdef ENABLE_HIP
+#ifdef ENABLE_GPU
         //! Attach managed memory to CUDA stream
         void set_memory_hint() const
             {
@@ -100,7 +100,7 @@ template<typename PairEvaluator, typename DirectionalEnvelope> class PairModulat
 
         HOSTDEVICE shape_type() { }
 
-#ifndef __HIPCC__
+#ifndef __NVCC__
 
         shape_type(pybind11::list shape_param, bool managed)
             : envelope(static_cast<unsigned int>(pybind11::len(shape_param)), managed)
@@ -122,7 +122,7 @@ template<typename PairEvaluator, typename DirectionalEnvelope> class PairModulat
             }
 #endif
 
-#ifdef ENABLE_HIP
+#ifdef ENABLE_GPU
         void set_memory_hint() const
             {
             envelope.set_memory_hint();
@@ -268,7 +268,7 @@ template<typename PairEvaluator, typename DirectionalEnvelope> class PairModulat
         return true;
         }
 
-#ifndef __HIPCC__
+#ifndef __NVCC__
     static std::string getName()
         {
         return PairEvaluator::getName() + "_" + DirectionalEnvelope::getName();

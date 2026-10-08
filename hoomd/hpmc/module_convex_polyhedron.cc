@@ -18,7 +18,7 @@
 #include "ShapeUtils.h"
 #include "UpdaterShape.h"
 
-#ifdef ENABLE_HIP
+#ifdef ENABLE_GPU
 #include "ComputeFreeVolumeGPU.h"
 #include "IntegratorHPMCMonoGPU.h"
 #include "UpdaterGCAGPU.h"
@@ -51,7 +51,7 @@ void export_convex_polyhedron(pybind11::module& m)
 
     export_ExternalFieldWall<ShapeConvexPolyhedron>(m, "WallConvexPolyhedron");
 
-#ifdef ENABLE_HIP
+#ifdef ENABLE_GPU
 
     export_IntegratorHPMCMonoGPU<ShapeConvexPolyhedron>(m, "IntegratorHPMCMonoConvexPolyhedronGPU");
     export_ComputeFreeVolumeGPU<ShapeConvexPolyhedron>(m, "ComputeFreeVolumeConvexPolyhedronGPU");

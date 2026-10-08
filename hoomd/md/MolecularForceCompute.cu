@@ -1,7 +1,7 @@
 // Copyright (c) 2009-2026 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
-#include "hip/hip_runtime.h"
+#include <cuda_runtime.h>
 // Copyright (c) 2009-2021 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
@@ -27,23 +27,23 @@
 #include <thrust/sort.h>
 #pragma GCC diagnostic pop
 
-#include <hipcub/hipcub.hpp>
+#include <cub/cub.cuh>
 
 #include <exception>
 #include <string>
-#define CHECK_CUDA()                                                                       \
-        {                                                                                  \
-        hipError_t err = hipDeviceSynchronize();                                           \
-        if (err != hipSuccess)                                                             \
-            {                                                                              \
-            throw std::runtime_error("CUDA error in MolecularForceCompute "                \
-                                     + std::string(hipGetErrorString(err)));               \
-            }                                                                              \
-        err = hipGetLastError();                                                           \
-        if (err != hipSuccess)                                                             \
-            {                                                                              \
-            throw std::runtime_error("CUDA error " + std::string(hipGetErrorString(err))); \
-            }                                                                              \
+#define CHECK_CUDA()                                                                        \
+        {                                                                                   \
+        cudaError_t err = cudaDeviceSynchronize();                                          \
+        if (err != cudaSuccess)                                                             \
+            {                                                                               \
+            throw std::runtime_error("CUDA error in MolecularForceCompute "                 \
+                                     + std::string(cudaGetErrorString(err)));               \
+            }                                                                               \
+        err = cudaGetLastError();                                                           \
+        if (err != cudaSuccess)                                                             \
+            {                                                                               \
+            throw std::runtime_error("CUDA error " + std::string(cudaGetErrorString(err))); \
+            }                                                                               \
         }
 
 /*! \file MolecularForceCompute.cu
@@ -57,26 +57,26 @@ namespace md
 namespace kernel
     {
 //! Sort local molecules and assign local molecule indices to particles
-hipError_t gpu_sort_by_molecule(unsigned int nptl,
-                                const unsigned int* d_tag,
-                                const unsigned int* d_molecule_tag,
-                                unsigned int* d_local_molecule_tags,
-                                unsigned int* d_local_molecules_lowest_idx,
-                                unsigned int* d_local_unique_molecule_tags,
-                                unsigned int* d_local_molecule_idx,
-                                unsigned int* d_sorted_by_tag,
-                                unsigned int* d_idx_sorted_by_tag,
-                                unsigned int* d_idx_sorted_by_molecule_and_tag,
-                                unsigned int* d_lowest_idx,
-                                unsigned int* d_lowest_idx_sort,
-                                unsigned int* d_lowest_idx_in_molecules,
-                                unsigned int* d_lowest_idx_by_molecule_tag,
-                                unsigned int* d_molecule_length,
-                                unsigned int& n_local_molecules,
-                                unsigned int& max_len,
-                                unsigned int& n_local_ptls_in_molecules,
-                                CachedAllocator& alloc,
-                                bool check_cuda)
+cudaError_t gpu_sort_by_molecule(unsigned int nptl,
+                                 const unsigned int* d_tag,
+                                 const unsigned int* d_molecule_tag,
+                                 unsigned int* d_local_molecule_tags,
+                                 unsigned int* d_local_molecules_lowest_idx,
+                                 unsigned int* d_local_unique_molecule_tags,
+                                 unsigned int* d_local_molecule_idx,
+                                 unsigned int* d_sorted_by_tag,
+                                 unsigned int* d_idx_sorted_by_tag,
+                                 unsigned int* d_idx_sorted_by_molecule_and_tag,
+                                 unsigned int* d_lowest_idx,
+                                 unsigned int* d_lowest_idx_sort,
+                                 unsigned int* d_lowest_idx_in_molecules,
+                                 unsigned int* d_lowest_idx_by_molecule_tag,
+                                 unsigned int* d_molecule_length,
+                                 unsigned int& n_local_molecules,
+                                 unsigned int& max_len,
+                                 unsigned int& n_local_ptls_in_molecules,
+                                 CachedAllocator& alloc,
+                                 bool check_cuda)
     {
     thrust::device_ptr<const unsigned int> tag(d_tag);
     thrust::device_ptr<const unsigned int> molecule_tag(d_molecule_tag);
@@ -102,23 +102,23 @@ hipError_t gpu_sort_by_molecule(unsigned int nptl,
     // Determine temporary device storage requirements
     void* d_temp_storage = NULL;
     size_t temp_storage_bytes = 0;
-    hipcub::DeviceRadixSort::SortPairs(d_temp_storage,
-                                       temp_storage_bytes,
-                                       d_tag,
-                                       d_sorted_by_tag,
-                                       d_idx,
-                                       d_idx_sorted_by_tag,
-                                       nptl);
+    cub::DeviceRadixSort::SortPairs(d_temp_storage,
+                                    temp_storage_bytes,
+                                    d_tag,
+                                    d_sorted_by_tag,
+                                    d_idx,
+                                    d_idx_sorted_by_tag,
+                                    nptl);
     d_temp_storage = alloc.allocate(temp_storage_bytes);
 
     // key-value sort
-    hipcub::DeviceRadixSort::SortPairs(d_temp_storage,
-                                       temp_storage_bytes,
-                                       d_tag,
-                                       d_sorted_by_tag,
-                                       d_idx,
-                                       d_idx_sorted_by_tag,
-                                       nptl);
+    cub::DeviceRadixSort::SortPairs(d_temp_storage,
+                                    temp_storage_bytes,
+                                    d_tag,
+                                    d_sorted_by_tag,
+                                    d_idx,
+                                    d_idx_sorted_by_tag,
+                                    nptl);
     alloc.deallocate((char*)d_temp_storage);
 
     // release temp buffer
@@ -133,11 +133,7 @@ hipError_t gpu_sort_by_molecule(unsigned int nptl,
     unsigned int* d_molecule_by_idx = alloc.getTemporaryBuffer<unsigned int>(nptl);
     thrust::device_ptr<unsigned int> molecule_by_idx(d_molecule_by_idx);
 
-#ifdef __HIP_PLATFORM_HCC__
-    thrust::copy(thrust::hip::par(alloc),
-#else
     thrust::copy(thrust::cuda::par(alloc),
-#endif
                  molecule_tag_lookup_sorted_by_tag,
                  molecule_tag_lookup_sorted_by_tag + nptl,
                  molecule_by_idx);
@@ -147,23 +143,23 @@ hipError_t gpu_sort_by_molecule(unsigned int nptl,
     // sort local particle indices by global molecule tag, keeping tag order (radix sort is stable)
     d_temp_storage = NULL;
     temp_storage_bytes = 0;
-    hipcub::DeviceRadixSort::SortPairs(d_temp_storage,
-                                       temp_storage_bytes,
-                                       d_molecule_by_idx,
-                                       d_local_molecule_tags,
-                                       d_idx_sorted_by_tag,
-                                       d_idx_sorted_by_molecule_and_tag,
-                                       nptl);
+    cub::DeviceRadixSort::SortPairs(d_temp_storage,
+                                    temp_storage_bytes,
+                                    d_molecule_by_idx,
+                                    d_local_molecule_tags,
+                                    d_idx_sorted_by_tag,
+                                    d_idx_sorted_by_molecule_and_tag,
+                                    nptl);
     d_temp_storage = alloc.allocate(temp_storage_bytes);
 
     // key-value sort
-    hipcub::DeviceRadixSort::SortPairs(d_temp_storage,
-                                       temp_storage_bytes,
-                                       d_molecule_by_idx,
-                                       d_local_molecule_tags,
-                                       d_idx_sorted_by_tag,
-                                       d_idx_sorted_by_molecule_and_tag,
-                                       nptl);
+    cub::DeviceRadixSort::SortPairs(d_temp_storage,
+                                    temp_storage_bytes,
+                                    d_molecule_by_idx,
+                                    d_local_molecule_tags,
+                                    d_idx_sorted_by_tag,
+                                    d_idx_sorted_by_molecule_and_tag,
+                                    nptl);
     alloc.deallocate((char*)d_temp_storage);
 
     // release temp buffer
@@ -183,29 +179,29 @@ hipError_t gpu_sort_by_molecule(unsigned int nptl,
     d_temp_storage = NULL;
     temp_storage_bytes = 0;
 
-    hipcub::DeviceReduce::ReduceByKey(d_temp_storage,
-                                      temp_storage_bytes,
-                                      d_local_molecule_tags,
-                                      d_local_unique_molecule_tags_tmp,
-                                      one,
-                                      d_molecule_length_tmp,
-                                      d_num_runs_out,
-                                      thrust::plus<unsigned int>(),
-                                      n_local_ptls_in_molecules);
+    cub::DeviceReduce::ReduceByKey(d_temp_storage,
+                                   temp_storage_bytes,
+                                   d_local_molecule_tags,
+                                   d_local_unique_molecule_tags_tmp,
+                                   one,
+                                   d_molecule_length_tmp,
+                                   d_num_runs_out,
+                                   thrust::plus<unsigned int>(),
+                                   n_local_ptls_in_molecules);
 
     d_temp_storage = alloc.allocate(temp_storage_bytes);
 
-    hipcub::DeviceReduce::ReduceByKey(d_temp_storage,
-                                      temp_storage_bytes,
-                                      d_local_molecule_tags,
-                                      d_local_unique_molecule_tags_tmp,
-                                      one,
-                                      d_molecule_length_tmp,
-                                      d_num_runs_out,
-                                      thrust::plus<unsigned int>(),
-                                      n_local_ptls_in_molecules);
+    cub::DeviceReduce::ReduceByKey(d_temp_storage,
+                                   temp_storage_bytes,
+                                   d_local_molecule_tags,
+                                   d_local_unique_molecule_tags_tmp,
+                                   one,
+                                   d_molecule_length_tmp,
+                                   d_num_runs_out,
+                                   thrust::plus<unsigned int>(),
+                                   n_local_ptls_in_molecules);
 
-    hipMemcpy(&n_local_molecules, d_num_runs_out, sizeof(unsigned int), hipMemcpyDeviceToHost);
+    cudaMemcpy(&n_local_molecules, d_num_runs_out, sizeof(unsigned int), cudaMemcpyDeviceToHost);
     if (check_cuda)
         CHECK_CUDA();
 
@@ -239,19 +235,19 @@ hipError_t gpu_sort_by_molecule(unsigned int nptl,
     d_temp_storage = NULL;
     temp_storage_bytes = 0;
     unsigned int* d_max = (unsigned int*)alloc.allocate(sizeof(unsigned int));
-    hipcub::DeviceReduce::Max(d_temp_storage,
-                              temp_storage_bytes,
-                              d_molecule_length_tmp,
-                              d_max,
-                              n_local_molecules);
+    cub::DeviceReduce::Max(d_temp_storage,
+                           temp_storage_bytes,
+                           d_molecule_length_tmp,
+                           d_max,
+                           n_local_molecules);
     d_temp_storage = alloc.allocate(temp_storage_bytes);
-    hipcub::DeviceReduce::Max(d_temp_storage,
-                              temp_storage_bytes,
-                              d_molecule_length_tmp,
-                              d_max,
-                              n_local_molecules);
+    cub::DeviceReduce::Max(d_temp_storage,
+                           temp_storage_bytes,
+                           d_molecule_length_tmp,
+                           d_max,
+                           n_local_molecules);
     alloc.deallocate((char*)d_temp_storage);
-    hipMemcpy(&max_len, d_max, sizeof(unsigned int), hipMemcpyDeviceToHost);
+    cudaMemcpy(&max_len, d_max, sizeof(unsigned int), cudaMemcpyDeviceToHost);
     alloc.deallocate((char*)d_max);
 
     if (check_cuda)
@@ -259,44 +255,44 @@ hipError_t gpu_sort_by_molecule(unsigned int nptl,
 
     d_temp_storage = NULL;
     temp_storage_bytes = 0;
-    hipcub::DeviceRadixSort::SortPairs(d_temp_storage,
-                                       temp_storage_bytes,
-                                       d_lowest_idx,
-                                       d_lowest_idx_sort,
-                                       d_local_unique_molecule_tags_tmp,
-                                       d_local_unique_molecule_tags,
-                                       n_local_molecules);
+    cub::DeviceRadixSort::SortPairs(d_temp_storage,
+                                    temp_storage_bytes,
+                                    d_lowest_idx,
+                                    d_lowest_idx_sort,
+                                    d_local_unique_molecule_tags_tmp,
+                                    d_local_unique_molecule_tags,
+                                    n_local_molecules);
     d_temp_storage = alloc.allocate(temp_storage_bytes);
 
     // key-value sort
-    hipcub::DeviceRadixSort::SortPairs(d_temp_storage,
-                                       temp_storage_bytes,
-                                       d_lowest_idx,
-                                       d_lowest_idx_sort,
-                                       d_local_unique_molecule_tags_tmp,
-                                       d_local_unique_molecule_tags,
-                                       n_local_molecules);
+    cub::DeviceRadixSort::SortPairs(d_temp_storage,
+                                    temp_storage_bytes,
+                                    d_lowest_idx,
+                                    d_lowest_idx_sort,
+                                    d_local_unique_molecule_tags_tmp,
+                                    d_local_unique_molecule_tags,
+                                    n_local_molecules);
     alloc.deallocate((char*)d_temp_storage);
 
     d_temp_storage = NULL;
     temp_storage_bytes = 0;
-    hipcub::DeviceRadixSort::SortPairs(d_temp_storage,
-                                       temp_storage_bytes,
-                                       d_lowest_idx,
-                                       d_lowest_idx_sort,
-                                       d_molecule_length_tmp,
-                                       d_molecule_length,
-                                       n_local_molecules);
+    cub::DeviceRadixSort::SortPairs(d_temp_storage,
+                                    temp_storage_bytes,
+                                    d_lowest_idx,
+                                    d_lowest_idx_sort,
+                                    d_molecule_length_tmp,
+                                    d_molecule_length,
+                                    n_local_molecules);
     d_temp_storage = alloc.allocate(temp_storage_bytes);
 
     // key-value sort
-    hipcub::DeviceRadixSort::SortPairs(d_temp_storage,
-                                       temp_storage_bytes,
-                                       d_lowest_idx,
-                                       d_lowest_idx_sort,
-                                       d_molecule_length_tmp,
-                                       d_molecule_length,
-                                       n_local_molecules);
+    cub::DeviceRadixSort::SortPairs(d_temp_storage,
+                                    temp_storage_bytes,
+                                    d_lowest_idx,
+                                    d_lowest_idx_sort,
+                                    d_molecule_length_tmp,
+                                    d_molecule_length,
+                                    n_local_molecules);
     alloc.deallocate((char*)d_temp_storage);
 
     // release temp buffers
@@ -326,11 +322,7 @@ hipError_t gpu_sort_by_molecule(unsigned int nptl,
 
     thrust::device_ptr<unsigned int> local_molecules_lowest_idx_unsorted(
         d_local_molecules_lowest_idx_unsorted);
-#ifdef __HIP_PLATFORM_HCC__
-    thrust::copy(thrust::hip::par(alloc),
-#else
     thrust::copy(thrust::cuda::par(alloc),
-#endif
                  lowest_idx_by_ptl_in_molecule,
                  lowest_idx_by_ptl_in_molecule + n_local_ptls_in_molecules,
                  local_molecules_lowest_idx_unsorted);
@@ -340,22 +332,22 @@ hipError_t gpu_sort_by_molecule(unsigned int nptl,
     // radix sort is stable
     d_temp_storage = NULL;
     temp_storage_bytes = 0;
-    hipcub::DeviceRadixSort::SortPairs(d_temp_storage,
-                                       temp_storage_bytes,
-                                       d_local_molecules_lowest_idx_unsorted,
-                                       d_local_molecules_lowest_idx,
-                                       d_idx_sorted_by_molecule_and_tag,
-                                       d_idx_sorted_by_tag,
-                                       n_local_ptls_in_molecules);
+    cub::DeviceRadixSort::SortPairs(d_temp_storage,
+                                    temp_storage_bytes,
+                                    d_local_molecules_lowest_idx_unsorted,
+                                    d_local_molecules_lowest_idx,
+                                    d_idx_sorted_by_molecule_and_tag,
+                                    d_idx_sorted_by_tag,
+                                    n_local_ptls_in_molecules);
     d_temp_storage = alloc.allocate(temp_storage_bytes);
 
-    hipcub::DeviceRadixSort::SortPairs(d_temp_storage,
-                                       temp_storage_bytes,
-                                       d_local_molecules_lowest_idx_unsorted,
-                                       d_local_molecules_lowest_idx,
-                                       d_idx_sorted_by_molecule_and_tag,
-                                       d_idx_sorted_by_tag,
-                                       n_local_ptls_in_molecules);
+    cub::DeviceRadixSort::SortPairs(d_temp_storage,
+                                    temp_storage_bytes,
+                                    d_local_molecules_lowest_idx_unsorted,
+                                    d_local_molecules_lowest_idx,
+                                    d_idx_sorted_by_molecule_and_tag,
+                                    d_idx_sorted_by_tag,
+                                    n_local_ptls_in_molecules);
     alloc.deallocate((char*)d_temp_storage);
 
     // release temp buffer
@@ -374,7 +366,7 @@ hipError_t gpu_sort_by_molecule(unsigned int nptl,
     if (check_cuda)
         CHECK_CUDA();
 
-    return hipSuccess;
+    return cudaSuccess;
     }
 
 __global__ void gpu_fill_molecule_table_kernel(unsigned int nptl,
@@ -393,16 +385,16 @@ __global__ void gpu_fill_molecule_table_kernel(unsigned int nptl,
         d_molecule_list[molecule_idx(d_molecule_order[idx], molidx)] = idx;
     }
 
-hipError_t gpu_fill_molecule_table(unsigned int nptl,
-                                   unsigned int n_local_ptls_in_molecules,
-                                   Index2D molecule_idx,
-                                   const unsigned int* d_molecule_idx,
-                                   const unsigned int* d_local_molecule_tags,
-                                   const unsigned int* d_idx_sorted_by_tag,
-                                   unsigned int* d_molecule_list,
-                                   unsigned int* d_molecule_order,
-                                   unsigned int block_size,
-                                   CachedAllocator& alloc)
+cudaError_t gpu_fill_molecule_table(unsigned int nptl,
+                                    unsigned int n_local_ptls_in_molecules,
+                                    Index2D molecule_idx,
+                                    const unsigned int* d_molecule_idx,
+                                    const unsigned int* d_local_molecule_tags,
+                                    const unsigned int* d_idx_sorted_by_tag,
+                                    unsigned int* d_molecule_list,
+                                    unsigned int* d_molecule_order,
+                                    unsigned int block_size,
+                                    CachedAllocator& alloc)
     {
     thrust::device_ptr<unsigned int> molecule_order(d_molecule_order);
     thrust::device_ptr<const unsigned int> local_molecule_tags(d_local_molecule_tags);
@@ -412,30 +404,20 @@ hipError_t gpu_fill_molecule_table(unsigned int nptl,
 
     // generate ascending index for every molecule
     thrust::constant_iterator<unsigned int> one(1);
-
-#ifdef __HIP_PLATFORM_HCC__
-    thrust::exclusive_scan_by_key(thrust::hip::par(alloc),
-#else
     thrust::exclusive_scan_by_key(thrust::cuda::par(alloc),
-#endif
                                   local_molecule_tags,
                                   local_molecule_tags + n_local_ptls_in_molecules,
                                   one,
                                   idx_lookup);
 
     // write out the table
-    hipLaunchKernelGGL((gpu_fill_molecule_table_kernel),
-                       dim3(nptl / block_size + 1),
-                       dim3(block_size),
-                       0,
-                       0,
-                       nptl,
-                       molecule_idx,
-                       d_molecule_idx,
-                       d_molecule_list,
-                       d_molecule_order);
+    gpu_fill_molecule_table_kernel<<<nptl / block_size + 1, block_size>>>(nptl,
+                                                                          molecule_idx,
+                                                                          d_molecule_idx,
+                                                                          d_molecule_list,
+                                                                          d_molecule_order);
 
-    return hipSuccess;
+    return cudaSuccess;
     }
 
     } // end namespace kernel

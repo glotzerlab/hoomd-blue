@@ -4,7 +4,7 @@
 #ifndef __PAIR_EVALUATOR_ExpandedMie_H__
 #define __PAIR_EVALUATOR_ExpandedMie_H__
 
-#ifndef __HIPCC__
+#ifndef __NVCC__
 #include <string>
 #endif
 
@@ -18,7 +18,7 @@
 // need to declare these class methods with __device__ qualifiers when building in nvcc
 // DEVICE is __host__ __device__ when included in nvcc and blank when included into the host
 // compiler
-#ifdef __HIPCC__
+#ifdef __NVCC__
 #define DEVICE __device__
 #else
 #define DEVICE
@@ -47,12 +47,12 @@ class EvaluatorPairExpandedMie
 
         HOSTDEVICE void allocate_shared(char*& ptr, unsigned int& available_bytes) const { }
 
-#ifdef ENABLE_HIP
+#ifdef ENABLE_GPU
         //! set CUDA memory hints
         void set_memory_hint() const { }
 #endif
 
-#ifndef __HIPCC__
+#ifndef __NVCC__
         param_type()
             : repulsive(0), attractive(0), n_pow(0), m_pow(0), delta(0), sigma(0), epsilon(0)
             {
@@ -168,7 +168,7 @@ class EvaluatorPairExpandedMie
         return 0;
         }
 
-#ifndef __HIPCC__
+#ifndef __NVCC__
     //! Get the name of this potential
     /*! \returns The potential name. Must be short and all lowercase, as this is the name energies
        will be logged as via analyze.log.

@@ -5,7 +5,7 @@
     \brief Defines the GPUFlags class
 */
 
-#ifdef __HIPCC__
+#ifdef __NVCC__
 #error This header cannot be compiled by nvcc
 #endif
 
@@ -13,8 +13,8 @@
 #define __GPUFLAGS_H__
 
 // for vector types
-#ifdef ENABLE_HIP
-#include <hip/hip_runtime.h>
+#ifdef ENABLE_GPU
+#include <cuda_runtime.h>
 #endif
 
 #include "ExecutionConfiguration.h"
@@ -73,7 +73,7 @@ template<class T> class PYBIND11_EXPORT GPUFlags
     //! Reset the flags on the host
     inline void resetFlags(const T flags);
 
-#ifdef ENABLE_HIP
+#ifdef ENABLE_GPU
     //! Get the flags on the device
     T* getDeviceFlags()
         {
@@ -86,7 +86,7 @@ template<class T> class PYBIND11_EXPORT GPUFlags
         m_exec_conf; //!< execution configuration for working with CUDA
     bool m_mapped;   //!< Set to true when using host mapped memory
 
-#ifdef ENABLE_HIP
+#ifdef ENABLE_GPU
     mutable T* d_data; //!< Pointer to allocated device memory
 #endif
     mutable T* h_data; //!< Pointer to allocated host memory
@@ -106,7 +106,7 @@ template<class T> class PYBIND11_EXPORT GPUFlags
 template<class T>
 GPUFlags<T>::GPUFlags()
     : m_mapped(false),
-#ifdef ENABLE_HIP
+#ifdef ENABLE_GPU
       d_data(NULL),
 #endif
       h_data(NULL)
@@ -119,12 +119,12 @@ GPUFlags<T>::GPUFlags()
 template<class T>
 GPUFlags<T>::GPUFlags(std::shared_ptr<const ExecutionConfiguration> exec_conf)
     : m_exec_conf(exec_conf), m_mapped(false),
-#ifdef ENABLE_HIP
+#ifdef ENABLE_GPU
       d_data(NULL),
 #endif
       h_data(NULL)
     {
-#ifdef ENABLE_HIP
+#ifdef ENABLE_GPU
     // set mapping if requested and supported
     if (m_exec_conf->isCUDAEnabled() && m_exec_conf->dev_prop.canMapHostMemory)
         m_mapped = true;
@@ -147,7 +147,7 @@ template<class T> GPUFlags<T>::~GPUFlags()
 template<class T>
 GPUFlags<T>::GPUFlags(const GPUFlags& from)
     : m_exec_conf(from.m_exec_conf), m_mapped(false),
-#ifdef ENABLE_HIP
+#ifdef ENABLE_GPU
       d_data(NULL),
 #endif
       h_data(NULL)
@@ -199,7 +199,7 @@ template<class T> void GPUFlags<T>::swap(GPUFlags& from)
     {
     std::swap(m_mapped, from.m_mapped);
     std::swap(m_exec_conf, from.m_exec_conf);
-#ifdef ENABLE_HIP
+#ifdef ENABLE_GPU
     std::swap(d_data, from.d_data);
 #endif
     std::swap(h_data, from.h_data);
@@ -214,7 +214,7 @@ template<class T> void GPUFlags<T>::allocate()
     assert(h_data == NULL);
 
     // allocate memory
-#ifdef ENABLE_HIP
+#ifdef ENABLE_GPU
     assert(d_data == NULL);
     if (m_exec_conf && m_exec_conf->isCUDAEnabled())
         {
@@ -229,12 +229,12 @@ template<class T> void GPUFlags<T>::allocate()
                 throw std::runtime_error("Error allocating aligned memory.");
                 }
             h_data = (T*)ptr;
-            hipHostRegister(h_data, sizeof(T), hipHostRegisterMapped);
+            cudaHostRegister(h_data, sizeof(T), cudaHostRegisterMapped);
 #else
-            hipHostMalloc(&h_data, sizeof(T), hipHostMallocMapped);
+            cudaHostAlloc(&h_data, sizeof(T), cudaHostAllocMapped);
 #endif
             CHECK_CUDA_ERROR();
-            hipHostGetDevicePointer((void**)&d_data, h_data, 0);
+            cudaHostGetDevicePointer((void**)&d_data, h_data, 0);
             CHECK_CUDA_ERROR();
             }
         else
@@ -247,12 +247,12 @@ template<class T> void GPUFlags<T>::allocate()
                 throw std::runtime_error("Error allocating aligned memory.");
                 }
             h_data = (T*)ptr;
-            hipHostRegister(h_data, sizeof(T), hipHostRegisterDefault);
+            cudaHostRegister(h_data, sizeof(T), cudaHostRegisterDefault);
 #else
-            hipHostMalloc(&h_data, sizeof(T), hipHostMallocDefault);
+            cudaHostAlloc(&h_data, sizeof(T), cudaHostAllocDefault);
 #endif
             CHECK_CUDA_ERROR();
-            hipMalloc(&d_data, sizeof(T));
+            cudaMalloc(&d_data, sizeof(T));
             CHECK_CUDA_ERROR();
             }
         }
@@ -274,19 +274,19 @@ template<class T> void GPUFlags<T>::deallocate()
         return;
 
     // free memory
-#ifdef ENABLE_HIP
+#ifdef ENABLE_GPU
     if (m_exec_conf && m_exec_conf->isCUDAEnabled())
         {
         assert(d_data);
 #ifdef ENABLE_MPI
-        hipHostUnregister(h_data);
+        cudaHostUnregister(h_data);
         free(h_data);
 #else
-        hipHostFree(h_data);
+        cudaFreeHost(h_data);
 #endif
         if (!m_mapped)
             {
-            hipFree(d_data);
+            cudaFree(d_data);
             }
         }
     else
@@ -299,7 +299,7 @@ template<class T> void GPUFlags<T>::deallocate()
 
     // set pointers to NULL
     h_data = NULL;
-#ifdef ENABLE_HIP
+#ifdef ENABLE_GPU
     d_data = NULL;
 #endif
     }
@@ -315,21 +315,21 @@ template<class T> void GPUFlags<T>::memclear()
 
     assert(h_data);
 
-#ifdef ENABLE_HIP
+#ifdef ENABLE_GPU
     // wait for the device to catch up
     if (m_exec_conf && m_exec_conf->isCUDAEnabled() && m_mapped)
         {
-        hipDeviceSynchronize();
+        cudaDeviceSynchronize();
         }
 #endif
 
     // clear memory
     memset(h_data, 0, sizeof(T));
-#ifdef ENABLE_HIP
+#ifdef ENABLE_GPU
     if (m_exec_conf && m_exec_conf->isCUDAEnabled() && !m_mapped)
         {
         assert(d_data);
-        hipMemset(d_data, 0, sizeof(T));
+        cudaMemset(d_data, 0, sizeof(T));
         }
 #endif
     }
@@ -341,18 +341,18 @@ template<class T> void GPUFlags<T>::memclear()
 */
 template<class T> const T GPUFlags<T>::readFlags()
     {
-#ifdef ENABLE_HIP
+#ifdef ENABLE_GPU
     if (m_mapped)
         {
         // synch to wait for kernels
-        hipDeviceSynchronize();
+        cudaDeviceSynchronize();
         }
     else
         {
         if (m_exec_conf->isCUDAEnabled())
             {
             // memcpy the results to the host
-            hipMemcpy(h_data, d_data, sizeof(T), hipMemcpyDeviceToHost);
+            cudaMemcpy(h_data, d_data, sizeof(T), cudaMemcpyDeviceToHost);
             }
         }
 #endif
@@ -370,9 +370,9 @@ template<class T> void GPUFlags<T>::resetFlags(const T flags)
     {
     if (m_mapped)
         {
-#ifdef ENABLE_HIP
+#ifdef ENABLE_GPU
         // synch to wait for kernels
-        hipDeviceSynchronize();
+        cudaDeviceSynchronize();
 #endif
         // set the flags
         *h_data = flags;
@@ -381,11 +381,11 @@ template<class T> void GPUFlags<T>::resetFlags(const T flags)
         {
         // set the flags
         *h_data = flags;
-#ifdef ENABLE_HIP
+#ifdef ENABLE_GPU
         if (m_exec_conf->isCUDAEnabled())
             {
             // copy to the device
-            hipMemcpy(d_data, h_data, sizeof(T), hipMemcpyHostToDevice);
+            cudaMemcpy(d_data, h_data, sizeof(T), cudaMemcpyHostToDevice);
             }
 #endif
         }

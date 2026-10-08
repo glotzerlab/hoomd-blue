@@ -35,13 +35,13 @@ if (ENABLE_MPI)
     mark_as_advanced(MPI_LIBRARY)
     mark_as_advanced(OMPI_INFO)
 
-if (ENABLE_HIP)
-    string(REPLACE "-pthread" "$<$<AND:$<COMPILE_LANGUAGE:CUDA>,$<STREQUAL:${HIP_PLATFORM},nvcc>>:-Xcompiler>;-pthread"
+if (ENABLE_GPU)
+    string(REPLACE "-pthread" "$<$<COMPILE_LANGUAGE:CUDA>:-Xcompiler>;-pthread"
       _MPI_C_COMPILE_OPTIONS "${MPI_C_COMPILE_OPTIONS}")
     set_property(TARGET MPI::MPI_C PROPERTY INTERFACE_COMPILE_OPTIONS "${_MPI_C_COMPILE_OPTIONS}")
     unset(_MPI_C_COMPILE_OPTIONS)
 
-    string(REPLACE "-pthread" "$<$<AND:$<COMPILE_LANGUAGE:CUDA>,$<STREQUAL:${HIP_PLATFORM},nvcc>>:-Xcompiler>;-pthread"
+    string(REPLACE "-pthread" "$<$<COMPILE_LANGUAGE:CUDA>:-Xcompiler>;-pthread"
       _MPI_CXX_COMPILE_OPTIONS "${MPI_CXX_COMPILE_OPTIONS}")
     set_property(TARGET MPI::MPI_CXX PROPERTY INTERFACE_COMPILE_OPTIONS "${_MPI_CXX_COMPILE_OPTIONS}")
     unset(_MPI_CXX_COMPILE_OPTIONS)

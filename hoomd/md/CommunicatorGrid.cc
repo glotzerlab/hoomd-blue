@@ -9,14 +9,9 @@
 
 #include <map>
 
-#if defined(ENABLE_HIP)
-#if __HIP_PLATFORM_HCC__
-#include <hipfft.h>
-#elif __HIP_PLATFORM_NVCC__
+#ifdef ENABLE_GPU
 #include <cufft.h>
-typedef cufftComplex hipfftComplex;
-#endif
-#endif
+#endif // ENABLE_GPU
 
 //! Define plus operator for complex data type (needed by CommunicatorMesh)
 inline kiss_fft_cpx operator+(kiss_fft_cpx& lhs, kiss_fft_cpx& rhs)
@@ -27,11 +22,11 @@ inline kiss_fft_cpx operator+(kiss_fft_cpx& lhs, kiss_fft_cpx& rhs)
     return res;
     }
 
-#ifdef ENABLE_HIP
+#ifdef ENABLE_GPU
 //! Define plus operator for complex data type (needed by CommunicatorMesh)
-inline hipfftComplex operator+(hipfftComplex& lhs, hipfftComplex& rhs)
+inline cufftComplex operator+(cufftComplex& lhs, cufftComplex& rhs)
     {
-    hipfftComplex res;
+    cufftComplex res;
     res.x = lhs.x + rhs.x;
     res.y = lhs.y + rhs.y;
     return res;
@@ -281,8 +276,8 @@ template class PYBIND11_EXPORT CommunicatorGrid<Scalar>;
 template class PYBIND11_EXPORT CommunicatorGrid<unsigned int>;
 template class PYBIND11_EXPORT CommunicatorGrid<kiss_fft_cpx>;
 
-#ifdef ENABLE_HIP
-template class PYBIND11_EXPORT CommunicatorGrid<hipfftComplex>;
+#ifdef ENABLE_GPU
+template class PYBIND11_EXPORT CommunicatorGrid<cufftComplex>;
 #endif
 
     } // end namespace md

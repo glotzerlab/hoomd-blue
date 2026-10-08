@@ -5,7 +5,7 @@
     \brief Declaration of box deformers
 */
 
-#ifdef __HIPCC__
+#ifdef __NVCC__
 #error This header cannot be compiled by nvcc
 #endif
 
@@ -54,7 +54,7 @@ class PYBIND11_EXPORT BoxDeformer : public Autotuned
 
     virtual void processAfterDeformation(const BoxDim& old_box, const BoxDim& new_box);
 
-#ifdef ENABLE_HIP
+#ifdef ENABLE_GPU
     private:
     std::shared_ptr<Autotuner<1>> m_tuner_wrap; //!< Autotuner for block size
 #endif

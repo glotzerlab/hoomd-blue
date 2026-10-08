@@ -4,7 +4,7 @@
 #ifndef _COMPUTE_THERMO_GPU_CUH_
 #define _COMPUTE_THERMO_GPU_CUH_
 
-#include <hip/hip_runtime.h>
+#include <cuda_runtime.h>
 
 #include "ComputeThermoHMATypes.h"
 #include "hoomd/HOOMDMath.h"
@@ -39,24 +39,24 @@ struct compute_thermo_hma_args
     };
 
 //! Computes the partial sums of thermodynamic properties for ComputeThermo
-hipError_t gpu_compute_thermo_hma_partial(Scalar4* d_pos,
-                                          Scalar3* d_lattice_site,
-                                          int3* d_image,
-                                          unsigned int* d_body,
-                                          unsigned int* d_tag,
-                                          unsigned int* d_group_members,
-                                          unsigned int group_size,
-                                          const BoxDim& box,
-                                          const compute_thermo_hma_args& args);
+cudaError_t gpu_compute_thermo_hma_partial(Scalar4* d_pos,
+                                           Scalar3* d_lattice_site,
+                                           int3* d_image,
+                                           unsigned int* d_body,
+                                           unsigned int* d_tag,
+                                           unsigned int* d_group_members,
+                                           unsigned int group_size,
+                                           const BoxDim& box,
+                                           const compute_thermo_hma_args& args);
 
 //! Computes the final sums of thermodynamic properties for ComputeThermo
-hipError_t gpu_compute_thermo_hma_final(Scalar* d_properties,
-                                        unsigned int* d_body,
-                                        unsigned int* d_tag,
-                                        unsigned int* d_group_members,
-                                        unsigned int group_size,
-                                        const BoxDim& box,
-                                        const compute_thermo_hma_args& args);
+cudaError_t gpu_compute_thermo_hma_final(Scalar* d_properties,
+                                         unsigned int* d_body,
+                                         unsigned int* d_tag,
+                                         unsigned int* d_group_members,
+                                         unsigned int group_size,
+                                         const BoxDim& box,
+                                         const compute_thermo_hma_args& args);
 
     } // end namespace kernel
     } // end namespace md

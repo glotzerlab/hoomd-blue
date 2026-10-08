@@ -3,9 +3,9 @@
 
 #include "hoomd/Communicator.h"
 #include "hoomd/mpcd/PlanarPoreGeometryFiller.h"
-#ifdef ENABLE_HIP
+#ifdef ENABLE_GPU
 #include "hoomd/mpcd/PlanarPoreGeometryFillerGPU.h"
-#endif // ENABLE_HIP
+#endif // ENABLE_GPU
 
 #include "hoomd/SnapshotSystemData.h"
 #include "hoomd/test/upp11_config.h"
@@ -90,10 +90,10 @@ UP_TEST(planar_pore_fill_mpi)
     planar_pore_fill_mpi_test<mpcd::PlanarPoreGeometryFiller>(
         std::make_shared<ExecutionConfiguration>(ExecutionConfiguration::CPU));
     }
-#ifdef ENABLE_HIP
+#ifdef ENABLE_GPU
 UP_TEST(planar_pore_fill_mpi_gpu)
     {
     planar_pore_fill_mpi_test<mpcd::PlanarPoreGeometryFillerGPU>(
         std::make_shared<ExecutionConfiguration>(ExecutionConfiguration::GPU));
     }
-#endif // ENABLE_HIP
+#endif // ENABLE_GPU

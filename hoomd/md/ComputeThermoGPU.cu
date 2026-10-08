@@ -4,7 +4,7 @@
 #include "ComputeThermoGPU.cuh"
 #include "hoomd/HOOMDMath.h"
 #include "hoomd/VectorMath.h"
-#include <hip/hip_runtime.h>
+#include <cuda_runtime.h>
 
 #include <assert.h>
 
@@ -519,16 +519,16 @@ __global__ void gpu_compute_pressure_tensor_final_sums(Scalar* d_properties,
    for details.
 */
 
-hipError_t gpu_compute_thermo_partial(Scalar* d_properties,
-                                      Scalar4* d_vel,
-                                      unsigned int* d_body,
-                                      unsigned int* d_tag,
-                                      unsigned int* d_group_members,
-                                      unsigned int group_size,
-                                      const BoxDim& box,
-                                      const compute_thermo_args& args,
-                                      bool compute_pressure_tensor,
-                                      bool compute_rotational_energy)
+cudaError_t gpu_compute_thermo_partial(Scalar* d_properties,
+                                       Scalar4* d_vel,
+                                       unsigned int* d_body,
+                                       unsigned int* d_tag,
+                                       unsigned int* d_group_members,
+                                       unsigned int group_size,
+                                       const BoxDim& box,
+                                       const compute_thermo_args& args,
+                                       bool compute_pressure_tensor,
+                                       bool compute_rotational_energy)
     {
     assert(d_properties);
     assert(d_vel);
@@ -539,25 +539,20 @@ hipError_t gpu_compute_thermo_partial(Scalar* d_properties,
 
     unsigned int nwork = group_size;
 
-    dim3 grid(nwork / args.block_size + 1, 1, 1);
-    dim3 threads(args.block_size, 1, 1);
+    const unsigned int num_blocks = nwork / args.block_size + 1;
 
     size_t shared_bytes = sizeof(Scalar3) * args.block_size;
 
-    hipLaunchKernelGGL(gpu_compute_thermo_partial_sums,
-                       dim3(grid),
-                       dim3(threads),
-                       shared_bytes,
-                       0,
-                       args.d_scratch,
-                       args.d_net_force,
-                       args.d_net_virial,
-                       args.virial_pitch,
-                       d_vel,
-                       d_body,
-                       d_tag,
-                       d_group_members,
-                       nwork);
+    gpu_compute_thermo_partial_sums<<<num_blocks, args.block_size, shared_bytes>>>(
+        args.d_scratch,
+        args.d_net_force,
+        args.d_net_virial,
+        args.virial_pitch,
+        d_vel,
+        d_body,
+        d_tag,
+        d_group_members,
+        nwork);
 
     if (compute_pressure_tensor)
         {
@@ -565,22 +560,17 @@ hipError_t gpu_compute_thermo_partial(Scalar* d_properties,
 
         shared_bytes = 6 * sizeof(Scalar) * args.block_size;
 
-        // run the kernel
-        hipLaunchKernelGGL(gpu_compute_pressure_tensor_partial_sums,
-                           dim3(grid),
-                           dim3(threads),
-                           shared_bytes,
-                           0,
-                           args.d_scratch_pressure_tensor,
-                           args.d_net_force,
-                           args.d_net_virial,
-                           args.virial_pitch,
-                           d_vel,
-                           d_body,
-                           d_tag,
-                           d_group_members,
-                           nwork,
-                           args.n_blocks);
+        gpu_compute_pressure_tensor_partial_sums<<<num_blocks, args.block_size, shared_bytes>>>(
+            args.d_scratch_pressure_tensor,
+            args.d_net_force,
+            args.d_net_virial,
+            args.virial_pitch,
+            d_vel,
+            d_body,
+            d_tag,
+            d_group_members,
+            nwork,
+            args.n_blocks);
         }
 
     if (compute_rotational_energy)
@@ -590,22 +580,18 @@ hipError_t gpu_compute_thermo_partial(Scalar* d_properties,
         shared_bytes = sizeof(Scalar) * args.block_size;
 
         // run the kernel
-        hipLaunchKernelGGL(gpu_compute_rotational_ke_partial_sums,
-                           dim3(grid),
-                           dim3(threads),
-                           shared_bytes,
-                           0,
-                           args.d_scratch_rot,
-                           args.d_orientation,
-                           args.d_angmom,
-                           args.d_inertia,
-                           d_body,
-                           d_tag,
-                           d_group_members,
-                           nwork);
+        gpu_compute_rotational_ke_partial_sums<<<num_blocks, args.block_size, shared_bytes>>>(
+            args.d_scratch_rot,
+            args.d_orientation,
+            args.d_angmom,
+            args.d_inertia,
+            d_body,
+            d_tag,
+            d_group_members,
+            nwork);
         }
 
-    return hipSuccess;
+    return cudaSuccess;
     }
 
 //! Compute thermodynamic properties of a group on the GPU
@@ -625,16 +611,16 @@ hipError_t gpu_compute_thermo_partial(Scalar* d_properties,
    for details.
 */
 
-hipError_t gpu_compute_thermo_final(Scalar* d_properties,
-                                    Scalar4* d_vel,
-                                    unsigned int* d_body,
-                                    unsigned int* d_tag,
-                                    unsigned int* d_group_members,
-                                    unsigned int group_size,
-                                    const BoxDim& box,
-                                    const compute_thermo_args& args,
-                                    bool compute_pressure_tensor,
-                                    bool compute_rotational_energy)
+cudaError_t gpu_compute_thermo_final(Scalar* d_properties,
+                                     Scalar4* d_vel,
+                                     unsigned int* d_body,
+                                     unsigned int* d_tag,
+                                     unsigned int* d_group_members,
+                                     unsigned int group_size,
+                                     const BoxDim& box,
+                                     const compute_thermo_args& args,
+                                     bool compute_pressure_tensor,
+                                     bool compute_rotational_energy)
     {
     assert(d_properties);
     assert(d_vel);
@@ -643,10 +629,7 @@ hipError_t gpu_compute_thermo_final(Scalar* d_properties,
     assert(args.d_net_virial);
     assert(args.d_scratch);
 
-    // setup the grid to run the final kernel
     int final_block_size = 256;
-    dim3 grid = dim3(1, 1, 1);
-    dim3 threads = dim3(final_block_size, 1, 1);
 
     size_t shared_bytes = sizeof(Scalar4) * final_block_size;
 
@@ -654,47 +637,36 @@ hipError_t gpu_compute_thermo_final(Scalar* d_properties,
         = Scalar(1.0 / 3.0)
           * (args.external_virial_xx + args.external_virial_yy + args.external_virial_zz);
 
-    // run the kernel
-    hipLaunchKernelGGL(gpu_compute_thermo_final_sums,
-                       dim3(grid),
-                       dim3(threads),
-                       shared_bytes,
-                       0,
-                       d_properties,
-                       args.d_scratch,
-                       args.d_scratch_rot,
-                       args.ndof,
-                       box,
-                       args.D,
-                       group_size,
-                       args.n_blocks,
-                       external_virial,
-                       args.external_energy);
+    gpu_compute_thermo_final_sums<<<1, final_block_size, shared_bytes>>>(d_properties,
+                                                                         args.d_scratch,
+                                                                         args.d_scratch_rot,
+                                                                         args.ndof,
+                                                                         box,
+                                                                         args.D,
+                                                                         group_size,
+                                                                         args.n_blocks,
+                                                                         external_virial,
+                                                                         args.external_energy);
 
     if (compute_pressure_tensor)
         {
         shared_bytes = 6 * sizeof(Scalar) * final_block_size;
-        // run the kernel
-        hipLaunchKernelGGL(gpu_compute_pressure_tensor_final_sums,
-                           dim3(grid),
-                           dim3(threads),
-                           shared_bytes,
-                           0,
-                           d_properties,
-                           args.d_scratch_pressure_tensor,
-                           box,
-                           group_size,
-                           args.n_blocks,
-                           args.external_virial_xx,
-                           args.external_virial_xy,
-                           args.external_virial_xz,
-                           args.external_virial_yy,
-                           args.external_virial_yz,
-                           args.external_virial_zz,
-                           args.D == 2);
+        gpu_compute_pressure_tensor_final_sums<<<1, final_block_size, shared_bytes>>>(
+            d_properties,
+            args.d_scratch_pressure_tensor,
+            box,
+            group_size,
+            args.n_blocks,
+            args.external_virial_xx,
+            args.external_virial_xy,
+            args.external_virial_xz,
+            args.external_virial_yy,
+            args.external_virial_yz,
+            args.external_virial_zz,
+            args.D == 2);
         }
 
-    return hipSuccess;
+    return cudaSuccess;
     }
 
     } // end namespace kernel

@@ -19,25 +19,25 @@ namespace md
 namespace kernel
     {
 //! Kernel driver for the first part of the Brownian update called by TwoStepBDGPU
-hipError_t gpu_brownian_step_one(Scalar4* d_pos,
-                                 Scalar4* d_vel,
-                                 int3* d_image,
-                                 const BoxDim& box,
-                                 const unsigned int* d_tag,
-                                 const unsigned int* d_group_members,
-                                 const unsigned int group_size,
-                                 const Scalar4* d_net_force,
-                                 const Scalar3* d_gamma_r,
-                                 Scalar4* d_orientation,
-                                 Scalar4* d_torque,
-                                 const Scalar3* d_inertia,
-                                 Scalar4* d_angmom,
-                                 const langevin_step_two_args& langevin_args,
-                                 const bool aniso,
-                                 const Scalar deltaT,
-                                 const unsigned int D,
-                                 const bool d_noiseless_t,
-                                 const bool d_noiseless_r);
+cudaError_t gpu_brownian_step_one(Scalar4* d_pos,
+                                  Scalar4* d_vel,
+                                  int3* d_image,
+                                  const BoxDim& box,
+                                  const unsigned int* d_tag,
+                                  const unsigned int* d_group_members,
+                                  const unsigned int group_size,
+                                  const Scalar4* d_net_force,
+                                  const Scalar3* d_gamma_r,
+                                  Scalar4* d_orientation,
+                                  Scalar4* d_torque,
+                                  const Scalar3* d_inertia,
+                                  Scalar4* d_angmom,
+                                  const langevin_step_two_args& langevin_args,
+                                  const bool aniso,
+                                  const Scalar deltaT,
+                                  const unsigned int D,
+                                  const bool d_noiseless_t,
+                                  const bool d_noiseless_r);
 
     } // end namespace kernel
     } // end namespace md

@@ -4,9 +4,9 @@
 #include "hoomd/mpcd/CellList.h"
 #include "hoomd/mpcd/CellThermoCompute.h"
 #include "utils.h"
-#ifdef ENABLE_HIP
+#ifdef ENABLE_GPU
 #include "hoomd/mpcd/CellThermoComputeGPU.h"
-#endif // ENABLE_HIP
+#endif // ENABLE_GPU
 
 #include "hoomd/Communicator.h"
 #include "hoomd/SnapshotSystemData.h"
@@ -215,7 +215,7 @@ UP_TEST(mpcd_cell_thermo_basic)
         new ExecutionConfiguration(ExecutionConfiguration::CPU)));
     }
 
-#ifdef ENABLE_HIP
+#ifdef ENABLE_GPU
 UP_TEST(mpcd_cell_thermo_basic_gpu)
     {
     cell_thermo_basic_test<mpcd::CellThermoComputeGPU>(std::shared_ptr<ExecutionConfiguration>(

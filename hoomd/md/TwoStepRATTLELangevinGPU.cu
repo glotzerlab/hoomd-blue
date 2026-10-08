@@ -1,7 +1,7 @@
 // Copyright (c) 2009-2026 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
-#include "hip/hip_runtime.h"
+#include <cuda_runtime.h>
 // Copyright (c) 2009-2019 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
@@ -57,7 +57,7 @@ __global__ void gpu_rattle_langevin_angular_step_two_kernel(const Scalar4* d_pos
                                                             unsigned int D,
                                                             Scalar scale)
     {
-    HIP_DYNAMIC_SHARED(char, s_data)
+    extern __shared__ char s_data[];
     Scalar3* s_gammas_r = (Scalar3*)s_data;
 
     // read in the gamma_r, stored in s_gammas_r[0: n_type] (Pythonic convention)
@@ -186,7 +186,7 @@ __global__ void gpu_rattle_langevin_angular_step_two_kernel(const Scalar4* d_pos
     This is just a driver for gpu_rattle_langevin_angular_step_two_kernel(), see it for details.
 
 */
-hipError_t
+cudaError_t
 gpu_rattle_langevin_angular_step_two(const Scalar4* d_pos,
                                      Scalar4* d_orientation,
                                      Scalar4* d_angmom,
@@ -203,9 +203,6 @@ gpu_rattle_langevin_angular_step_two(const Scalar4* d_pos,
     {
     // setup the grid to run the kernel
     int block_size = 256;
-    dim3 grid((group_size / block_size) + 1, 1, 1);
-    dim3 threads(block_size, 1, 1);
-
     const auto shared_bytes = max((sizeof(Scalar3) * rattle_langevin_args.n_types),
                                   (rattle_langevin_args.block_size * sizeof(Scalar)));
 
@@ -216,31 +213,28 @@ gpu_rattle_langevin_angular_step_two(const Scalar4* d_pos,
         }
 
     // run the kernel
-    hipLaunchKernelGGL(gpu_rattle_langevin_angular_step_two_kernel,
-                       grid,
-                       threads,
-                       shared_bytes,
-                       0,
-                       d_pos,
-                       d_orientation,
-                       d_angmom,
-                       d_inertia,
-                       d_net_torque,
-                       d_group_members,
-                       d_gamma_r,
-                       d_tag,
-                       rattle_langevin_args.n_types,
-                       group_size,
-                       rattle_langevin_args.timestep,
-                       rattle_langevin_args.seed,
-                       rattle_langevin_args.T,
-                       rattle_langevin_args.tolerance,
-                       rattle_langevin_args.noiseless_r,
-                       deltaT,
-                       D,
-                       scale);
+    gpu_rattle_langevin_angular_step_two_kernel<<<(group_size / block_size) + 1,
+                                                  block_size,
+                                                  shared_bytes>>>(d_pos,
+                                                                  d_orientation,
+                                                                  d_angmom,
+                                                                  d_inertia,
+                                                                  d_net_torque,
+                                                                  d_group_members,
+                                                                  d_gamma_r,
+                                                                  d_tag,
+                                                                  rattle_langevin_args.n_types,
+                                                                  group_size,
+                                                                  rattle_langevin_args.timestep,
+                                                                  rattle_langevin_args.seed,
+                                                                  rattle_langevin_args.T,
+                                                                  rattle_langevin_args.tolerance,
+                                                                  rattle_langevin_args.noiseless_r,
+                                                                  deltaT,
+                                                                  D,
+                                                                  scale);
 
-    return hipSuccess;
+    return cudaSuccess;
     }
 
 //! Kernel function for reducing a partial sum to a full sum (one value)

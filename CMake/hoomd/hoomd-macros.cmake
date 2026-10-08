@@ -42,17 +42,10 @@ endfunction()
 # find a package by config first
 macro(find_package_config_first package version)
 
-if (${CMAKE_VERSION} VERSION_GREATER_EQUAL 3.15)
-    set(_old_prefer_config ${CMAKE_FIND_PACKAGE_PREFER_CONFIG})
-    set(CMAKE_FIND_PACKAGE_PREFER_CONFIG TRUE)
-    find_package(${package} ${version} ${ARGN})
-    set(CMAKE_FIND_PACKAGE_PREFER_CONFIG ${_old_prefer_config})
-else()
-    find_package(${package} ${version} QUIET CONFIG ${ARGN})
-    if (NOT ${package}_FOUND)
-        find_package(${package} ${version} MODULE ${ARGN} REQUIRED)
-    endif()
-endif()
+set(_old_prefer_config ${CMAKE_FIND_PACKAGE_PREFER_CONFIG})
+set(CMAKE_FIND_PACKAGE_PREFER_CONFIG TRUE)
+find_package(${package} ${version} ${ARGN})
+set(CMAKE_FIND_PACKAGE_PREFER_CONFIG ${_old_prefer_config})
 endmacro()
 
 # hoomd_add_module links shared libraries to libpython, which breaks lots of things
