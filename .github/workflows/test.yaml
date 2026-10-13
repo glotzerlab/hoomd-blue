@@ -44,24 +44,24 @@ jobs:
       fail-fast: false
       matrix:
         include:
-        - config: [clang, 18, -py, 314, -mpi]
+        - config: [clang, 18, -py, 315, -mpi]
           validate: true
 
-        - config: [gcc, 14, -py, 314]
+        - config: [gcc, 14, -py, 315]
           validate: true
 
-        - config: [gcc, 14, -py, 314, -nomd]
-        - config: [gcc, 14, -py, 314, -nohpmc]
-        - config: [gcc, 14, -py, 314, -nomd, -nohpmc]
+        - config: [gcc, 14, -py, 315, -nomd]
+        - config: [gcc, 14, -py, 315, -nohpmc]
+        - config: [gcc, 14, -py, 315, -nomd, -nohpmc]
         - config: [gcc, 10, -py, 311, -mpi]
 
-        - config: [cuda, 124, -py, 314, -mpi]
+        - config: [cuda, 124, -py, 315, -mpi]
           validate: true
 
-        - config: [cuda, 124, -py, 314]
+        - config: [cuda, 124, -py, 315]
           validate: true
 
-        - config: [cuda, 124, -py, 314, -mpi, -debug]
+        - config: [cuda, 124, -py, 315, -mpi, -debug]
 
         - config: [rocm, 72, -py, 313]
         - config: [rocm, 71, -py, 313]
@@ -91,6 +91,7 @@ jobs:
       fail-fast: false
       matrix:
         include:
+        - config: [clang, 17, -py, 314, -mpi]
         - config: [clang, 17, -py, 313, -mpi]
         - config: [clang, 17, -py, 312, -mpi]
         - config: [clang, 16, -py, 312, -mpi]
