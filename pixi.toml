@@ -30,6 +30,9 @@ python = "3.12.*"
 python = "3.13.*"
 [feature.py314.dependencies]
 python = "3.14.*"
+[feature.py315.dependencies]
+python = "3.15.*"
+libpython = "3.15.*"
 [feature.docs.dependencies]
 python = "3.15.*"
 ipython = "*"
@@ -49,4 +52,5 @@ py311 = ["py311"]
 py312 = ["py312"]
 py313 = ["py313"]
 py314 = ["py314"]
+py315 = ["py315"]
 docs = ["docs"]
