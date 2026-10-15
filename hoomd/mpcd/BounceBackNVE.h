@@ -135,7 +135,7 @@ template<class Geometry> void BounceBackNVE<Geometry>::integrateStepOne(uint64_t
             } while (dt_remain > 0 && collide);
 
         // wrap final position
-        box.wrap(pos, h_image.data[pid]);
+        box.wrap(pos, vel, h_image.data[pid]);
 
         // write position and velocity back out
         h_pos.data[pid] = make_scalar4(pos.x, pos.y, pos.z, type);

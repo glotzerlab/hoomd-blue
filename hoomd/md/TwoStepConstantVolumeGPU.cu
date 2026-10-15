@@ -82,7 +82,7 @@ __global__ void gpu_nvt_rescale_step_one_kernel(Scalar4* d_pos,
         int3 image = d_image[idx];
 
         // time to fix the periodic boundary conditions
-        box.wrap(pos, image);
+        box.wrap(pos, vel, image);
 
         // write out the results
         d_pos[idx] = make_scalar4(pos.x, pos.y, pos.z, postype.w);

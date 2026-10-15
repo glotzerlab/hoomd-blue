@@ -15,6 +15,7 @@ set(_md_sources module-md.cc
                    AlchemyData.cc
                    BendingRigidityMeshForceCompute.cc
                    BondTablePotential.cc
+                   BoxDeformer.cc
                    CommunicatorGrid.cc
                    ComputeThermo.cc
                    ComputeThermoHMA.cc
@@ -33,6 +34,7 @@ set(_md_sources module-md.cc
                    HelfrichMeshForceCompute.cc
                    IntegrationMethodTwoStep.cc
                    IntegratorTwoStep.cc
+                   LeesEdwardsBoxDeformer.cc
                    ManifoldZCylinder.cc
                    ManifoldDiamond.cc
                    ManifoldEllipsoid.cc
@@ -87,6 +89,8 @@ set(_md_headers ActiveForceComputeGPU.h
                 BendingRigidityMeshForceCompute.h
                 BondTablePotentialGPU.h
                 BondTablePotential.h
+                BoxDeformer.h
+                BoxDeformerGPU.cuh
                 CommunicatorGridGPU.h
                 CommunicatorGrid.h
                 ComputeThermoGPU.cuh
@@ -172,6 +176,8 @@ set(_md_headers ActiveForceComputeGPU.h
                 HelfrichMeshForceCompute.h
                 IntegrationMethodTwoStep.h
                 IntegratorTwoStep.h
+                LeesEdwardsBoxDeformer.h
+                LeesEdwardsBoxDeformerGPU.cuh
                 ManifoldZCylinder.h
                 ManifoldDiamond.h
                 ManifoldEllipsoid.h
@@ -335,6 +341,8 @@ set(_md_cu_sources ActiveForceComputeGPU.cu
                       AnisoPotentialPairLubricationCouplingGPUKernel.cu
                       AnisoPotentialPairRotationalCouplingGPUKernel.cu
 		      BendingRigidityMeshForceComputeGPU.cu
+            	      BendingRigidityMeshForceComputeGPU.cu
+                      BoxDeformerGPU.cu
                       ComputeThermoGPU.cu
                       ComputeThermoHMAGPU.cu
                       ConstantForceComputeGPU.cu
@@ -347,6 +355,7 @@ set(_md_cu_sources ActiveForceComputeGPU.cu
                       HarmonicDihedralForceGPU.cu
                       HarmonicImproperForceGPU.cu
             	      HelfrichMeshForceComputeGPU.cu
+                      LeesEdwardsBoxDeformerGPU.cu
                       MolecularForceCompute.cu
                       NeighborListGPUBinned.cu
                       NeighborListGPU.cu
@@ -723,6 +732,7 @@ set(files __init__.py
           bond.py
           compute.py
           constrain.py
+          deform.py
           dihedral.py
           force.py
           half_step_hook.py

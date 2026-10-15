@@ -43,6 +43,10 @@ void BoxResizeUpdaterGPU::scaleAndWrapParticles(const BoxDim& cur_box, const Box
                                access_location::device,
                                access_mode::readwrite);
 
+    ArrayHandle<Scalar4> d_vel(m_pdata->getVelocities(),
+                               access_location::device,
+                               access_mode::readwrite);
+
     ArrayHandle<int3> d_image(m_pdata->getImages(),
                               access_location::device,
                               access_mode::readwrite);
@@ -67,6 +71,7 @@ void BoxResizeUpdaterGPU::scaleAndWrapParticles(const BoxDim& cur_box, const Box
     m_tuner_wrap->begin();
     kernel::gpu_box_resize_wrap(m_pdata->getN(),
                                 d_pos.data,
+                                d_vel.data,
                                 d_image.data,
                                 new_box,
                                 m_tuner_wrap->getParam()[0]);

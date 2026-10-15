@@ -14,6 +14,7 @@ set(files __init__.py
     test_constrain_distance.py
     test_constant_force.py
     test_custom_force.py
+    test_deform.py
     test_dihedral.py
     test_external.py
     test_filter_md.py

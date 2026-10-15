@@ -41,10 +41,11 @@ hooks = [
     id = "generate_toctree",
     name = "Generate Sphinx toctree",
     language = "python",
+    language_version = "python3.15",
     entry = "python3 sphinx-doc/generate-toctree.py",
     pass_filenames = false,
     always_run = true,
-    additional_dependencies = ["numpy==2.3.5"]
+    additional_dependencies = ["numpy==2.5.4"]
   }
 ]
 
@@ -114,7 +115,7 @@ hooks = [
 
 [[repos]]
 repo = "https://github.com/astral-sh/ruff-pre-commit"
-rev = "745be0411e3c150e246d527e531e5a221b8c3462"  # frozen: v0.15.19
+rev = "2eeb5678de71a00c0902cbda7105d328432f72cb"  # frozen: v0.16.8
 hooks = [
   {
     id = "ruff-format",
@@ -128,7 +129,7 @@ hooks = [
 
 [[repos]]
 repo = "https://github.com/pre-commit/mirrors-clang-format"
-rev = "dd18dad857d6133e90bbe478f4f2f22ec0030269"  # frozen: v22.1.5
+rev = "e2b496dc2bd8340c2524cb9a2d2a943cde1bb6df"  # frozen: v23.1.1
 hooks = [
   {
     id = "clang-format",

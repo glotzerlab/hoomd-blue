@@ -85,6 +85,13 @@ MPCD:
     2018.
     `10.1016/j.cpc.2018.04.009 <https://dx.doi.org/10.1016/j.cpc.2018.04.009>`_
 
+    *When using rigid bodies with MPCD:*
+
+    M. Bush, J. C. Palmer, and M. P. Howard. Simulating hydrodynamic interactions
+    in colloidal suspensions using multiparticle collision dynamics with
+    rigid-body constraints. The Journal of Chemical Physics 165: 044904,
+    July 2026. `10.1063/5.0339394 <https://doi.org/10.1063/5.0339394>`_
+
 Rigid bodies in MD:
     T. D. Nguyen, C. L. Phillips, J. A. Anderson, and S. C. Glotzer. Rigid body
     constraints realized in massively-parallel molecular dynamics on graphics

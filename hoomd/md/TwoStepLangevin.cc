@@ -76,7 +76,7 @@ void TwoStepLangevin::integrateStepOne(uint64_t timestep)
             }
         // particles may have been moved slightly outside the box by the above steps, wrap them back
         // into place
-        box.wrap(h_pos.data[j], h_image.data[j]);
+        box.wrap(h_pos.data[j], h_vel.data[j], h_image.data[j]);
 
         h_vel.data[j].x += Scalar(1.0 / 2.0) * h_accel.data[j].x * m_deltaT;
         h_vel.data[j].y += Scalar(1.0 / 2.0) * h_accel.data[j].y * m_deltaT;
