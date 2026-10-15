@@ -399,6 +399,10 @@ class MeshDynamicalBonding(Updater):
         `MeshDynamicalBonding` instance.
 
     Attention:
+        Use 'meshbond_dynamic' exclusions in `NeighborList` when applying this
+        updater!
+
+    Attention:
         `MeshDynamicalBonding` is NOT implemented for MPI parallel execution!
 
 

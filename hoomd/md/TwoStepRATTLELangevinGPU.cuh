@@ -194,7 +194,7 @@ __global__ void gpu_rattle_langevin_step_two_kernel(const Scalar4* d_pos,
 
         // read in the net force and calculate the acceleration MEM TRANSFER: 16 bytes
         Scalar4 net_force = d_net_force[idx];
-        Scalar3 accel = make_scalar3(net_force.x, net_force.y, net_force.z);
+        Scalar3 accel = d_accel[idx];
 
         Scalar3 pos = make_scalar3(d_pos[idx].x, d_pos[idx].y, d_pos[idx].z);
 
@@ -246,9 +246,9 @@ __global__ void gpu_rattle_langevin_step_two_kernel(const Scalar4* d_pos,
         // MEM TRANSFER: 4 bytes   FLOPS: 3
         Scalar mass = vel.w;
         Scalar minv = Scalar(1.0) / mass;
-        accel.x = (accel.x + bd_force.x) * minv;
-        accel.y = (accel.y + bd_force.y) * minv;
-        accel.z = (accel.z + bd_force.z) * minv;
+        accel.x = (net_force.x + bd_force.x) * minv;
+        accel.y = (net_force.y + bd_force.y) * minv;
+        accel.z = (net_force.z + bd_force.z) * minv;
 
         // v(t+deltaT) = v(t+deltaT/2) + 1/2 * a(t+deltaT)*deltaT
         // update the velocity (FLOPS: 6)

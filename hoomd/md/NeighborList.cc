@@ -611,6 +611,11 @@ void NeighborList::setSingleExclusion(std::string exclusion)
         addExclusionsFromMeshBonds();
         m_exclusions.insert("meshbond");
         }
+    else if (exclusion == "meshbond_dynamic" && m_meshbond_data)
+        {
+        addExclusionsFromMeshBondsDynamic();
+        m_exclusions.insert("meshbond_dynamic");
+        }
     else if (exclusion == "special_pair")
         {
         addExclusionsFromPairs();
@@ -753,7 +758,7 @@ void NeighborList::addExclusionsFromBonds()
         addExclusion(bonds[i].tag[0], bonds[i].tag[1]);
     }
 
-/*! After calling addExclusionsFromMeshBonds() all meshbonds specified in the attached Mesh will be
+/*! After calling addExclusionsFromMeshBonds() all bonds specified in the attached Mesh will be
     added as exclusions. Any additional meshbonds added after this will not be automatically added
    as exclusions.
 */
@@ -761,7 +766,7 @@ void NeighborList::addExclusionsFromMeshBonds()
     {
     // access bond data by snapshot
     BondData::Snapshot snapshot;
-    m_meshbond_data->takeSnapshot(snapshot);
+    m_meshbond_data->takeSnapshotBond(snapshot);
 
     // broadcast global bond list
     std::vector<BondData::members_t> bonds;
@@ -784,6 +789,42 @@ void NeighborList::addExclusionsFromMeshBonds()
     for (unsigned int i = 0; i < bonds.size(); i++)
         // add an exclusion
         addExclusion(bonds[i].tag[0], bonds[i].tag[1]);
+    }
+
+/*! After calling addExclusionsFromMeshBondsDynamic() all bonds and diagonals specified in
+   the attached Mesh will be added as exclusions. Any additional meshbonds added after this
+   will not be automatically added as exclusions.
+*/
+void NeighborList::addExclusionsFromMeshBondsDynamic()
+    {
+    // access bond data by snapshot
+    MeshBondData::Snapshot snapshot;
+    m_meshbond_data->takeSnapshot(snapshot);
+
+    // broadcast global bond list
+    std::vector<MeshBondData::members_t> bonds;
+
+#ifdef ENABLE_MPI
+    if (m_pdata->getDomainDecomposition())
+        {
+        if (m_exec_conf->getRank() == 0)
+            bonds = snapshot.groups;
+
+        bcast(bonds, 0, m_exec_conf->getMPICommunicator());
+        }
+    else
+#endif
+        {
+        bonds = snapshot.groups;
+        }
+
+    // for each bond
+    for (unsigned int i = 0; i < bonds.size(); i++)
+        {
+        // add an exclusion
+        addExclusion(bonds[i].tag[0], bonds[i].tag[1]);
+        addExclusion(bonds[i].tag[2], bonds[i].tag[3]);
+        }
     }
 
 /*! After calling addExclusionsFromAngles(), all angles specified in the attached ParticleData will

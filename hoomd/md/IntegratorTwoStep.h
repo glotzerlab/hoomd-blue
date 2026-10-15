@@ -4,6 +4,7 @@
 #include "IntegrationMethodTwoStep.h"
 #include "hoomd/Integrator.h"
 
+#include "BoxDeformer.h"
 #include "ForceComposite.h"
 
 #pragma once
@@ -107,6 +108,17 @@ class PYBIND11_EXPORT IntegratorTwoStep : public Integrator
         m_rigid_bodies = new_rigid;
         }
 
+    /// Getter and setter for accessing box deformers
+    std::shared_ptr<BoxDeformer> getBoxDeformer()
+        {
+        return m_box_deformer;
+        }
+
+    void setBoxDeformer(std::shared_ptr<BoxDeformer> box_deformer)
+        {
+        m_box_deformer = box_deformer;
+        }
+
     /// Validate method groups.
     void validateGroups();
 
@@ -115,6 +127,8 @@ class PYBIND11_EXPORT IntegratorTwoStep : public Integrator
         m_methods; //!< List of all the integration methods
 
     std::shared_ptr<ForceComposite> m_rigid_bodies; /// definition and updater for rigid bodies
+
+    std::shared_ptr<BoxDeformer> m_box_deformer; /// box deformation methods
 
     bool m_prepared; //!< True if preprun has been called
 

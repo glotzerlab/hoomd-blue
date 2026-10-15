@@ -622,6 +622,9 @@ class PYBIND11_EXPORT NeighborList : public Compute
     //! Add an exclusion for every bond in the ParticleData
     void addExclusionsFromMeshBonds();
 
+    //! Add an exclusion for every bond in the ParticleData
+    void addExclusionsFromMeshBondsDynamic();
+
     //! Add exclusions from angles
     void addExclusionsFromAngles();
 

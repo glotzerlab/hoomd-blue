@@ -191,6 +191,9 @@ void export_ManifoldZCylinder(pybind11::module& m);
 void export_AlchemicalMDParticles(pybind11::module& m);
 void export_PotentialPairAlchemicalLJGauss(pybind11::module& m);
 
+void export_BoxDeformer(pybind11::module& m);
+void export_LeesEdwardsBoxDeformer(pybind11::module& m);
+
 #ifdef ENABLE_HIP
 
 void export_ActiveForceConstraintComputeCylinderGPU(pybind11::module& m);
@@ -693,4 +696,8 @@ PYBIND11_MODULE(_md, m)
     export_ManifoldSphere(m);
     export_ManifoldXYPlane(m);
     export_ManifoldZCylinder(m);
+
+    // deformers
+    export_BoxDeformer(m);
+    export_LeesEdwardsBoxDeformer(m);
     }

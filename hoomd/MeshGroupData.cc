@@ -27,9 +27,9 @@ namespace hoomd
 /*! \param pdata The particle data to associate with
     \param n_group_types Number of bonded group types to initialize
  */
-template<unsigned int group_size, typename Group, const char* name, typename snap>
-MeshGroupData<group_size, Group, name, snap>::MeshGroupData(std::shared_ptr<ParticleData> pdata,
-                                                            unsigned int n_group_types)
+template<unsigned int group_size, typename Group, const char* name>
+MeshGroupData<group_size, Group, name>::MeshGroupData(std::shared_ptr<ParticleData> pdata,
+                                                      unsigned int n_group_types)
     : BondedGroupData<group_size, Group, name, true>(pdata)
     {
     this->m_exec_conf->msg->notice(5)
@@ -63,9 +63,9 @@ MeshGroupData<group_size, Group, name, snap>::MeshGroupData(std::shared_ptr<Part
 /*! \param pdata The particle data to associate with
     \param snapshot Snapshot to initialize from
  */
-template<unsigned int group_size, typename Group, const char* name, typename snap>
-MeshGroupData<group_size, Group, name, snap>::MeshGroupData(std::shared_ptr<ParticleData> pdata,
-                                                            const TriangleData::Snapshot& snapshot)
+template<unsigned int group_size, typename Group, const char* name>
+MeshGroupData<group_size, Group, name>::MeshGroupData(std::shared_ptr<ParticleData> pdata,
+                                                      const TriangleData::Snapshot& snapshot)
     : BondedGroupData<group_size, Group, name, true>(pdata)
     {
     this->m_exec_conf->msg->notice(5) << "Constructing MeshGroupData (" << name << ") " << endl;
@@ -89,8 +89,8 @@ MeshGroupData<group_size, Group, name, snap>::MeshGroupData(std::shared_ptr<Part
     }
 
 //! Destructor
-template<unsigned int group_size, typename Group, const char* name, typename snap>
-MeshGroupData<group_size, Group, name, snap>::~MeshGroupData()
+template<unsigned int group_size, typename Group, const char* name>
+MeshGroupData<group_size, Group, name>::~MeshGroupData()
     {
     this->m_pdata->getParticleSortSignal()
         .template disconnect<BondedGroupData<group_size, Group, name, true>,
@@ -104,8 +104,8 @@ MeshGroupData<group_size, Group, name, snap>::~MeshGroupData()
     }
 
 //! Initialize from a snapshot
-template<unsigned int group_size, typename Group, const char* name, typename snap>
-void MeshGroupData<group_size, Group, name, snap>::initializeFromTriangleSnapshot(
+template<unsigned int group_size, typename Group, const char* name>
+void MeshGroupData<group_size, Group, name>::initializeFromTriangleSnapshot(
     const TriangleData::Snapshot& snapshot)
     {
     // check that all fields in the snapshot have correct length
@@ -229,8 +229,8 @@ void MeshGroupData<group_size, Group, name, snap>::initializeFromTriangleSnapsho
         }
     }
 
-template<unsigned int group_size, typename Group, const char* name, typename snap>
-unsigned int MeshGroupData<group_size, Group, name, snap>::addBondedGroup(Group g)
+template<unsigned int group_size, typename Group, const char* name>
+unsigned int MeshGroupData<group_size, Group, name>::addBondedGroup(Group g)
     {
     this->removeAllGhostGroups();
 
@@ -362,9 +362,9 @@ unsigned int MeshGroupData<group_size, Group, name, snap>::addBondedGroup(Group 
  *
  *  Data in the snapshot is in tag order, where non-existent tags are skipped
  */
-template<unsigned int group_size, typename Group, const char* name, typename snap>
+template<unsigned int group_size, typename Group, const char* name>
 std::map<unsigned int, unsigned int>
-MeshGroupData<group_size, Group, name, snap>::takeSnapshot(snap& snapshot) const
+MeshGroupData<group_size, Group, name>::takeSnapshotBond(BondData::Snapshot& snapshot) const
     {
     // map to lookup snapshot index by tag
     std::map<unsigned int, unsigned int> index;
@@ -527,7 +527,7 @@ void export_MeshGroupData(pybind11::module& m,
         .def(
             pybind11::init<std::shared_ptr<ParticleData>, const typename TriangleData::Snapshot&>())
         .def("initializeFromTriangleSnapshot", &T::initializeFromTriangleSnapshot)
-        .def("takeSnapshot", &T::takeSnapshot)
+        .def("takeSnapshotBond", &T::takeSnapshotBond)
         .def("getN", &T::getN)
         .def("getNGlobal", &T::getNGlobal)
         .def("getNTypes", &T::getNTypes)
@@ -544,7 +544,7 @@ void export_MeshGroupData(pybind11::module& m,
 
     } // end namespace detail
 
-template class PYBIND11_EXPORT MeshGroupData<4, MeshBond, name_meshbond_data, BondData::Snapshot>;
+template class PYBIND11_EXPORT MeshGroupData<4, MeshBond, name_meshbond_data>;
 
 namespace detail
     {

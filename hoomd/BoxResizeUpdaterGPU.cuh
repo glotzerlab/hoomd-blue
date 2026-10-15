@@ -21,6 +21,7 @@ hipError_t gpu_box_resize_scale(Scalar4* d_pos,
 
 hipError_t gpu_box_resize_wrap(const unsigned int N,
                                Scalar4* d_pos,
+                               Scalar4* d_vel,
                                int3* d_image,
                                const BoxDim& new_box,
                                unsigned int block_size);

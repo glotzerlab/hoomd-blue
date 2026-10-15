@@ -15,21 +15,21 @@ on:
 
 jobs:
   prek:
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-26.04
     steps:
     - name: Checkout
-      uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
+      uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
     - name: prek
-      uses: j178/prek-action@bdca6f102f98e2b4c7029491a53dfd366469e33d # v2.0.4
+      uses: j178/prek-action@1382ad72dea72f9d53832f2bcb65b3e87a947204 # v3.0.1
       with:
-        prek-version: '0.3.8'
+        prek-version: 'v0.5.5'
 
   # This job is used to provide a single requirement for branch merge conditions.
   tests_complete:
     name: All style checks
     if: always()
     needs: [prek]
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-26.04
 
     steps:
     - run: jq --exit-status 'all(.result == "success")' <<< '${{ toJson(needs) }}'

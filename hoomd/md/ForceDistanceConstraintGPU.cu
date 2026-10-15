@@ -76,15 +76,15 @@ __global__ void gpu_fill_matrix_vector_kernel(unsigned int n_constraint,
         // constraint separation
         vec3<Scalar> rn(vec3<Scalar>(d_pos[idx_na]) - vec3<Scalar>(d_pos[idx_nb]));
 
-        // apply minimum image
-        rn = box.minImage(rn);
-
         // get masses
         Scalar ma = d_vel[idx_na].w;
         Scalar mb = d_vel[idx_nb].w;
 
         // constraint time derivative
         vec3<Scalar> rndot(vec3<Scalar>(d_vel[idx_na]) - vec3<Scalar>(d_vel[idx_nb]));
+
+        // apply minimum image
+        box.minImage(rn, rndot);
 
         // constraint separation at t+2*deltaT
         vec3<Scalar> qn(rn + deltaT * rndot);

@@ -148,7 +148,7 @@ void BounceBackStreamingMethod<Geometry, Force>::stream(uint64_t timestep)
 
         // wrap and update the position
         int3 image = make_int3(0, 0, 0);
-        box.wrap(pos, image);
+        box.wrap(pos, vel, image);
 
         h_pos.data[cur_p] = make_scalar4(pos.x, pos.y, pos.z, __int_as_scalar(type));
         h_vel.data[cur_p]

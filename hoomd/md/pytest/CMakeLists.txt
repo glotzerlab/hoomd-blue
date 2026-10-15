@@ -1,6 +1,7 @@
 # copy python modules to the build directory to make it a working python package
 set(files __init__.py
     forces_and_energies.json
+    test_2d_rigid.py
     test_active.py
     test_active_rotational_diffusion.py
     test_alchemostat.py
@@ -13,6 +14,7 @@ set(files __init__.py
     test_constrain_distance.py
     test_constant_force.py
     test_custom_force.py
+    test_deform.py
     test_dihedral.py
     test_external.py
     test_filter_md.py
