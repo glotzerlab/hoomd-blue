@@ -1838,7 +1838,7 @@ class Fourier(Pair):
 
 
 class Inverse (Pair):
-    r"""Inverse pair force.
+    r"""Inverse power law pair potential.
 
     Args:
         nlist (hoomd.md.nlist.NeighborList): Neighbor list.
@@ -1846,10 +1846,11 @@ class Inverse (Pair):
         default_r_on (float): Default turn-on radius :math:`[\mathrm{length}]`.
         mode (str): Energy shifting/smoothing mode.
 
-    `Inverse` computes the oscillating pair force on all particles in the simulation
-    state:
+    `Inverse` computes the inverse power law pair potential on all particles
+    in the simulation state:
 
     .. math::
+
         U(r) = C r^{-\eta}
 
     Example::
@@ -1864,21 +1865,18 @@ class Inverse (Pair):
 
     {inherited}
 
-    ----------
-
     **Members defined in** `Inverse`:
 
     .. py:attribute:: params
 
-        The Inverse potential parameters. The dictionary has the following keys:
+        The potential parameters. The dictionary has the following keys:
 
         * ``C`` (`float`, **required**) -
-          Energy scale :math:`C`
-          :math:`[\mathrm{energy}]`
+          energy scale :math:`C`
+          :math:`[\mathrm{energy} \cdot \mathrm{length}^{\eta}]`
         * ``eta`` (`float`, **required**) -
-          The inverse power to take :math:`r` to,
-          :math:`\eta_1` :math:`[\mathrm{dimensionless}]`.
-        * ``eta2`` (`float`, **required**) -
+          exponent :math:`\eta` of the inverse power law
+          :math:`[\mathrm{dimensionless}]`
 
         Type: `TypeParameter` [`tuple` [``particle_type``, ``particle_type``],
         `dict`]
@@ -2217,7 +2215,7 @@ class WangFrenkel(Pair):
 
 
 class DipoleInterface(Pair):
-    r"""Lennard-Jones-Gauss pair potential.
+    r"""Inverse cubic pair potential for dipoles at an interface.
 
     Args:
         nlist (hoomd.md.nlist.NeighborList): Neighbor list.
@@ -2225,40 +2223,46 @@ class DipoleInterface(Pair):
         default_r_on (float): Default turn-on radius :math:`[\mathrm{length}]`.
         mode (str): Energy shifting/smoothing mode.
 
-    `LJGauss` computes the Lennard-Jones Gauss force on all particles in the
-    simulation state:
+    `DipoleInterface` computes an isotropic :math:`r^{-3}` pair potential on
+    all particles in the simulation state:
 
     .. math::
-        U(r) = 1\ [\mathrm{energy}] \cdot \left[
-                 \left ( \frac{1\ [\mathrm{length}]}{r} \right)^{12} -
-                 2\  \left(\frac{1 [\mathrm{length}]}{r} \right)^{6} \right] -
-            \epsilon
-            \exp \left[- \frac{\left(r - r_{0}\right)^{2}}{2 \sigma^{2}} \right]
+
+        U(r) = \frac{A}{r^3}
+
+    This is the distance dependence of the interaction energy of two parallel
+    dipoles that point perpendicular to their separation vector, for example
+    dipoles oriented normal to an interface. The potential does not depend on
+    the orientation of the particles. For a positive :math:`A` it is repulsive,
+    for a negative :math:`A` it is attractive.
+
+    Example::
+
+        nl = hoomd.md.nlist.Cell()
+        dipole_interface = pair.DipoleInterface(nl, default_r_cut=10.0)
+        dipole_interface.params[("A", "A")] = dict(A=1.0)
+        dipole_interface.params[("A", "B")] = {"A": 2.0}
+
+    {inherited}
+
+    **Members defined in** `DipoleInterface`:
 
     .. py:attribute:: params
 
         The potential parameters. The dictionary has the following keys:
 
-        * ``epsilon`` (`float`, **required**) -
-          energy parameter :math:`\varepsilon` :math:`[\mathrm{energy}]`
-        * ``sigma`` (`float`, **required**) -
-          Gaussian width :math:`\sigma` :math:`[\mathrm{length}]`
-        * ``r0`` (`float`, **required**) -
-          Gaussian center :math:`r_0` :math:`[\mathrm{length}]`
-        * ``kappa`` (`float`) -
-          screen length :math:`kappa` :math:`[\mathrm{length}]`
+        * ``A`` (`float`, **required**) -
+          interaction strength :math:`A`
+          :math:`[\mathrm{energy} \cdot \mathrm{length}^3]`
 
-    Example::
-
-        nl = hoomd.md.nlist.Cell()
-        ljg = pair.LJGauss(nl)
-        ljg.params[('A', 'A')] = dict(epsilon=1.0, sigma=0.02, r0=1.6)
-        ljg.params[('A', 'B')] = {'epsilon' : 2.0, 'sigma' : 0.02, 'r0' : 1.6}
-        ljg.params[('A', 'B')] = {'epsilon' : 2.0, 'sigma' : 0.02, 'r0' : 1.6}
-
-    .. versionadded:: 3.1.0
+        Type: `TypeParameter` [`tuple` [``particle_type``, ``particle_type``],
+        `dict`]
     """
+
     _cpp_class_name = "PotentialPairDipoleInterface"
+    __doc__ = inspect.cleandoc(__doc__).replace(
+        "{inherited}", inspect.cleandoc(Pair._doc_inherited)
+    )
 
     def __init__(self,
                  nlist,

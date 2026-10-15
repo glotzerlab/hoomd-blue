@@ -285,82 +285,82 @@ class YLZ(AnisotropicPair):
 
 
 class OriQuench(AnisotropicPair):
-    r"""Gay-Berne anisotropic pair force.
+    r"""Orientation quenching pair force.
 
     Args:
         nlist (hoomd.md.nlist.NeighborList): Neighbor list
         default_r_cut (float): Default cutoff radius :math:`[\mathrm{length}]`.
         mode (str): energy shifting/smoothing mode.
 
-    `GayBerne` computes the Gay-Berne anisotropic pair force on every particle
-    in the simulation state. This version of the Gay-Berne force supports
-    identical pairs of uniaxial ellipsoids, with orientation-independent
-    energy-well depth. The potential comes from the following paper `Allen et.
-    al. 2006`_.
-
-    .. _Allen et. al. 2006: https://dx.doi.org/10.1080/00268970601075238
+    `OriQuench` computes a screened pair interaction that aligns the magnetic
+    moment of each particle perpendicular to the separation vector to its
+    neighbors in the xy-plane. For a pair of particles :math:`i` and :math:`j`
+    it adds the energy
 
     .. math::
-        U(\vec r, \vec e_i, \vec e_j) =
+
+        U = -\sum_{k \in \{i, j\}} A \, s(r)
+            \left| \left( \hat{r} \times \vec{p}_k \right) \cdot \hat{z}
+            \right|
+
+    where :math:`\vec{r} = \vec{r}_i - \vec{r}_j`, :math:`r = |\vec{r}|`,
+    :math:`\hat{r} = \vec{r} / r` and :math:`\hat{z}` is the z-axis. The
+    moment :math:`\vec{p}_k = \mathbf{R}(q_k) \vec{\mu}_k` is the moment
+    ``mu`` of particle :math:`k`, rotated from its local reference frame into
+    the global reference frame by its orientation :math:`q_k`. Only the
+    x- and y-components of :math:`\vec{r}` enter the numerator of the cross
+    product. The screening function is
+
+    .. math::
+
+        s(r) =
         \begin{cases}
-        4 \varepsilon \left[ \zeta^{-12} - \zeta^{-6} \right]
-        & \zeta < \zeta_{\mathrm{cut}} \\
-        0 & \zeta \ge \zeta_{\mathrm{cut}} \\
+        e^{-\tau (r - d)} & r > d \text{ and } \tau > 0 \\
+        1 & \text{otherwise}
         \end{cases}
 
-    where
+    The energy of a particle is lowest when its moment lies in the xy-plane
+    perpendicular to the separation vector. The pair applies a torque along the
+    z-axis to each particle that rotates the moment towards this orientation.
+    Particles with :math:`\vec{\mu} = (0, 0, 0)` do not contribute.
 
-    .. math::
-
-        \begin{split}
-        \zeta &= \left(\frac{r-\sigma+\sigma_{\mathrm{min}}}
-                           {\sigma_{\mathrm{min}}}\right), \\
-        \sigma^{-2} &= \frac{1}{2} \hat{\vec{r}}
-            \cdot \vec{H^{-1}} \cdot \hat{\vec{r}}, \\
-        \vec{H} &= 2 \ell_\perp^2 \vec{1}
-            + (\ell_\parallel^2 - \ell_\perp^2)
-              (\vec{e_i} \otimes \vec{e_i} + \vec{e_j} \otimes \vec{e_j}),
-        \end{split}
-
-    and :math:`\sigma_{\mathrm{min}} = 2 \min(\ell_\perp, \ell_\parallel)`.
-    The parallel direction is aligned with *z* axis in the particle's
-    reference frame.
-
-    The cut-off parameter :math:`r_{\mathrm{cut}}` is defined for two particles
-    oriented parallel along the **long** axis, i.e.
-    :math:`\zeta_{\mathrm{cut}} = \left(\frac{r-\sigma_{\mathrm{max}}
-    + \sigma_{\mathrm{min}}}{\sigma_{\mathrm{min}}}\right)`
-    where :math:`\sigma_{\mathrm{max}} = 2 \max(\ell_\perp, \ell_\parallel)` .
-
-    The quantities :math:`\ell_\parallel` and :math:`\ell_\perp` denote the
-    semi-axis lengths parallel and perpendicular to particle orientation.
+    Note:
+        `OriQuench` does not implement energy shifting.
 
     Example::
 
         nl = nlist.Cell()
-        gay_berne = md.pair.aniso.GayBerne(nlist=nl, default_r_cut=2.5)
-        gay_berne.params[('A', 'A')] = dict(epsilon=1.0, lperp=0.45, lpar=0.5)
-        gay_berne.r_cut[('A', 'B')] = 2 ** (1.0 / 6.0)
+        ori_quench = md.pair.aniso.OriQuench(nlist=nl, default_r_cut=5.0)
+        ori_quench.params[("A", "A")] = dict(A=1.0, tau=2.0, d=1.0)
+        ori_quench.mu["A"] = (1.0, 0.0, 0.0)
 
     {inherited}
 
-
-    **Members defined in** `GayBerne`:
+    **Members defined in** `OriQuench`:
 
     .. py:attribute:: params
 
-        The Gay-Berne potential parameters. The dictionary has the following
-        keys:
+        The orientation quenching potential parameters. The dictionary has the
+        following keys:
 
-        * ``epsilon`` (`float`, **required**) - :math:`\varepsilon`
+        * ``A`` (`float`, **required**) - :math:`A` - interaction strength
           :math:`[\mathrm{energy}]`
-        * ``lperp`` (`float`, **required**) - :math:`\ell_\perp`
-          :math:`[\mathrm{length}]`
-        * ``lpar`` (`float`, **required**) -  :math:`\ell_\parallel`
-          :math:`[\mathrm{length}]`
+        * ``tau`` (`float`, **required**) - :math:`\tau` - inverse screening
+          length :math:`[\mathrm{length}^{-1}]`
+        * ``d`` (`float`, **required**) - :math:`d` - distance up to which the
+          interaction is not screened :math:`[\mathrm{length}]`
 
         Type: `TypeParameter` [`tuple` [``particle_type``, ``particle_type``],
         `dict`]
+
+    .. py:attribute:: mu
+
+        :math:`\vec{\mu}` - the moment of the particle in its local reference
+        frame as a tuple (i.e. :math:`(\mu_x, \mu_y, \mu_z)`). Its magnitude
+        scales the interaction energy :math:`[\mathrm{dimensionless}]`.
+
+        Type: `TypeParameter` [``particle_type``, `tuple` [`float`, `float`,
+        `float` ]]
     """
 
     _cpp_class_name = "AnisoPotentialPairOriQuench"
@@ -493,36 +493,87 @@ class LubricationCoupling(AnisotropicPair):
     Args:
         nlist (hoomd.md.nlist.NeighborList): Neighbor list
         default_r_cut (float): Default cutoff radius :math:`[\mathrm{length}]`.
-        third_law (bool): Decides if forces are reciprocal.
+        mode (str): energy shifting/smoothing mode.
+        third_law (bool): Whether the force is reciprocal. Defaults to `True`.
 
-    `LubricationCoupling` computes an hydrodynamic anisotropic pair force on
-    every particle in the simulation state that couples to the angular momenta
-    of the pair. This version of the force is based on lubrication theory.
+    `LubricationCoupling` computes a hydrodynamic pair force and torque that
+    couple the translation of particles to the angular momentum :math:`\vec{L}`
+    of a pair. The coupling is based on lubrication theory and has a logarithmic
+    dependence on the gap between the particle surfaces:
+
+    .. math::
+
+        \begin{split}
+        \Lambda(r) &= \ln \left( \frac{r - D}{r_\mathrm{cut} - D} \right) \\
+        \vec{F}_i &= \kappa \, \Lambda(r) \, \hat{r} \times \vec{L} \\
+        \vec{\tau}_i = \vec{\tau}_j &= \tau \, \Lambda(r) \, \vec{L}
+        \end{split}
+
+    where :math:`\hat{r} = (\vec{r}_i - \vec{r}_j) / r` is the unit vector
+    pointing from particle :math:`j` to particle :math:`i`, :math:`D` is the
+    ``diameter`` and :math:`r_\mathrm{cut}` is the cutoff radius. :math:`\Lambda`
+    is negative for :math:`D < r < r_\mathrm{cut}` and diverges to
+    :math:`-\infty` when the surfaces touch at :math:`r = D`. The torque
+    therefore opposes the angular momentum.
+
+    With ``third_law=True`` the angular momentum is the sum
+    :math:`\vec{L} = \vec{L}_i + \vec{L}_j` of both particles and the force on
+    particle :math:`j` is the opposite of the force on particle :math:`i`. With
+    ``third_law=False`` the force on particle :math:`i` is computed from the
+    angular momentum :math:`\vec{L} = \vec{L}_j` of its neighbor only. If
+    ``take_momentum`` is `True`, pairs with :math:`|\vec{L}|^2 < 10^{-5}` do
+    not interact. If it is `False`, a unit angular momentum along the z-axis is
+    used instead of the angular momenta of the particles. With
+    ``third_law=True`` this applies to all pairs, with ``third_law=False`` only
+    to neighbors of the second particle type.
+
+    Note:
+        The pair energy is 0 and `LubricationCoupling` does not implement
+        energy shifting.
+
+    Note:
+        The angular momentum is taken in the local reference frame of the
+        particle. It is identical to the global frame for particles whose
+        local z-axis is aligned with the global z-axis.
 
     Example::
 
         nl = nlist.Cell()
-        rotational_coupling = md.pair.aniso.LubricationCoupling(nlist=nl,
-                              default_r_cut=2.5)
-        rotational_coupling.params[('A', 'A')] = dict(kappa=0.45, tau=0.5, diameter=1.0)
-        rotational_coupling.r_cut[('A', 'B')] = 2 ** (1.0 / 6.0)
+        lubrication_coupling = md.pair.aniso.LubricationCoupling(
+            nlist=nl, default_r_cut=2.5
+        )
+        lubrication_coupling.params[("A", "A")] = dict(
+            kappa=0.45, tau=0.5, diameter=1.0, take_momentum=True
+        )
+        lubrication_coupling.r_cut[("A", "B")] = 2 ** (1.0 / 6.0)
+
+    {inherited}
+
+    **Members defined in** `LubricationCoupling`:
 
     .. py:attribute:: params
 
         The lubrication coupling potential parameters. The dictionary has the
         following keys:
 
-        * ``kappa`` (`float`, **required**) - :math:`\varepsilon`
-          :math:`[\mathrm{energy}]`
-        * ``tau`` (`float`, **required**) - :math:`\ell_\perp`
-          :math:`[\mathrm{length}]`
-        * ``diameter`` (`float`, **required**) - :math:`\ell_\perp`
-          :math:`[\mathrm{length}]`
+        * ``kappa`` (`float`, **required**) - :math:`\kappa` - force
+          coefficient :math:`[\mathrm{force} / \mathrm{angular\ momentum}]`
+        * ``tau`` (`float`, **required**) - :math:`\tau` - torque coefficient
+          :math:`[\mathrm{force} \cdot \mathrm{length} /
+          \mathrm{angular\ momentum}]`
+        * ``diameter`` (`float`, **required**) - :math:`D` - distance at which
+          the surfaces of the pair touch :math:`[\mathrm{length}]`
+        * ``take_momentum`` (`bool`, **required**) - use the angular momenta of
+          the particles if `True`, a unit angular momentum along the z-axis if
+          `False`
 
         Type: `TypeParameter` [`tuple` [``particle_type``, ``particle_type``],
         `dict`]
     """
     _cpp_class_name = "AnisoPotentialPairLubricationCoupling"
+    __doc__ = inspect.cleandoc(__doc__).replace(
+        "{inherited}", inspect.cleandoc(AnisotropicPair._doc_inherited)
+    )
 
     def __init__(self, nlist, default_r_cut=None, mode='none', third_law=True):
         super().__init__(nlist, default_r_cut, mode)
@@ -563,32 +614,92 @@ class RotationalCoupling(AnisotropicPair):
     Args:
         nlist (hoomd.md.nlist.NeighborList): Neighbor list
         default_r_cut (float): Default cutoff radius :math:`[\mathrm{length}]`.
-        third_law (bool): Decides if forces are reciprocal.
+        mode (str): energy shifting/smoothing mode.
+        third_law (bool): Whether the force is reciprocal. Defaults to `True`.
 
-    `RotationalCoupling` computes an hydrodynamic anisotropic pair force on
-    every particle in the simulation state that couples to the angular momenta
-    of the pair.
+    `RotationalCoupling` computes a hydrodynamic pair force that couples the
+    translation of particles to the angular momentum :math:`\vec{L}` of a pair.
+    The force is perpendicular to both :math:`\vec{L}` and the separation
+    vector, like the flow around a spinning particle:
+
+    .. math::
+
+        \vec{F}_i = \varepsilon \, g(r) \, \vec{L} \times \hat{r}
+
+    where :math:`\hat{r} = (\vec{r}_i - \vec{r}_j) / r` is the unit vector
+    pointing from particle :math:`j` to particle :math:`i`. The distance
+    dependence :math:`g(r)` is selected by ``to_zero``:
+
+    .. math::
+
+        g(r) =
+        \begin{cases}
+        r^{-2} & \text{to\_zero} = 0 \\
+        \left( r^{-1} - r_\mathrm{cut}^{-1} \right)^2 & \text{to\_zero} = 1 \\
+        r^{-2} - r_\mathrm{cut}^{-2} & \text{to\_zero} = 2
+        \end{cases}
+
+    The force of the options ``to_zero = 1`` and ``to_zero = 2`` vanishes at
+    the cutoff radius :math:`r_\mathrm{cut}`.
+
+    With ``third_law=True`` the angular momentum is the sum
+    :math:`\vec{L} = \vec{L}_i + \vec{L}_j` of both particles and the force on
+    particle :math:`j` is the opposite of the force on particle :math:`i`. With
+    ``third_law=False`` the force on particle :math:`i` is computed from the
+    angular momentum :math:`\vec{L} = \vec{L}_j` of its neighbor only. If
+    ``take_momentum`` is `True`, pairs with :math:`|\vec{L}|^2 < 10^{-5}` do
+    not interact. If it is `False`, a unit angular momentum along the z-axis is
+    used instead of the angular momenta of the particles. With
+    ``third_law=True`` this applies to all pairs, with ``third_law=False`` only
+    to neighbors of the second particle type.
+
+    Note:
+        The pair energy and the torque are 0 and `RotationalCoupling` does not
+        implement energy shifting.
+
+    Note:
+        The angular momentum is taken in the local reference frame of the
+        particle. It is identical to the global frame for particles whose
+        local z-axis is aligned with the global z-axis.
 
     Example::
 
         nl = nlist.Cell()
-        rotational_coupling = md.pair.aniso.RotationalCoupling(nlist=nl,
-                              default_r_cut=2.5)
-        rotational_coupling.params[('A', 'A')] = dict(kappa=0.45)
-        rotational_coupling.r_cut[('A', 'B')] = 2 ** (1.0 / 6.0)
+        rotational_coupling = md.pair.aniso.RotationalCoupling(
+            nlist=nl, default_r_cut=2.5
+        )
+        rotational_coupling.params[("A", "A")] = dict(
+            epsilon=0.45, take_momentum=True, to_zero=1
+        )
+        rotational_coupling.r_cut[("A", "B")] = 2 ** (1.0 / 6.0)
+
+    {inherited}
+
+    **Members defined in** `RotationalCoupling`:
 
     .. py:attribute:: params
 
         The rotational coupling potential parameters. The dictionary has the
         following keys:
 
-        * ``kappa`` (`float`, **required**) - :math:`\varepsilon`
-          :math:`[\mathrm{energy}]`
+        * ``epsilon`` (`float`, **required**) - :math:`\varepsilon` - force
+          coefficient :math:`[\mathrm{force} \cdot \mathrm{length}^2 /
+          \mathrm{angular\ momentum}]`
+        * ``take_momentum`` (`bool`, **required**) - use the angular momenta of
+          the particles if `True`, a unit angular momentum along the z-axis if
+          `False`
+        * ``to_zero`` (`int`, **required**) - select :math:`g(r)`: ``0`` for
+          :math:`r^{-2}`, ``1`` for :math:`(r^{-1} - r_\mathrm{cut}^{-1})^2`
+          and ``2`` for :math:`r^{-2} - r_\mathrm{cut}^{-2}`
 
         Type: `TypeParameter` [`tuple` [``particle_type``, ``particle_type``],
         `dict`]
     """
+
     _cpp_class_name = "AnisoPotentialPairRotationalCoupling"
+    __doc__ = inspect.cleandoc(__doc__).replace(
+        "{inherited}", inspect.cleandoc(AnisotropicPair._doc_inherited)
+    )
 
     def __init__(self, nlist, default_r_cut=None, mode='none', third_law=True):
         super().__init__(nlist, default_r_cut, mode)

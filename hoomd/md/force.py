@@ -733,34 +733,46 @@ class Shear(Force):
 
     Args:
         filter (`hoomd.filter`): Subset of particles on which to
-            apply constant forces.
+            apply shear forces.
+        max_shear_force (`float`): Magnitude of the force at the box borders
+            :math:`[\mathrm{force}]`.
 
-    `Shear` applies a y-position dependent constant force on all
-    particles selected by the filter. `Shear` sets the force
+    `Shear` applies a force along the x-direction that depends linearly on the
+    y-position of each particle selected by the filter. `Shear` sets the force
     to  ``(0,0,0)`` for particles not selected by the filter.
 
-    Examples::
+    .. math::
 
-        shear = hoomd.md.force.Shear(filter=hoomd.filter.All(),max_shear_force=10)
+        \vec{F}_i = \frac{2 F_\mathrm{max}}{L_y} \, y_i \, \hat{x}
+
+    where :math:`F_\mathrm{max}` is ``max_shear_force`` and :math:`L_y` is the
+    box length in the y-direction. The force is zero at :math:`y = 0` and
+    reaches :math:`\pm F_\mathrm{max}` at the box borders
+    :math:`y = \pm L_y / 2`.
+
+    .. rubric:: Example:
+
+    .. code-block:: python
+
+        shear = hoomd.md.force.Shear(
+            filter=hoomd.filter.All(), max_shear_force=10
+        )
 
     Note:
         The energy and virial associated with the shear force are 0.
 
-    {inherited}
+    Note:
+        :math:`L_y` is read when the force is attached to a simulation and does
+        not follow later box changes. ``max_shear_force`` is read at the same
+        time.
 
-    ----------
+    {inherited}
 
     **Members defined in** `Shear`:
 
     Attributes:
         filter (`hoomd.filter`): Subset of particles on which to
             apply shear forces.
-        max_shear_force (`float`): maximal shear force magnitude at box
-            borders
-
-        Shear force vector in the global reference frame of the system
-        :math:`[\mathrm{force}]`.  It defaults to (0.0, 0.0, 0.0).
-
     """
 
     __doc__ = inspect.cleandoc(__doc__).replace(
@@ -791,38 +803,68 @@ class Shear(Force):
         )
 
 class WallDistance(Force):
-    r"""WallDistance force.
+    r"""Radial force that depends on the distance from the z-axis.
 
     Args:
         filter (`hoomd.filter`): Subset of particles on which to
-            apply constant forces.
+            apply the force.
+        k (`float`): Force coefficient. Its units depend on ``inverse``,
+            see below.
+        R (`float`): Radius of the circular wall :math:`[\mathrm{length}]`.
+            Only used when ``inverse`` is `True`.
+        inverse (`bool`): Select the inverse form of the force. Defaults to
+            `False`.
 
-    `WallDistance` applies a y-position dependent constant force on all
-    particles selected by the filter. `WallDistance` sets the force
-    to  ``(0,0,0)`` for particles not selected by the filter.
+    `WallDistance` applies a force in the xy-plane that points along the
+    radial direction :math:`\hat{r}` away from the z-axis, for all particles
+    selected by the filter. `WallDistance` sets the force to ``(0,0,0)`` for
+    particles not selected by the filter. The z-position of a particle is
+    ignored.
 
-    Examples::
+    With ``inverse=False`` the force grows linearly with the distance
+    :math:`r = \sqrt{x^2 + y^2}` from the z-axis:
 
-        shear = hoomd.md.force.WallDistance(filter=hoomd.filter.All(),max_shear_force=10)
+    .. math::
+
+        \vec{F} = k \, r \, \hat{r}
+
+    with ``inverse=True`` it grows with the inverse square of the distance to a
+    circular wall of radius :math:`R` and vanishes outside of it:
+
+    .. math::
+
+        \vec{F} =
+        \begin{cases}
+        \dfrac{k}{(R - r)^2} \, \hat{r} & r < R \\
+        0 & r \ge R
+        \end{cases}
+
+    A positive :math:`k` points away from the z-axis. A negative :math:`k`
+    points towards it.
+
+    .. rubric:: Example:
+
+    .. code-block:: python
+
+        wall_distance = hoomd.md.force.WallDistance(
+            filter=hoomd.filter.All(), k=1.0, R=20.0, inverse=True
+        )
 
     Note:
-        The energy and virial associated with the shear force are 0.
+        The energy and virial associated with this force are 0.
+
+    Note:
+        ``k``, ``R`` and ``inverse`` are read when the force is attached to a
+        simulation. Changing them afterwards has no effect. With
+        ``inverse=True`` the force is undefined at :math:`r = 0`.
 
     {inherited}
-
-    ----------
 
     **Members defined in** `WallDistance`:
 
     Attributes:
         filter (`hoomd.filter`): Subset of particles on which to
-            apply shear forces.
-        max_shear_force (`float`): maximal shear force magnitude at box
-            borders
-
-        WallDistance force vector in the global reference frame of the system
-        :math:`[\mathrm{force}]`.  It defaults to (0.0, 0.0, 0.0).
-
+            apply the force.
     """
 
     __doc__ = inspect.cleandoc(__doc__).replace(
@@ -855,38 +897,54 @@ class WallDistance(Force):
         )
 
 class WallCoupling(Force):
-    r"""WallCoupling force.
+    r"""Tangential force that couples particles to a circular wall.
 
     Args:
         filter (`hoomd.filter`): Subset of particles on which to
-            apply constant forces.
+            apply the force.
+        epsilon (`float`): Force coefficient
+            :math:`[\mathrm{force} \cdot \mathrm{length}^2]`.
+        R (`float`): Radius of the circular wall :math:`[\mathrm{length}]`.
 
-    `WallCoupling` applies a y-position dependent constant force on all
-    particles selected by the filter. `WallCoupling` sets the force
-    to  ``(0,0,0)`` for particles not selected by the filter.
+    `WallCoupling` applies a force in the xy-plane that points along the
+    azimuthal direction :math:`\hat{\varphi}` around the z-axis, for all
+    particles selected by the filter. `WallCoupling` sets the force to
+    ``(0,0,0)`` for particles not selected by the filter. The z-position of a
+    particle is ignored.
 
-    Examples::
+    .. math::
 
-        shear = hoomd.md.force.WallCoupling(filter=hoomd.filter.All(),max_shear_force=10)
+        \vec{F} = \frac{\varepsilon}{(R - r)^2} \, \hat{\varphi},
+        \qquad \hat{\varphi} = \frac{(-y, x, 0)}{r}
+
+    where :math:`r = \sqrt{x^2 + y^2}` is the distance from the z-axis and
+    :math:`\varepsilon` is ``epsilon``. For positive :math:`\varepsilon` the
+    force acts counter-clockwise when seen from the positive z-axis. Its
+    magnitude diverges as a particle approaches the wall at :math:`r = R`.
+
+    .. rubric:: Example:
+
+    .. code-block:: python
+
+        wall_coupling = hoomd.md.force.WallCoupling(
+            filter=hoomd.filter.All(), epsilon=0.1, R=20.0
+        )
 
     Note:
-        The energy and virial associated with the shear force are 0.
+        The energy and virial associated with this force are 0.
+
+    Note:
+        ``epsilon`` and ``R`` are read when the force is attached to a
+        simulation. Changing them afterwards has no effect. The force is not
+        cut off outside the wall and is undefined at :math:`r = 0`.
 
     {inherited}
-
-    ----------
 
     **Members defined in** `WallCoupling`:
 
     Attributes:
         filter (`hoomd.filter`): Subset of particles on which to
-            apply shear forces.
-        max_shear_force (`float`): maximal shear force magnitude at box
-            borders
-
-        WallCoupling force vector in the global reference frame of the system
-        :math:`[\mathrm{force}]`.  It defaults to (0.0, 0.0, 0.0).
-
+            apply the force.
     """
 
     __doc__ = inspect.cleandoc(__doc__).replace(
