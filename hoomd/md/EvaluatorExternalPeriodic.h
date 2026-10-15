@@ -126,9 +126,9 @@ class EvaluatorExternalPeriodic
     DEVICE void
     evalForceTorqueEnergyAndVirial(Scalar3& F, Scalar3& T, Scalar& energy, Scalar* virial)
         {
-        Scalar3 a1 = make_scalar3(0, 0, 0); 
+        Scalar3 a1 = make_scalar3(0, 0, 0);
         Scalar3 b = make_scalar3(Scalar(0.0), Scalar(0.0), Scalar(0.0));
-        
+
         Scalar3 a2 = make_scalar3(0, 0, 0);
         Scalar3 a3 = make_scalar3(0, 0, 0);
 
@@ -150,62 +150,68 @@ class EvaluatorExternalPeriodic
         // For 2D we use the area of the parallelogram spanned
         // by the two in-plane lattice vectors.
         const Scalar3 L = m_box.getL();
-        
+
         // New block to select 2D or 3D cases.
-        if (L.z == Scalar(0.0)){
+        if (L.z == Scalar(0.0))
+            {
             // 2D case
-           const Scalar area = m_box.getVolume(true);
-           a1 = m_box.getLatticeVector(0);
-           a2 = m_box.getLatticeVector(1);
-           
-           if (m_index == 0){
-              // Reciprocal lattice vector b1:
-              // b1 = 2*pi * (a2_y, -a2_x, 0) / area
-              // This satisfies:
-              // b1 . a1 = 2*pi
-              // b1 . a2 = 0
-              b = Scalar(2.0 * M_PI) / area
-                  * make_scalar3(a2.y, -a2.x, Scalar(0.0));
-           }
-           else if (m_index == 1){
-              // Reciprocal lattice vector b2:
-              // b2 = 2*pi * (-a1_y, a1_x, 0) / area
-              // This satisfies:
-              // b2 . a1 = 0
-              // b2 . a2 = 2*pi
-              b = Scalar(2.0 * M_PI) / area
-                  * make_scalar3(-a1.y, a1.x, Scalar(0.0));      
-           }
-           else{
-              // There is no third independent reciprocal direction
-              // in a strictly 2D system.
-           }   
-        }
-        else{
+            const Scalar area = m_box.getVolume(true);
+            a1 = m_box.getLatticeVector(0);
+            a2 = m_box.getLatticeVector(1);
+
+            if (m_index == 0)
+                {
+                // Reciprocal lattice vector b1:
+                // b1 = 2*pi * (a2_y, -a2_x, 0) / area
+                // This satisfies:
+                // b1 . a1 = 2*pi
+                // b1 . a2 = 0
+                b = Scalar(2.0 * M_PI) / area * make_scalar3(a2.y, -a2.x, Scalar(0.0));
+                }
+            else if (m_index == 1)
+                {
+                // Reciprocal lattice vector b2:
+                // b2 = 2*pi * (-a1_y, a1_x, 0) / area
+                // This satisfies:
+                // b2 . a1 = 0
+                // b2 . a2 = 2*pi
+                b = Scalar(2.0 * M_PI) / area * make_scalar3(-a1.y, a1.x, Scalar(0.0));
+                }
+            else
+                {
+                // There is no third independent reciprocal direction
+                // in a strictly 2D system.
+                }
+            }
+        else
+            {
             // 3D case
-           Scalar V_box = m_box.getVolume();
-           
-           // compute the vector pointing from P to V
-           if (m_index == 0){
-              a2 = m_box.getLatticeVector(1);
-              a3 = m_box.getLatticeVector(2);
-           }
-           else if (m_index == 1){
-              a2 = m_box.getLatticeVector(2);
-              a3 = m_box.getLatticeVector(0);
-           }
-           else if (m_index == 2){
-              a2 = m_box.getLatticeVector(0);
-              a3 = m_box.getLatticeVector(1);
-           }
-           
-           b = Scalar(2.0 * M_PI)
-                    * make_scalar3(a2.y * a3.z - a2.z * a3.y,
-                                   a2.z * a3.x - a2.x * a3.z,
-                                   a2.x * a3.y - a2.y * a3.x)
-                    / V_box;
-        }
-        
+            Scalar V_box = m_box.getVolume();
+
+            // compute the vector pointing from P to V
+            if (m_index == 0)
+                {
+                a2 = m_box.getLatticeVector(1);
+                a3 = m_box.getLatticeVector(2);
+                }
+            else if (m_index == 1)
+                {
+                a2 = m_box.getLatticeVector(2);
+                a3 = m_box.getLatticeVector(0);
+                }
+            else if (m_index == 2)
+                {
+                a2 = m_box.getLatticeVector(0);
+                a3 = m_box.getLatticeVector(1);
+                }
+
+            b = Scalar(2.0 * M_PI)
+                * make_scalar3(a2.y * a3.z - a2.z * a3.y,
+                               a2.z * a3.x - a2.x * a3.z,
+                               a2.x * a3.y - a2.y * a3.x)
+                / V_box;
+            }
+
         Scalar clipParameter, arg, clipcos, tanH, sechSq;
 
         Scalar3 q = b * m_periodicity;
