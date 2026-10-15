@@ -192,65 +192,6 @@ void celllist_dimension_test(std::shared_ptr<ExecutionConfiguration> exec_conf,
             {
             UP_ASSERT_EQUAL(dim.z, 5);
             }
-
-        // check coverage box
-        const BoxDim coverage = cl->getCoverageBox();
-        if (mpi_x)
-            {
-            if (pos.x)
-                {
-                UP_ASSERT_SMALL(coverage.getLo().x, tol);
-                UP_ASSERT_CLOSE(coverage.getHi().x, 3.0, tol);
-                }
-            else
-                {
-                UP_ASSERT_CLOSE(coverage.getLo().x, -3.0, tol);
-                UP_ASSERT_SMALL(coverage.getHi().x, tol);
-                }
-            }
-        else
-            {
-            UP_ASSERT_CLOSE(coverage.getLo().x, -2.5, tol);
-            UP_ASSERT_CLOSE(coverage.getHi().x, 2.5, tol);
-            }
-
-        if (mpi_y)
-            {
-            if (pos.y)
-                {
-                UP_ASSERT_CLOSE(coverage.getLo().y, -1.0, tol);
-                UP_ASSERT_CLOSE(coverage.getHi().y, 3.0, tol);
-                }
-            else
-                {
-                UP_ASSERT_CLOSE(coverage.getLo().y, -3.0, tol);
-                UP_ASSERT_SMALL(coverage.getHi().y, tol);
-                }
-            }
-        else
-            {
-            UP_ASSERT_CLOSE(coverage.getLo().y, -2.5, tol);
-            UP_ASSERT_CLOSE(coverage.getHi().y, 2.5, tol);
-            }
-
-        if (mpi_z)
-            {
-            if (pos.z)
-                {
-                UP_ASSERT_SMALL(coverage.getLo().z, tol);
-                UP_ASSERT_CLOSE(coverage.getHi().z, 3.0, tol);
-                }
-            else
-                {
-                UP_ASSERT_CLOSE(coverage.getLo().z, -3.0, tol);
-                UP_ASSERT_CLOSE(coverage.getHi().z, 1.0, tol);
-                }
-            }
-        else
-            {
-            UP_ASSERT_CLOSE(coverage.getLo().z, -2.5, tol);
-            UP_ASSERT_CLOSE(coverage.getHi().z, 2.5, tol);
-            }
         }
 
     /*******************/
@@ -350,65 +291,6 @@ void celllist_dimension_test(std::shared_ptr<ExecutionConfiguration> exec_conf,
         else
             {
             UP_ASSERT_EQUAL(dim.z, 10);
-            }
-
-        const BoxDim coverage = cl->getCoverageBox();
-        if (mpi_x)
-            {
-            if (pos.x)
-                {
-                UP_ASSERT_CLOSE(coverage.getLo().x, -0.25, tol);
-                UP_ASSERT_CLOSE(coverage.getHi().x, 2.75, tol);
-                }
-            else
-                {
-                UP_ASSERT_CLOSE(coverage.getLo().x, -2.75, tol);
-                UP_ASSERT_CLOSE(coverage.getHi().x, 0.25, tol);
-                }
-            }
-        else
-            {
-            UP_ASSERT_CLOSE(coverage.getLo().x, -2.5, tol);
-            UP_ASSERT_CLOSE(coverage.getHi().x, 2.5, tol);
-            }
-
-        if (mpi_y)
-            {
-            if (pos.y)
-                {
-                UP_ASSERT_CLOSE(coverage.getLo().y, -0.25, tol);
-                UP_ASSERT_CLOSE(coverage.getHi().y, 2.75, tol);
-                }
-            else
-                {
-                UP_ASSERT_CLOSE(coverage.getLo().y, -2.75, tol);
-                UP_ASSERT_CLOSE(coverage.getHi().y, -0.25, tol);
-                }
-            }
-        else
-            {
-            UP_ASSERT_CLOSE(coverage.getLo().y, -2.5, tol);
-            UP_ASSERT_CLOSE(coverage.getHi().y, 2.5, tol);
-            }
-
-        if (mpi_z)
-            {
-            if (pos.z)
-                {
-                UP_ASSERT_CLOSE(coverage.getLo().z, 0.25, tol);
-                UP_ASSERT_CLOSE(coverage.getHi().z, 2.75, tol);
-                }
-            else
-                {
-                UP_ASSERT_CLOSE(coverage.getLo().z, -2.75, tol);
-                // floating point rounding makes this 0.75 not 0.25
-                UP_ASSERT_CLOSE(coverage.getHi().z, 0.75, tol);
-                }
-            }
-        else
-            {
-            UP_ASSERT_CLOSE(coverage.getLo().z, -2.5, tol);
-            UP_ASSERT_CLOSE(coverage.getHi().z, 2.5, tol);
             }
         }
     }

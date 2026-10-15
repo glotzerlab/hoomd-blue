@@ -89,7 +89,7 @@ void BounceBackStreamingMethodGPU<Geometry, Force>::stream(uint64_t timestep)
     mpcd::gpu::stream_args_t args(d_pos.data,
                                   d_vel.data,
                                   this->m_mpcd_pdata->getMass(),
-                                  this->m_cl->getCoverageBox(),
+                                  this->m_pdata->getBox(),
                                   this->m_mpcd_dt,
                                   this->m_mpcd_pdata->getN(),
                                   m_tuner->getParam()[0]);

@@ -30,6 +30,8 @@ mpcd::Integrator::Integrator(std::shared_ptr<SystemDefinition> sysdef, Scalar de
     m_exec_conf->msg->notice(5) << "Constructing MPCD Integrator" << std::endl;
 
 #ifdef ENABLE_MPI
+    m_migrate_delay = 0;
+
     // automatically create MPCD communicator in MPI simulations
     if (m_pdata->getDomainDecomposition())
         {
@@ -37,14 +39,13 @@ mpcd::Integrator::Integrator(std::shared_ptr<SystemDefinition> sysdef, Scalar de
 #ifdef ENABLE_HIP
         if (m_exec_conf->isCUDAEnabled())
             {
-            mpcd_comm = std::make_shared<mpcd::CommunicatorGPU>(sysdef);
+            m_mpcd_comm = std::make_shared<mpcd::CommunicatorGPU>(sysdef);
             }
         else
 #endif // ENABLE_HIP
             {
-            mpcd_comm = std::make_shared<mpcd::Communicator>(sysdef);
+            m_mpcd_comm = std::make_shared<mpcd::Communicator>(sysdef);
             }
-        setMPCDCommunicator(mpcd_comm);
         }
 #endif // ENABLE_MPI
     }
@@ -52,11 +53,6 @@ mpcd::Integrator::Integrator(std::shared_ptr<SystemDefinition> sysdef, Scalar de
 mpcd::Integrator::~Integrator()
     {
     m_exec_conf->msg->notice(5) << "Destroying MPCD Integrator" << std::endl;
-#ifdef ENABLE_MPI
-    if (m_mpcd_comm)
-        m_mpcd_comm->getMigrateRequestSignal()
-            .disconnect<mpcd::Integrator, &mpcd::Integrator::checkCollide>(this);
-#endif // ENABLE_MPI
     }
 
 /*!
@@ -75,7 +71,16 @@ void mpcd::Integrator::update(uint64_t timestep)
 
 #ifdef ENABLE_MPI
     if (m_mpcd_comm)
-        m_mpcd_comm->communicate(timestep);
+        {
+        /*
+         * MD particle migration is no longer triggered by MPCD, as the cell list
+         * should be fine with the embedded particles being anywhere on the neighbor
+         * rank, so we will let the MD code handle that. It could be triggered
+         * here if we really needed for a corner case (like embedded particles with
+         * no potentials), at the expense of a distance check.
+         */
+        m_mpcd_comm->migrateParticles(timestep);
+        }
 #endif // ENABLE_MPI
 
     // fill in any virtual particles
@@ -130,10 +135,26 @@ void mpcd::Integrator::prepRun(uint64_t timestep)
         }
 
 #ifdef ENABLE_MPI
-    // force a communication step if present
+    // update communication settings
     if (m_mpcd_comm)
         {
-        m_mpcd_comm->communicate(timestep);
+        uint64_t migrate_delay = m_migrate_delay;
+        if (migrate_delay < 1)
+            {
+            if (m_collide)
+                {
+                migrate_delay = m_collide->getPeriod();
+                }
+            else if (m_stream)
+                {
+                migrate_delay = m_stream->getPeriod();
+                }
+            else
+                {
+                migrate_delay = 1;
+                }
+            }
+        m_mpcd_comm->setMigrateDelay(migrate_delay);
         }
 #endif // ENABLE_MPI
     }
@@ -213,12 +234,6 @@ void mpcd::Integrator::syncCellList()
         {
         m_sorter->setCellList(m_cl);
         }
-#ifdef ENABLE_MPI
-    if (m_mpcd_comm)
-        {
-        m_mpcd_comm->setCellList(m_cl);
-        }
-#endif
     for (auto& filler : m_fillers)
         {
         filler->setCellList(m_cl);
@@ -262,7 +277,13 @@ void export_Integrator(pybind11::module& m)
         .def_property("mpcd_particle_sorter",
                       &mpcd::Integrator::getSorter,
                       &mpcd::Integrator::setSorter)
-        .def_property_readonly("fillers", &mpcd::Integrator::getFillers);
+        .def_property_readonly("fillers", &mpcd::Integrator::getFillers)
+#ifdef ENABLE_MPI
+        .def_property("mpcd_migrate_delay",
+                      &mpcd::Integrator::getMigrateDelay,
+                      &mpcd::Integrator::setMigrateDelay)
+#endif // ENABLE_MPI
+        ;
     }
     } // namespace detail
     } // namespace mpcd

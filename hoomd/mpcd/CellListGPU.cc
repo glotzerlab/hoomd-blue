@@ -437,41 +437,6 @@ void mpcd::CellListGPU::computeNetProperties()
     }
 
 #ifdef ENABLE_MPI
-bool mpcd::CellListGPU::needsEmbedMigrate(uint64_t timestep)
-    {
-    // no migrate needed if no embedded particles
-    if (!m_embed_group)
-        return false;
-
-    // ensure that the cell list has been sized first
-    computeDimensions();
-
-    // particle data
-    ArrayHandle<Scalar4> d_pos(m_pdata->getPositions(), access_location::device, access_mode::read);
-    ArrayHandle<unsigned int> d_group(m_embed_group->getIndexArray(),
-                                      access_location::device,
-                                      access_mode::read);
-
-    // check if any particles have left this rank on the gpu
-    m_tuner_embed_migrate->begin();
-    mpcd::gpu::cell_check_migrate_embed(m_migrate_flag.getDeviceFlags(),
-                                        d_pos.data,
-                                        d_group.data,
-                                        m_cover_box,
-                                        m_sysdef->getNDimensions(),
-                                        m_embed_group->getNumMembers(),
-                                        m_tuner_embed_migrate->getParam()[0]);
-    if (m_exec_conf->isCUDAErrorCheckingEnabled())
-        CHECK_CUDA_ERROR();
-    m_tuner_embed_migrate->end();
-
-    // read flags from the gpu, and reduce across all ranks
-    char migrate = static_cast<char>(m_migrate_flag.readFlags());
-    MPI_Allreduce(MPI_IN_PLACE, &migrate, 1, MPI_CHAR, MPI_MAX, m_exec_conf->getMPICommunicator());
-
-    return static_cast<bool>(migrate);
-    }
-
 void mpcd::CellListGPU::fillGhostBuffers()
     {
     if (!m_decomposition)

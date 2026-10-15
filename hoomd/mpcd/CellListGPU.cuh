@@ -106,15 +106,6 @@ cudaError_t reduce_net_cell_thermo(mpcd::detail::cell_thermo_element* d_reduced,
                                    const size_t N_cells);
 
 #ifdef ENABLE_MPI
-//! Kernel driver to check if any embedded particles require migration
-cudaError_t cell_check_migrate_embed(unsigned int* d_migrate_flag,
-                                     const Scalar4* d_pos,
-                                     const unsigned int* d_group,
-                                     const BoxDim& box,
-                                     const unsigned int num_dim,
-                                     const unsigned int N,
-                                     const unsigned int block_size);
-
 //! Scan for ghost particles in directions
 void scan_for_ghosts(void* d_tmp,
                      size_t& tmp_bytes,
