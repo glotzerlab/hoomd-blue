@@ -126,10 +126,8 @@ class EvaluatorExternalPeriodic
     DEVICE void
     evalForceTorqueEnergyAndVirial(Scalar3& F, Scalar3& T, Scalar& energy, Scalar* virial)
         {
-        // Added by Luis ################################
         Scalar3 a1 = make_scalar3(0, 0, 0); 
         Scalar3 b = make_scalar3(Scalar(0.0), Scalar(0.0), Scalar(0.0));
-        // ##############################################
         
         Scalar3 a2 = make_scalar3(0, 0, 0);
         Scalar3 a3 = make_scalar3(0, 0, 0);
@@ -150,11 +148,12 @@ class EvaluatorExternalPeriodic
 
         // In HOOMD-blue 2D systems, Lz = 0.
         // For 2D we use the area of the parallelogram spanned
-        // by the two in-plane lattice vectors. Luis  
+        // by the two in-plane lattice vectors.
         const Scalar3 L = m_box.getL();
         
-        // New block to select 2D or 3D cases. Luis
-        if (L.z == Scalar(0.0)){ // 2D case
+        // New block to select 2D or 3D cases.
+        if (L.z == Scalar(0.0)){
+            // 2D case
            const Scalar area = m_box.getVolume(true);
            a1 = m_box.getLatticeVector(0);
            a2 = m_box.getLatticeVector(1);
@@ -180,10 +179,10 @@ class EvaluatorExternalPeriodic
            else{
               // There is no third independent reciprocal direction
               // in a strictly 2D system.
-              // b = make_scalar3(Scalar(0.0), Scalar(0.0), Scalar(0.0));       
            }   
         }
-        else{ // Original 3D case
+        else{
+            // 3D case
            Scalar V_box = m_box.getVolume();
            
            // compute the vector pointing from P to V
