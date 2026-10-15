@@ -50,12 +50,14 @@ struct a_pair_args_t
                   const Scalar* _d_charge,
                   const Scalar4* _d_orientation,
                   const unsigned int* _d_tag,
+                  const Scalar4* _d_angmom,
                   const BoxDim& _box,
                   const unsigned int* _d_n_neigh,
                   const unsigned int* _d_nlist,
                   const size_t* _d_head_list,
                   const Scalar* _d_rcutsq,
                   const unsigned int _ntypes,
+                  const bool _reciprocal,
                   const unsigned int _block_size,
                   const unsigned int _shift_mode,
                   const unsigned int _compute_virial,
@@ -64,11 +66,11 @@ struct a_pair_args_t
                   bool _update_shape_param)
         : d_force(_d_force), d_torque(_d_torque), d_virial(_d_virial), virial_pitch(_virial_pitch),
           N(_N), n_max(_n_max), d_pos(_d_pos), d_charge(_d_charge), d_orientation(_d_orientation),
-          d_tag(_d_tag), box(_box), d_n_neigh(_d_n_neigh), d_nlist(_d_nlist),
-          d_head_list(_d_head_list), d_rcutsq(_d_rcutsq), ntypes(_ntypes), block_size(_block_size),
-          shift_mode(_shift_mode), compute_virial(_compute_virial),
-          threads_per_particle(_threads_per_particle), devprop(_devprop),
-          update_shape_param(_update_shape_param) { };
+          d_tag(_d_tag), d_angmom(_d_angmom), box(_box), d_n_neigh(_d_n_neigh), d_nlist(_d_nlist),
+          d_head_list(_d_head_list), d_rcutsq(_d_rcutsq), ntypes(_ntypes), reciprocal(_reciprocal),
+	  block_size(_block_size), shift_mode(_shift_mode), compute_virial(_compute_virial),
+          threads_per_particle(_threads_per_particle), devprop(_devprop), 
+	  update_shape_param(_update_shape_param) {};
 
     Scalar4* d_force;             //!< Force to write out
     Scalar4* d_torque;            //!< Torque to write out
@@ -80,6 +82,7 @@ struct a_pair_args_t
     const Scalar* d_charge;       //!< particle charges
     const Scalar4* d_orientation; //!< particle orientation to compute forces over
     const unsigned int* d_tag;    //!< particle tags to compute forces over
+    const Scalar4* d_angmom;      //!< particle angular momentum to compute forces over
     const BoxDim box;             //!< Simulation box in GPU format
     const unsigned int*
         d_n_neigh;               //!< Device array listing the number of neighbors on each particle
@@ -87,6 +90,7 @@ struct a_pair_args_t
     const size_t* d_head_list;   //!< Device array listing beginning of each particle's neighbors
     const Scalar* d_rcutsq;      //!< Device array listing r_cut squared per particle type pair
     const unsigned int ntypes;   //!< Number of particle types in the simulation
+    const bool reciprocal;
     const unsigned int block_size;           //!< Block size to execute
     const unsigned int shift_mode;           //!< The potential energy shift mode
     const unsigned int compute_virial;       //!< Flag to indicate if virials should be computed
@@ -111,6 +115,7 @@ struct a_pair_args_t
     \param d_charge particle charges
     \param d_orientation Quaternion data on the GPU to calculate forces on
     \param d_tag Tag data on the GPU to calculate forces on
+    \param d_angmom Angular momentum data on the GPU to calculate forces on
     \param box Box dimensions used to implement periodic boundary conditions
     \param d_n_neigh Device memory array listing the number of neighbors for each particle
     \param d_nlist Device memory array containing the neighbor list contents
@@ -148,6 +153,7 @@ gpu_compute_pair_aniso_forces_kernel(Scalar4* d_force,
                                      const Scalar* d_charge,
                                      const Scalar4* d_orientation,
                                      const unsigned int* d_tag,
+                                     const Scalar4* d_angmom,
                                      const BoxDim box,
                                      const unsigned int* d_n_neigh,
                                      const unsigned int* d_nlist,
@@ -156,6 +162,7 @@ gpu_compute_pair_aniso_forces_kernel(Scalar4* d_force,
                                      const typename evaluator::shape_type* d_shape_params,
                                      const Scalar* d_rcutsq,
                                      const unsigned int ntypes,
+                                     const bool reciprocal,
                                      unsigned int max_extra_bytes)
     {
     Index2D typpair_idx(ntypes);
@@ -246,6 +253,14 @@ gpu_compute_pair_aniso_forces_kernel(Scalar4* d_force,
         if (evaluator::needsCharge())
             qi = __ldg(d_charge + idx);
 
+        vec3<Scalar> ai(0, 0, 0);
+        if (evaluator::needsAngularMomentum() && reciprocal)
+            {
+            quat<Scalar> p(__ldg(d_angmom + idx));
+            quat<Scalar> q(quati);
+            ai = (Scalar(1. / 2.) * conj(q) * p).v;
+            }
+
         size_t my_head = d_head_list[idx];
         unsigned int cur_j = 0;
 
@@ -272,6 +287,14 @@ gpu_compute_pair_aniso_forces_kernel(Scalar4* d_force,
                 Scalar qj = Scalar(0);
                 if (evaluator::needsCharge())
                     qj = __ldg(d_charge + cur_j);
+
+                vec3<Scalar> aj(0, 0, 0);
+                if (evaluator::needsAngularMomentum())
+                    {
+                    quat<Scalar> p(__ldg(d_angmom + cur_j));
+                    quat<Scalar> q(quatj);
+                    aj = (Scalar(1. / 2.) * conj(q) * p).v;
+                    }
 
                 // calculate dr (with periodic boundary conditions)
                 Scalar3 dx = posi - posj;
@@ -309,6 +332,13 @@ gpu_compute_pair_aniso_forces_kernel(Scalar4* d_force,
                                   &(s_shape_params[__scalar_as_int(postypej.w)]));
                 if (evaluator::needsTags())
                     eval.setTags(__ldg(d_tag + idx), __ldg(d_tag + cur_j));
+                if (evaluator::needsAngularMomentum())
+                    {
+                    if (reciprocal)
+                        eval.setAngularMomentum(ai + aj,1);
+                    else
+                        eval.setAngularMomentum(aj,__scalar_as_int(postypej.w));
+                    }
 
                 // call evaluator
                 eval.evaluate(jforce, pair_eng, energy_shift, torquei, torquej);
@@ -474,6 +504,7 @@ struct AnisoPairForceComputeKernel
                 pair_args.d_charge,
                 pair_args.d_orientation,
                 pair_args.d_tag,
+                pair_args.d_angmom,
                 pair_args.box,
                 pair_args.d_n_neigh,
                 pair_args.d_nlist,
@@ -482,6 +513,7 @@ struct AnisoPairForceComputeKernel
                 shape_params,
                 pair_args.d_rcutsq,
                 pair_args.ntypes,
+                pair_args.reciprocal,
                 max_extra_bytes);
             }
         else

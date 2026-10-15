@@ -728,6 +728,194 @@ class Constant(Force):
             sim.state._cpp_sys_def, sim.state._get_group(self.filter)
         )
 
+class Shear(Force):
+    r"""Shear force.
+
+    Args:
+        filter (`hoomd.filter`): Subset of particles on which to
+            apply constant forces.
+
+    `Shear` applies a y-position dependent constant force on all
+    particles selected by the filter. `Shear` sets the force
+    to  ``(0,0,0)`` for particles not selected by the filter.
+
+    Examples::
+
+        shear = hoomd.md.force.Shear(filter=hoomd.filter.All(),max_shear_force=10)
+
+    Note:
+        The energy and virial associated with the shear force are 0.
+
+    {inherited}
+
+    ----------
+
+    **Members defined in** `Shear`:
+
+    Attributes:
+        filter (`hoomd.filter`): Subset of particles on which to
+            apply shear forces.
+        max_shear_force (`float`): maximal shear force magnitude at box
+            borders
+
+        Shear force vector in the global reference frame of the system
+        :math:`[\mathrm{force}]`.  It defaults to (0.0, 0.0, 0.0).
+
+    """
+
+    __doc__ = inspect.cleandoc(__doc__).replace(
+        "{inherited}", inspect.cleandoc(Force._doc_inherited)
+    )
+
+    def __init__(self, filter, max_shear_force):
+        super().__init__()
+        # store metadata
+        param_dict = ParameterDict(filter=ParticleFilter)
+        param_dict["filter"] = filter
+        # set defaults
+        self._param_dict.update(param_dict)
+        self.m_s_f = max_shear_force
+
+    def _attach_hook(self):
+        # initialize the reflected c++ class
+        sim = self._simulation
+
+        if isinstance(sim.device, hoomd.device.CPU):
+            my_class = _md.ShearForceCompute
+        else:
+            my_class = _md.ShearForceComputeGPU
+
+        self._cpp_obj = my_class(
+            sim.state._cpp_sys_def, sim.state._get_group(self.filter),
+            self.m_s_f
+        )
+
+class WallDistance(Force):
+    r"""WallDistance force.
+
+    Args:
+        filter (`hoomd.filter`): Subset of particles on which to
+            apply constant forces.
+
+    `WallDistance` applies a y-position dependent constant force on all
+    particles selected by the filter. `WallDistance` sets the force
+    to  ``(0,0,0)`` for particles not selected by the filter.
+
+    Examples::
+
+        shear = hoomd.md.force.WallDistance(filter=hoomd.filter.All(),max_shear_force=10)
+
+    Note:
+        The energy and virial associated with the shear force are 0.
+
+    {inherited}
+
+    ----------
+
+    **Members defined in** `WallDistance`:
+
+    Attributes:
+        filter (`hoomd.filter`): Subset of particles on which to
+            apply shear forces.
+        max_shear_force (`float`): maximal shear force magnitude at box
+            borders
+
+        WallDistance force vector in the global reference frame of the system
+        :math:`[\mathrm{force}]`.  It defaults to (0.0, 0.0, 0.0).
+
+    """
+
+    __doc__ = inspect.cleandoc(__doc__).replace(
+        "{inherited}", inspect.cleandoc(Force._doc_inherited)
+    )
+
+    def __init__(self, filter, k, R, inverse=False):
+        super().__init__()
+        # store metadata
+        param_dict = ParameterDict(filter=ParticleFilter)
+        param_dict["filter"] = filter
+        # set defaults
+        self._param_dict.update(param_dict)
+        self.k = k
+        self.R = R
+        self.inverse = inverse
+
+    def _attach_hook(self):
+        # initialize the reflected c++ class
+        sim = self._simulation
+
+        if isinstance(sim.device, hoomd.device.CPU):
+            my_class = _md.WallDistanceForceCompute
+        else:
+            my_class = _md.WallDistanceForceComputeGPU
+
+        self._cpp_obj = my_class(
+            sim.state._cpp_sys_def, sim.state._get_group(self.filter),
+            self.k, self.R, self.inverse
+        )
+
+class WallCoupling(Force):
+    r"""WallCoupling force.
+
+    Args:
+        filter (`hoomd.filter`): Subset of particles on which to
+            apply constant forces.
+
+    `WallCoupling` applies a y-position dependent constant force on all
+    particles selected by the filter. `WallCoupling` sets the force
+    to  ``(0,0,0)`` for particles not selected by the filter.
+
+    Examples::
+
+        shear = hoomd.md.force.WallCoupling(filter=hoomd.filter.All(),max_shear_force=10)
+
+    Note:
+        The energy and virial associated with the shear force are 0.
+
+    {inherited}
+
+    ----------
+
+    **Members defined in** `WallCoupling`:
+
+    Attributes:
+        filter (`hoomd.filter`): Subset of particles on which to
+            apply shear forces.
+        max_shear_force (`float`): maximal shear force magnitude at box
+            borders
+
+        WallCoupling force vector in the global reference frame of the system
+        :math:`[\mathrm{force}]`.  It defaults to (0.0, 0.0, 0.0).
+
+    """
+
+    __doc__ = inspect.cleandoc(__doc__).replace(
+        "{inherited}", inspect.cleandoc(Force._doc_inherited)
+    )
+
+    def __init__(self, filter, epsilon, R):
+        super().__init__()
+        # store metadata
+        param_dict = ParameterDict(filter=ParticleFilter)
+        param_dict["filter"] = filter
+        # set defaults
+        self._param_dict.update(param_dict)
+        self.epsilon = epsilon
+        self.R = R
+
+    def _attach_hook(self):
+        # initialize the reflected c++ class
+        sim = self._simulation
+
+        if isinstance(sim.device, hoomd.device.CPU):
+            my_class = _md.WallCouplingForceCompute
+        else:
+            my_class = _md.WallCouplingForceComputeGPU
+
+        self._cpp_obj = my_class(
+            sim.state._cpp_sys_def, sim.state._get_group(self.filter),
+            self.epsilon, self.R
+        )
 
 __all__ = [
     "Active",
@@ -735,4 +923,7 @@ __all__ = [
     "Constant",
     "Custom",
     "Force",
+    "Shear",
+    "WallDistance",
+    "WallCoupling",
 ]

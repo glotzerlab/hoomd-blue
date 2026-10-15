@@ -40,6 +40,10 @@ template<class evaluator> class AnisoPotentialPairGPU : public AnisoPotentialPai
     //! Construct the pair potential
     AnisoPotentialPairGPU(std::shared_ptr<SystemDefinition> sysdef,
                           std::shared_ptr<NeighborList> nlist);
+
+    AnisoPotentialPairGPU(std::shared_ptr<SystemDefinition> sysdef,
+                          std::shared_ptr<NeighborList> nlist,
+                          bool reciprocal);
     //! Destructor
     virtual ~AnisoPotentialPairGPU() { };
 
@@ -84,6 +88,15 @@ AnisoPotentialPairGPU<evaluator>::AnisoPotentialPairGPU(std::shared_ptr<SystemDe
 #endif
     }
 
+template<class evaluator>
+AnisoPotentialPairGPU<evaluator>::AnisoPotentialPairGPU(std::shared_ptr<SystemDefinition> sysdef,
+                                                        std::shared_ptr<NeighborList> nlist,
+                                                        bool reciprocal)
+    : AnisoPotentialPairGPU<evaluator>(sysdef, nlist)
+    {
+    this->m_reciprocal = reciprocal;
+    }
+
 template<class evaluator> void AnisoPotentialPairGPU<evaluator>::computeForces(uint64_t timestep)
     {
     this->m_nlist->compute(timestep);
@@ -124,6 +137,10 @@ template<class evaluator> void AnisoPotentialPairGPU<evaluator>::computeForces(u
                                     access_location::device,
                                     access_mode::read);
 
+    ArrayHandle<Scalar4> d_angmom(this->m_pdata->getAngularMomentumArray(),
+                                  access_location::device,
+                                  access_mode::read);
+
     BoxDim box = this->m_pdata->getBox();
 
     // access parameters
@@ -156,12 +173,14 @@ template<class evaluator> void AnisoPotentialPairGPU<evaluator>::computeForces(u
                               d_charge.data,
                               d_orientation.data,
                               d_tag.data,
+                              d_angmom.data,
                               box,
                               d_n_neigh.data,
                               d_nlist.data,
                               d_head_list.data,
                               d_rcutsq.data,
                               this->m_pdata->getNTypes(),
+                              this->m_reciprocal,
                               block_size,
                               this->m_shift_mode,
                               flags[pdata_flag::pressure_tensor],
@@ -208,7 +227,9 @@ template<class T> void export_AnisoPotentialPairGPU(pybind11::module& m, const s
     pybind11::class_<AnisoPotentialPairGPU<T>,
                      AnisoPotentialPair<T>,
                      std::shared_ptr<AnisoPotentialPairGPU<T>>>(m, name.c_str())
-        .def(pybind11::init<std::shared_ptr<SystemDefinition>, std::shared_ptr<NeighborList>>());
+        .def(pybind11::init<std::shared_ptr<SystemDefinition>, std::shared_ptr<NeighborList>>())
+        .def(pybind11::
+                 init<std::shared_ptr<SystemDefinition>, std::shared_ptr<NeighborList>, bool>());
     }
 
     } // end namespace detail

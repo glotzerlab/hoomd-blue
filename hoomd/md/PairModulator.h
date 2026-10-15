@@ -178,6 +178,13 @@ template<typename PairEvaluator, typename DirectionalEnvelope> class PairModulat
 
     HOSTDEVICE void setTags(unsigned int tagi, unsigned int tagj) { }
 
+    HOSTDEVICE static bool needsAngularMomentum()
+        {
+        return false;
+        }
+
+    HOSTDEVICE void setAngularMomentum(vec3<Scalar> ai, unsigned int tj) { }
+
     HOSTDEVICE static bool constexpr implementsEnergyShift()
         {
         return true;

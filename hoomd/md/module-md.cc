@@ -22,6 +22,9 @@ void export_ActiveRotationalDiffusionUpdater(pybind11::module& m);
 void export_ComputeThermo(pybind11::module& m);
 void export_ComputeThermoHMA(pybind11::module& m);
 void export_ConstantForceCompute(pybind11::module& m);
+void export_ShearForceCompute(pybind11::module& m);
+void export_WallDistanceForceCompute(pybind11::module& m);
+void export_WallCouplingForceCompute(pybind11::module& m);
 void export_HarmonicAngleForceCompute(pybind11::module& m);
 void export_CosineSqAngleForceCompute(pybind11::module& m);
 void export_TableAngleForceCompute(pybind11::module& m);
@@ -53,6 +56,7 @@ void export_WallForceConstraintComputeSphere(pybind11::module& m);
 void export_LocalNeighborListDataHost(pybind11::module& m);
 
 void export_PotentialPairBuckingham(pybind11::module& m);
+void export_PotentialPairDipoleInterface(pybind11::module& m);
 void export_PotentialPairLJ(pybind11::module& m);
 void export_PotentialPairLJ1208(pybind11::module& m);
 void export_PotentialPairLJ0804(pybind11::module& m);
@@ -72,6 +76,7 @@ void export_PotentialPairFourier(pybind11::module& m);
 void export_PotentialPairOPP(pybind11::module& m);
 void export_PotentialPairTWF(pybind11::module& m);
 void export_PotentialPairLJGauss(pybind11::module& m);
+void export_PotentialPairInverse(pybind11::module& m);
 void export_PotentialPairForceShiftedLJ(pybind11::module& m);
 void export_PotentialPairTable(pybind11::module& m);
 void export_PotentialPairWangFrenkel(pybind11::module& m);
@@ -83,8 +88,9 @@ void export_AnisoPotentialPairDipole(pybind11::module& m);
 void export_AnisoPotentialPairYLZ(pybind11::module& m);
 void export_AnisoPotentialPairOriQuench(pybind11::module& m);
 void export_AnisoPotentialPairGB(pybind11::module& m);
+void export_AnisoPotentialPairLubricationCoupling(pybind11::module& m);
+void export_AnisoPotentialPairRotationalCoupling(pybind11::module& m);
 void export_AnisoPotentialPairPatchyExpandedGaussian(pybind11::module& m);
-;
 void export_AnisoPotentialPairPatchyExpandedLJ(pybind11::module& m);
 void export_AnisoPotentialPairPatchyExpandedMie(pybind11::module& m);
 void export_AnisoPotentialPairPatchyGauss(pybind11::module& m);
@@ -207,6 +213,9 @@ void export_ActiveForceComputeGPU(pybind11::module& m);
 void export_ComputeThermoGPU(pybind11::module& m);
 void export_ComputeThermoHMAGPU(pybind11::module& m);
 void export_ConstantForceComputeGPU(pybind11::module& m);
+void export_ShearForceComputeGPU(pybind11::module& m);
+void export_WallDistanceForceComputeGPU(pybind11::module& m);
+void export_WallCouplingForceComputeGPU(pybind11::module& m);
 void export_HarmonicAngleForceComputeGPU(pybind11::module& m);
 void export_CosineSqAngleForceComputeGPU(pybind11::module& m);
 void export_TableAngleForceComputeGPU(pybind11::module& m);
@@ -235,6 +244,7 @@ void export_WallForceConstraintComputePrimitiveGPU(pybind11::module& m);
 void export_WallForceConstraintComputeSphereGPU(pybind11::module& m);
 
 void export_PotentialPairBuckinghamGPU(pybind11::module& m);
+void export_PotentialPairDipoleInterfaceGPU(pybind11::module& m);
 void export_PotentialPairLJGPU(pybind11::module& m);
 void export_PotentialPairLJ1208GPU(pybind11::module& m);
 void export_PotentialPairLJ0804GPU(pybind11::module& m);
@@ -255,6 +265,7 @@ void export_PotentialPairOPPGPU(pybind11::module& m);
 void export_PotentialPairTWFGPU(pybind11::module& m);
 void export_PotentialPairWangFrenkelGPU(pybind11::module&);
 void export_PotentialPairLJGaussGPU(pybind11::module& m);
+void export_PotentialPairInverseGPU(pybind11::module& m);
 void export_PotentialPairForceShiftedLJGPU(pybind11::module& m);
 void export_PotentialPairTableGPU(pybind11::module& m);
 void export_PotentialPairConservativeDPDGPU(pybind11::module& m);
@@ -265,6 +276,8 @@ void export_AnisoPotentialPairALJ3DGPU(pybind11::module& m);
 void export_AnisoPotentialPairDipoleGPU(pybind11::module& m);
 void export_AnisoPotentialPairYLZGPU(pybind11::module& m);
 void export_AnisoPotentialPairGBGPU(pybind11::module& m);
+void export_AnisoPotentialPairLubricationCouplingGPU(pybind11::module& m);
+void export_AnisoPotentialPairRotationalCouplingGPU(pybind11::module& m);
 
 void export_AnisoPotentialPairPatchyExpandedGaussianGPU(pybind11::module& m);
 void export_AnisoPotentialPairPatchyExpandedLJGPU(pybind11::module& m);
@@ -371,6 +384,9 @@ PYBIND11_MODULE(_md, m)
     export_ComputeThermo(m);
     export_ComputeThermoHMA(m);
     export_ConstantForceCompute(m);
+    export_ShearForceCompute(m);
+    export_WallDistanceForceCompute(m);
+    export_WallCouplingForceCompute(m);
     export_HarmonicAngleForceCompute(m);
     export_CosineSqAngleForceCompute(m);
     export_TableAngleForceCompute(m);
@@ -390,6 +406,7 @@ PYBIND11_MODULE(_md, m)
     export_WallForceConstraintComputeSphere(m);
 
     export_PotentialPairBuckingham(m);
+    export_PotentialPairDipoleInterface(m);
     export_PotentialPairLJ(m);
     export_PotentialPairLJ1208(m);
     export_PotentialPairLJ0804(m);
@@ -409,6 +426,7 @@ PYBIND11_MODULE(_md, m)
     export_PotentialPairOPP(m);
     export_PotentialPairTWF(m);
     export_PotentialPairLJGauss(m);
+    export_PotentialPairInverse(m);
     export_PotentialPairForceShiftedLJ(m);
     export_PotentialPairTable(m);
     export_PotentialPairWangFrenkel(m);
@@ -428,6 +446,8 @@ PYBIND11_MODULE(_md, m)
     export_AnisoPotentialPairYLZ(m);
     export_AnisoPotentialPairOriQuench(m);
     export_AnisoPotentialPairGB(m);
+    export_AnisoPotentialPairLubricationCoupling(m);
+    export_AnisoPotentialPairRotationalCoupling(m);
     export_AnisoPotentialPairPatchyExpandedGaussian(m);
     export_AnisoPotentialPairPatchyExpandedLJ(m);
     export_AnisoPotentialPairPatchyExpandedMie(m);
@@ -497,6 +517,7 @@ PYBIND11_MODULE(_md, m)
     export_LocalNeighborListDataGPU(m);
 
     export_PotentialPairBuckinghamGPU(m);
+    export_PotentialPairDipoleInterfaceGPU(m);
     export_PotentialPairLJGPU(m);
     export_PotentialPairLJ1208GPU(m);
     export_PotentialPairLJ0804GPU(m);
@@ -516,6 +537,7 @@ PYBIND11_MODULE(_md, m)
     export_PotentialPairOPPGPU(m);
     export_PotentialPairTWFGPU(m);
     export_PotentialPairLJGaussGPU(m);
+    export_PotentialPairInverseGPU(m);
     export_PotentialPairForceShiftedLJGPU(m);
     export_PotentialPairTableGPU(m);
     export_PotentialPairWangFrenkelGPU(m);
@@ -534,6 +556,8 @@ PYBIND11_MODULE(_md, m)
     export_AnisoPotentialPairDipoleGPU(m);
     export_AnisoPotentialPairYLZGPU(m);
     export_AnisoPotentialPairGBGPU(m);
+    export_AnisoPotentialPairLubricationCouplingGPU(m);
+    export_AnisoPotentialPairRotationalCouplingGPU(m);
 
     export_FrictionPairFrictionLJLinearGPU(m);
     export_FrictionPairFrictionLJCoulombGPU(m);
@@ -596,6 +620,9 @@ PYBIND11_MODULE(_md, m)
     export_ActiveForceConstraintComputePrimitiveGPU(m);
     export_ActiveForceConstraintComputeSphereGPU(m);
     export_ConstantForceComputeGPU(m);
+    export_ShearForceComputeGPU(m);
+    export_WallDistanceForceComputeGPU(m);
+    export_WallCouplingForceComputeGPU(m);
     export_PotentialExternalPeriodicGPU(m);
     export_PotentialExternalElectricFieldGPU(m);
     export_PotentialExternalMagneticFieldGPU(m);

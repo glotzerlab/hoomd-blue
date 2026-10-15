@@ -1837,6 +1837,72 @@ class Fourier(Pair):
         self._add_typeparam(params)
 
 
+class Inverse (Pair):
+    r"""Inverse pair force.
+
+    Args:
+        nlist (hoomd.md.nlist.NeighborList): Neighbor list.
+        default_r_cut (float): Default cutoff radius :math:`[\mathrm{length}]`.
+        default_r_on (float): Default turn-on radius :math:`[\mathrm{length}]`.
+        mode (str): Energy shifting/smoothing mode.
+
+    `Inverse` computes the oscillating pair force on all particles in the simulation
+    state:
+
+    .. math::
+        U(r) = C r^{-\eta}
+
+    Example::
+
+        nl = nlist.Cell()
+        inverse = pair.Inverse(nl, default_r_cut=3.0)
+        inverse.params[("A", "A")] = {
+            "C": 1.0,
+            "eta": 3,
+        }
+        inverse.r_cut[("A", "B")] = 3.0
+
+    {inherited}
+
+    ----------
+
+    **Members defined in** `Inverse`:
+
+    .. py:attribute:: params
+
+        The Inverse potential parameters. The dictionary has the following keys:
+
+        * ``C`` (`float`, **required**) -
+          Energy scale :math:`C`
+          :math:`[\mathrm{energy}]`
+        * ``eta`` (`float`, **required**) -
+          The inverse power to take :math:`r` to,
+          :math:`\eta_1` :math:`[\mathrm{dimensionless}]`.
+        * ``eta2`` (`float`, **required**) -
+
+        Type: `TypeParameter` [`tuple` [``particle_type``, ``particle_type``],
+        `dict`]
+    """
+
+    _cpp_class_name = "PotentialPairInverse"
+    __doc__ = inspect.cleandoc(__doc__).replace(
+        "{inherited}", inspect.cleandoc(Pair._doc_inherited)
+    )
+
+    def __init__(self, nlist, default_r_cut=None, default_r_on=0.0, mode="none"):
+        super().__init__(nlist, default_r_cut, default_r_on, mode)
+        params = TypeParameter(
+            "params",
+            "particle_types",
+            TypeParameterDict(
+                C=float,
+                eta=float,
+                len_keys=2,
+            ),
+        )
+        self._add_typeparam(params)
+
+
 class OPP(Pair):
     r"""Oscillating pair force.
 
@@ -1923,7 +1989,6 @@ class OPP(Pair):
             ),
         )
         self._add_typeparam(params)
-
 
 class TWF(Pair):
     r"""Pair potential model for globular proteins.
@@ -2151,6 +2216,59 @@ class WangFrenkel(Pair):
         self._add_typeparam(params)
 
 
+class DipoleInterface(Pair):
+    r"""Lennard-Jones-Gauss pair potential.
+
+    Args:
+        nlist (hoomd.md.nlist.NeighborList): Neighbor list.
+        default_r_cut (float): Default cutoff radius :math:`[\mathrm{length}]`.
+        default_r_on (float): Default turn-on radius :math:`[\mathrm{length}]`.
+        mode (str): Energy shifting/smoothing mode.
+
+    `LJGauss` computes the Lennard-Jones Gauss force on all particles in the
+    simulation state:
+
+    .. math::
+        U(r) = 1\ [\mathrm{energy}] \cdot \left[
+                 \left ( \frac{1\ [\mathrm{length}]}{r} \right)^{12} -
+                 2\  \left(\frac{1 [\mathrm{length}]}{r} \right)^{6} \right] -
+            \epsilon
+            \exp \left[- \frac{\left(r - r_{0}\right)^{2}}{2 \sigma^{2}} \right]
+
+    .. py:attribute:: params
+
+        The potential parameters. The dictionary has the following keys:
+
+        * ``epsilon`` (`float`, **required**) -
+          energy parameter :math:`\varepsilon` :math:`[\mathrm{energy}]`
+        * ``sigma`` (`float`, **required**) -
+          Gaussian width :math:`\sigma` :math:`[\mathrm{length}]`
+        * ``r0`` (`float`, **required**) -
+          Gaussian center :math:`r_0` :math:`[\mathrm{length}]`
+        * ``kappa`` (`float`) -
+          screen length :math:`kappa` :math:`[\mathrm{length}]`
+
+    Example::
+
+        nl = hoomd.md.nlist.Cell()
+        ljg = pair.LJGauss(nl)
+        ljg.params[('A', 'A')] = dict(epsilon=1.0, sigma=0.02, r0=1.6)
+        ljg.params[('A', 'B')] = {'epsilon' : 2.0, 'sigma' : 0.02, 'r0' : 1.6}
+        ljg.params[('A', 'B')] = {'epsilon' : 2.0, 'sigma' : 0.02, 'r0' : 1.6}
+
+    .. versionadded:: 3.1.0
+    """
+    _cpp_class_name = "PotentialPairDipoleInterface"
+
+    def __init__(self,
+                 nlist,
+                 default_r_cut=None,
+                 default_r_on=0.0,
+                 mode='none'):
+        super().__init__(nlist, default_r_cut, default_r_on, mode)
+        params = TypeParameter('params', 'particle_types',
+                               TypeParameterDict(A=float,len_keys=2))
+                               #TypeParameterDict(A=float,kappa=0.0,len_keys=2))
 class Zetterling(Pair):
     r"""Zetterling pair potential.
 

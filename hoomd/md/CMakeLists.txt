@@ -11,6 +11,8 @@ set(_md_sources module-md.cc
                    AnisoPotentialPairYLZ.cc
                    AnisoPotentialPairOriQuench.cc
                    AnisoPotentialPairGB.cc
+                   AnisoPotentialPairLubricationCoupling.cc
+                   AnisoPotentialPairRotationalCoupling.cc
                    AlchemyData.cc
                    BendingRigidityMeshForceCompute.cc
                    BondTablePotential.cc
@@ -54,6 +56,9 @@ set(_md_sources module-md.cc
                    OPLSDihedralForceCompute.cc
                    PPPMForceCompute.cc
                    PeriodicImproperForceCompute.cc
+		   ShearForceCompute.cc
+		   WallDistanceForceCompute.cc
+		   WallCouplingForceCompute.cc
                    TableAngleForceCompute.cc
                    TableDihedralForceCompute.cc
                    TriangleAreaConservationMeshForceCompute.cc
@@ -117,6 +122,7 @@ set(_md_headers ActiveForceComputeGPU.h
                 EvaluatorPairALJ.h
                 EvaluatorPairBuckingham.h
                 EvaluatorPairDipole.h
+		EvaluatorPairDipoleInterface.h
                 EvaluatorPairFrictionLJBase.h
                 EvaluatorPairFrictionLJVariants.h
                 EvaluatorPairYLZ.h
@@ -139,6 +145,8 @@ set(_md_headers ActiveForceComputeGPU.h
                 EvaluatorPairOPP.h
                 EvaluatorPairFourier.h
                 EvaluatorPairReactionField.h
+                EvaluatorPairLubricationCoupling.h
+                EvaluatorPairRotationalCoupling.h
                 EvaluatorPairExpandedLJ.h
                 EvaluatorPairTable.h
                 EvaluatorPairTWF.h
@@ -231,6 +239,12 @@ set(_md_headers ActiveForceComputeGPU.h
                 PPPMForceComputeGPU.h
                 PPPMForceComputeGPU.cuh
                 PPPMForceCompute.h
+		ShearForceComputeGPU.h
+                ShearForceCompute.h
+                WallDistanceForceCompute.h
+                WallCouplingForceCompute.h
+                WallDistanceForceComputeGPU.h
+                WallCouplingForceComputeGPU.h
                 FrictionPairGPU.cuh
                 FrictionPairGPU.h
                 FrictionPair.h
@@ -286,6 +300,8 @@ list(APPEND _md_sources ActiveForceComputeGPU.cc
                            AnisoPotentialPairDipoleGPU.cc
                            AnisoPotentialPairYLZGPU.cc
                            AnisoPotentialPairGBGPU.cc
+                           AnisoPotentialPairLubricationCouplingGPU.cc
+                           AnisoPotentialPairRotationalCouplingGPU.cc
                            BendingRigidityMeshForceComputeGPU.cc
                            BondTablePotentialGPU.cc
                            CommunicatorGridGPU.cc
@@ -307,6 +323,9 @@ list(APPEND _md_sources ActiveForceComputeGPU.cc
                            OPLSDihedralForceComputeGPU.cc
                            PeriodicImproperForceComputeGPU.cc
                            PPPMForceComputeGPU.cc
+			   ShearForceComputeGPU.cc
+			   WallDistanceForceComputeGPU.cc
+			   WallCouplingForceComputeGPU.cc
                            FrictionPairFrictionLJBaseGPU.cc
                            TableAngleForceComputeGPU.cc
                            TableDihedralForceComputeGPU.cc
@@ -328,6 +347,9 @@ set(_md_cu_sources ActiveForceComputeGPU.cu
                       AnisoPotentialPairDipoleGPUKernel.cu
                       AnisoPotentialPairYLZGPUKernel.cu
                       AnisoPotentialPairGBGPUKernel.cu
+                      AnisoPotentialPairLubricationCouplingGPUKernel.cu
+                      AnisoPotentialPairRotationalCouplingGPUKernel.cu
+		      BendingRigidityMeshForceComputeGPU.cu
             	      BendingRigidityMeshForceComputeGPU.cu
                       BoxDeformerGPU.cu
                       ComputeThermoGPU.cu
@@ -351,6 +373,9 @@ set(_md_cu_sources ActiveForceComputeGPU.cu
                       OPLSDihedralForceGPU.cu
                       PeriodicImproperForceGPU.cu
                       PPPMForceComputeGPU.cu
+		      ShearForceComputeGPU.cu
+		      WallDistanceForceComputeGPU.cu
+		      WallCouplingForceComputeGPU.cu
                       FrictionPairFrictionLJBaseGPUKernel.cu
                       TableAngleForceGPU.cu
                       TableDihedralForceGPU.cu
@@ -625,10 +650,12 @@ set(_pair_evaluators Buckingham
                      Mie
                      ReactionField
                      DLVO
+		     DipoleInterface
                      Fourier
                      OPP
                      TWF
                      LJGauss
+		     Inverse
                      ForceShiftedLJ
                      Table
                      ExpandedGaussian

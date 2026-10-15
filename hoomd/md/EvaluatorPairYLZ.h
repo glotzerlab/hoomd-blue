@@ -184,6 +184,18 @@ class EvaluatorPairYLZ
     */
     HOSTDEVICE void setCharge(Scalar qi, Scalar qj) { }
 
+    //! Whether the pair potential needs particle angular momentum
+    HOSTDEVICE static bool needsAngularMomentum()
+        {
+        return false;
+        }
+
+    //! Accept the optional charge values
+    /*! \param ai Angular momentum of particle i
+        \param aj Angular momentum of particle j
+    */
+    HOSTDEVICE void setAngularMomentum(vec3<Scalar> ai, unsigned int tj) { }
+
     /// Whether the potential implements the energy_shift parameter
     HOSTDEVICE static bool constexpr implementsEnergyShift()
         {

@@ -159,6 +159,12 @@ class EvaluatorPairDipole
         return true;
         }
 
+    //! Whether the pair potential needs particle angular momentum
+    HOSTDEVICE static bool needsAngularMomentum()
+        {
+        return false;
+        }
+
     /// Whether the potential implements the energy_shift parameter
     HOSTDEVICE static bool constexpr implementsEnergyShift()
         {
@@ -190,6 +196,12 @@ class EvaluatorPairDipole
         q_i = qi;
         q_j = qj;
         }
+
+    //! Accept the optional charge values
+    /*! \param ai Angular momentum of particle i
+        \param aj Angular momentum of particle j
+    */
+    HOSTDEVICE void setAngularMomentum(vec3<Scalar> ai, unsigned int tj) { }
 
     //! Evaluate the force and energy
     /*! \param force Output parameter to write the computed force.
