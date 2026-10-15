@@ -266,6 +266,7 @@ void WallForceConstraintCompute<Manifold>::computeFrictionForces()
 	 vec3<Scalar> perp_vel, perp_force, para_ang_mom, para_torque;
 	 Scalar norm_perp_vel = -1;
 	 Scalar norm_para_angmom = 0;
+	 Scalar mass = h_vel.data[idx].w;
 
 	 vec3<Scalar> net_tor(h_net_torque.data[idx].x,h_net_torque.data[idx].y,h_net_torque.data[idx].z);
 	 Scalar normal_tor = dot(norm,net_tor);
@@ -274,8 +275,9 @@ void WallForceConstraintCompute<Manifold>::computeFrictionForces()
 	 	{
             	quat<Scalar> q(h_orientation.data[idx]);
             	quat<Scalar> p(h_angmom.data[idx]);
-            	vec3<Scalar> net_angmom = (Scalar(1. / 2.) * conj(q) * p).v;
-		norm_para_angmom = dot(norm,net_angmom);
+            	vec3<Scalar> L_body = (Scalar(1. / 2.) * conj(q) * p).v;
+		vec3<Scalar> L_world = rotate(q, L_body);
+		norm_para_angmom = dot(norm,L_world);
 
 		vec3<Scalar> net_vel(h_vel.data[idx].x,h_vel.data[idx].y,h_vel.data[idx].z);
 		Scalar normal_vel = dot(norm,net_vel);
@@ -286,38 +288,22 @@ void WallForceConstraintCompute<Manifold>::computeFrictionForces()
 	 Scalar Tb = m_Tb[typei];
 	 Scalar Tbn = m_nus[typei]*Tb;
 
-	if( norm_para_angmom > 1e-6 || norm_para_angmom < -1e-6 )
-		{
-		if( norm_para_angmom > 0) 
-			Tbn = -Tbn;
-		para_torque = norm*Tbn;
-	   	}
+	// torque that would stop the spin about the normal in one step
+	Scalar stop_t = -(Scalar(2)*norm_para_angmom/m_deltaT + normal_tor);
+	Scalar cap_t = (fabs(norm_para_angmom) > 1e-6) ? Tbn : Tb;
+	Scalar tau_n = (fabs(stop_t) <= cap_t) ? stop_t : (stop_t > 0 ? Tbn : -Tbn);
+	para_torque = norm*tau_n;
+
+
+	// translation that would stop the spin about the normal in one step
+	vec3<Scalar> F_par = net_force - normal_magnitude*norm;
+	vec3<Scalar> stop = Scalar(2)*mass*perp_vel/m_deltaT - F_par;
+	Scalar stop_mag = fast::sqrt(dot(stop,stop));
+	Scalar cap = (norm_perp_vel > 1e-6) ? m_muk[typei]*normal_magnitude : m_mus[typei]*normal_magnitude;
+	if( stop_mag <= cap )
+		perp_force = stop;
 	else
-		{
-		 if( normal_tor > Tb) 
-			 para_torque = -norm*Tbn;
-		 else
-			{
-			if(normal_tor < -Tb) 
-				para_torque = norm*Tbn;
-			else
-				para_torque = -norm*normal_tor;
-			}
-		}
-
-
-	if( norm_perp_vel > 1e-6)
-		{
-		perp_force = perp_vel*normal_magnitude*m_muk[typei]/norm_perp_vel;
-	   	}
-	else
-		{
-		perp_force =  -net_force + normal_magnitude*norm;
-		Scalar perp_magnitude = fast::sqrt(dot(perp_force,perp_force));
-
-		if( perp_magnitude > m_mus[typei]*normal_magnitude)
-			perp_force *= (normal_magnitude*m_muk[typei]/perp_magnitude);
-		}
+		perp_force = stop * (m_muk[typei]*normal_magnitude/stop_mag);
 
 
         h_force.data[idx].x = perp_force.x;
