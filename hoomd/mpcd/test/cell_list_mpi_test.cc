@@ -91,7 +91,7 @@ void celllist_dimension_test(std::shared_ptr<ExecutionConfiguration> exec_conf,
         const uint3 pos = decomposition->getGridPos();
         if (mpi_x)
             {
-            // right rank gets middle cell -> 0 and 3
+            // no bias -> lower indexed domains get middle cell
             if (pos.x)
                 {
                 UP_ASSERT_EQUAL(origin.x, 3);
