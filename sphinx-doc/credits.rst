@@ -82,6 +82,7 @@ The following people have contributed to HOOMD-blue:
 * Lin Yang, Iowa State University
 * Ludwig Schneider, Georg-August University Goettingen
 * Luis Y. Rivera-Rivera, University of Michigan
+* Luis Adrian Padilla Salas
 * Malcolm Ramsay
 * Marco Klement, Friedrich-Alexander-Universität Erlangen-Nürnberg (FAU)
 * Martin Girard, Max-Planck-Institut für Polymerforschung
