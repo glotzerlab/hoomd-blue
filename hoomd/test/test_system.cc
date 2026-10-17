@@ -209,7 +209,7 @@ UP_TEST(getter_setter_tests)
 /*UP_TEST( run_tests )
     {
     Py_Initialize();
-    #ifdef ENABLE_HIP
+    #ifdef ENABLE_GPU
     g_gpu_error_checking = true;
     #endif
 

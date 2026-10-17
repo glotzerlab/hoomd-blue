@@ -269,7 +269,7 @@ set(_md_headers ActiveForceComputeGPU.h
                 ZeroMomentumUpdater.h
                 )
 
-if (ENABLE_HIP)
+if (ENABLE_GPU)
 list(APPEND _md_sources ActiveForceComputeGPU.cc
                            AreaConservationMeshForceComputeGPU.cc
                            AnisoPotentialPairALJ2GPU.cc
@@ -358,10 +358,10 @@ set(_md_cu_sources ActiveForceComputeGPU.cu
                       CosineSqAngleForceGPU.cu
                       )
 
-if (ENABLE_HIP)
+if (ENABLE_GPU)
 set(_cuda_sources ${_md_cu_sources} ${DFFT_CU_SOURCES})
-set_source_files_properties(${_md_cu_sources} PROPERTIES LANGUAGE ${HOOMD_DEVICE_LANGUAGE})
-endif (ENABLE_HIP)
+set_source_files_properties(${_md_cu_sources} PROPERTIES LANGUAGE CUDA)
+endif (ENABLE_GPU)
 
 # generate pybind11 export cc files
 set(_manifolds Cylinder
@@ -387,7 +387,7 @@ foreach(_manifold ${_manifolds})
                    @ONLY)
     set(_md_sources ${_md_sources} export_ActiveForceConstraintCompute${_manifold}.cc)
 
-    if (ENABLE_HIP)
+    if (ENABLE_GPU)
         configure_file(export_ActiveForceConstraintComputeGPU.cc.inc
                        export_ActiveForceConstraintCompute${_manifold}GPU.cc
                        @ONLY)
@@ -402,7 +402,7 @@ foreach(_manifold ${_manifolds})
             ActiveForceConstraintCompute${_manifold}GPU.cu
             TwoStepRATTLE${_manifold}GPU.cu
             )
-        set_source_files_properties(${_cuda_sources} PROPERTIES LANGUAGE ${HOOMD_DEVICE_LANGUAGE})
+        set_source_files_properties(${_cuda_sources} PROPERTIES LANGUAGE CUDA)
     endif()
 
     foreach (_method ${_rattle_methods})
@@ -411,12 +411,12 @@ foreach(_manifold ${_manifolds})
                     @ONLY)
         set(_md_sources ${_md_sources} export_TwoStepRATTLE${_method}${_manifold}.cc)
 
-        if (ENABLE_HIP)
+        if (ENABLE_GPU)
             configure_file(export_TwoStepRATTLEGPU.cc.inc
                         export_TwoStepRATTLE${_method}${_manifold}GPU.cc
                         @ONLY)
             set(_md_sources ${_md_sources} export_TwoStepRATTLE${_method}${_manifold}GPU.cc)
-            set_source_files_properties(${_cuda_sources} PROPERTIES LANGUAGE ${HOOMD_DEVICE_LANGUAGE})
+            set_source_files_properties(${_cuda_sources} PROPERTIES LANGUAGE CUDA)
         endif()
     endforeach()
 
@@ -431,7 +431,7 @@ foreach(_bond ${_bonds})
                    @ONLY)
     set(_md_sources ${_md_sources} export_PotentialBond${_bond}.cc)
 
-    if (ENABLE_HIP)
+    if (ENABLE_GPU)
         configure_file(export_PotentialBondGPU.cc.inc
                        export_PotentialBond${_bond}GPU.cc
                        @ONLY)
@@ -442,7 +442,7 @@ foreach(_bond ${_bonds})
         set(_cuda_sources ${_cuda_sources}
             PotentialBond${_bond}GPUKernel.cu
             )
-        set_source_files_properties(${_cuda_sources} PROPERTIES LANGUAGE ${HOOMD_DEVICE_LANGUAGE})
+        set_source_files_properties(${_cuda_sources} PROPERTIES LANGUAGE CUDA)
     endif()
 endforeach()
 
@@ -452,7 +452,7 @@ foreach(_bond ${_bonds})
                    @ONLY)
     set(_md_sources ${_md_sources} export_PotentialMeshBond${_bond}.cc)
 
-    if (ENABLE_HIP)
+    if (ENABLE_GPU)
         configure_file(export_PotentialMeshBondGPU.cc.inc
                        export_PotentialMeshBond${_bond}GPU.cc
                        @ONLY)
@@ -463,7 +463,7 @@ foreach(_bond ${_bonds})
         set(_cuda_sources ${_cuda_sources}
             PotentialMeshBond${_bond}GPUKernel.cu
             )
-        set_source_files_properties(${_cuda_sources} PROPERTIES LANGUAGE ${HOOMD_DEVICE_LANGUAGE})
+        set_source_files_properties(${_cuda_sources} PROPERTIES LANGUAGE CUDA)
     endif()
 endforeach()
 
@@ -475,7 +475,7 @@ foreach(_pair ${_pairs})
                    @ONLY)
     set(_md_sources ${_md_sources} export_PotentialSpecialPair${_pair}.cc)
 
-    if (ENABLE_HIP)
+    if (ENABLE_GPU)
         configure_file(export_PotentialSpecialPairGPU.cc.inc
                        export_PotentialSpecialPair${_pair}GPU.cc
                        @ONLY)
@@ -486,7 +486,7 @@ foreach(_pair ${_pairs})
         set(_cuda_sources ${_cuda_sources}
             PotentialSpecialPair${_pair}GPUKernel.cu
             )
-        set_source_files_properties(${_cuda_sources} PROPERTIES LANGUAGE ${HOOMD_DEVICE_LANGUAGE})
+        set_source_files_properties(${_cuda_sources} PROPERTIES LANGUAGE CUDA)
     endif()
 endforeach()
 
@@ -498,7 +498,7 @@ foreach(_evaluator ${_triplets})
                    @ONLY)
     set(_md_sources ${_md_sources} export_PotentialTersoff${_evaluator}.cc)
 
-    if (ENABLE_HIP)
+    if (ENABLE_GPU)
         configure_file(export_PotentialTersoffGPU.cc.inc
                        export_PotentialTersoff${_evaluator}GPU.cc
                        @ONLY)
@@ -509,7 +509,7 @@ foreach(_evaluator ${_triplets})
         set(_cuda_sources ${_cuda_sources}
             PotentialTersoff${_evaluator}GPUKernel.cu
             )
-        set_source_files_properties(${_cuda_sources} PROPERTIES LANGUAGE ${HOOMD_DEVICE_LANGUAGE})
+        set_source_files_properties(${_cuda_sources} PROPERTIES LANGUAGE CUDA)
     endif()
 endforeach()
 
@@ -521,7 +521,7 @@ foreach(_evaluator ${_external_evaluators})
                    @ONLY)
     set(_md_sources ${_md_sources} export_PotentialExternal${_evaluator}.cc)
 
-    if (ENABLE_HIP)
+    if (ENABLE_GPU)
         configure_file(export_PotentialExternalGPU.cc.inc
                        export_PotentialExternal${_evaluator}GPU.cc
                        @ONLY)
@@ -532,7 +532,7 @@ foreach(_evaluator ${_external_evaluators})
         set(_cuda_sources ${_cuda_sources}
             PotentialExternal${_evaluator}GPUKernel.cu
             )
-        set_source_files_properties(${_cuda_sources} PROPERTIES LANGUAGE ${HOOMD_DEVICE_LANGUAGE})
+        set_source_files_properties(${_cuda_sources} PROPERTIES LANGUAGE CUDA)
     endif()
 endforeach()
 
@@ -544,7 +544,7 @@ foreach(_evaluator ${_wall_evaluators})
                    @ONLY)
     set(_md_sources ${_md_sources} export_PotentialExternalWall${_evaluator}.cc)
 
-    if (ENABLE_HIP)
+    if (ENABLE_GPU)
         configure_file(export_PotentialExternalWallGPU.cc.inc
                        export_PotentialExternalWall${_evaluator}GPU.cc
                        @ONLY)
@@ -555,7 +555,7 @@ foreach(_evaluator ${_wall_evaluators})
         set(_cuda_sources ${_cuda_sources}
             PotentialExternalWall${_evaluator}GPUKernel.cu
             )
-        set_source_files_properties(${_cuda_sources} PROPERTIES LANGUAGE ${HOOMD_DEVICE_LANGUAGE})
+        set_source_files_properties(${_cuda_sources} PROPERTIES LANGUAGE CUDA)
     endif()
 endforeach()
 
@@ -567,7 +567,7 @@ foreach(_evaluator ${_dpdthermo_evaluators})
                    @ONLY)
     set(_md_sources ${_md_sources} export_PotentialPairDPDThermo${_evaluator}.cc)
 
-    if (ENABLE_HIP)
+    if (ENABLE_GPU)
         configure_file(export_PotentialPairDPDThermoGPU.cc.inc
                        export_PotentialPairDPDThermo${_evaluator}GPU.cc
                        @ONLY)
@@ -578,7 +578,7 @@ foreach(_evaluator ${_dpdthermo_evaluators})
         set(_cuda_sources ${_cuda_sources}
             PotentialPairDPDThermo${_evaluator}GPUKernel.cu
             )
-        set_source_files_properties(${_cuda_sources} PROPERTIES LANGUAGE ${HOOMD_DEVICE_LANGUAGE})
+        set_source_files_properties(${_cuda_sources} PROPERTIES LANGUAGE CUDA)
     endif()
 endforeach()
 
@@ -620,7 +620,7 @@ foreach(_evaluator ${_pair_evaluators})
                    @ONLY)
     set(_md_sources ${_md_sources} export_PotentialPair${_evaluator}.cc)
 
-    if (ENABLE_HIP)
+    if (ENABLE_GPU)
         configure_file(export_PotentialPairGPU.cc.inc
                        export_PotentialPair${_evaluator}GPU.cc
                        @ONLY)
@@ -631,7 +631,7 @@ foreach(_evaluator ${_pair_evaluators})
         set(_cuda_sources ${_cuda_sources}
             PotentialPair${_evaluator}GPUKernel.cu
             )
-        set_source_files_properties(${_cuda_sources} PROPERTIES LANGUAGE ${HOOMD_DEVICE_LANGUAGE})
+        set_source_files_properties(${_cuda_sources} PROPERTIES LANGUAGE CUDA)
     endif()
 endforeach()
 
@@ -649,7 +649,7 @@ foreach(_evaluator ${_patchy_evaluators})
                    export_AnisoPotentialPairPatchy${_evaluator}.cc
                    @ONLY)
     set(_md_sources ${_md_sources} export_AnisoPotentialPairPatchy${_evaluator}.cc)
-    if(ENABLE_HIP)
+    if(ENABLE_GPU)
         configure_file(export_AnisoPotentialPairPatchyGPU.cc.inc
                        export_AnisoPotentialPairPatchy${_evaluator}GPU.cc
                        @ONLY)
@@ -659,7 +659,7 @@ foreach(_evaluator ${_patchy_evaluators})
         set(_md_sources ${_md_sources} export_AnisoPotentialPairPatchy${_evaluator}GPU.cc)
         set(_cuda_sources ${_cuda_sources}
             AnisoPotentialPairPatchy${_evaluator}GPUKernel.cu)
-        set_source_files_properties(${_cuda_sources} PROPERTIES LANGUAGE ${HOOMD_DEVICE_LANGUAGE})
+        set_source_files_properties(${_cuda_sources} PROPERTIES LANGUAGE CUDA)
     endif()
 endforeach()
 
@@ -683,13 +683,12 @@ set_target_properties(_md PROPERTIES INSTALL_RPATH "\$ORIGIN/..;\$ORIGIN")
 endif()
 
 # link the library to its dependencies
-if (CUSOLVER_AVAILABLE)
-    # CUDA 8.0 requires that we link in gomp
-    target_link_libraries(_md PUBLIC _hoomd CUDA::cusolver CUDA::cusparse gomp)
-else()
-    target_link_libraries(_md PUBLIC _hoomd)
-endif()
-if (ENABLE_HIP)
+target_link_libraries(_md PUBLIC _hoomd)
+if (ENABLE_GPU)
+    if (TARGET CUDA::cusolver)
+        target_link_libraries(_md PUBLIC CUDA::cusolver CUDA::cublas CUDA::cusparse)
+        target_compile_definitions(_md PUBLIC CUSOLVER_AVAILABLE)
+    endif()
     target_link_libraries(_md PRIVATE neighbor)
 endif()
 

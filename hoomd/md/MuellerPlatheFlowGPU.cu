@@ -1,7 +1,7 @@
 // Copyright (c) 2009-2026 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
-#include "hip/hip_runtime.h"
+#include <cuda_runtime.h>
 // Copyright (c) 2009-2021 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
@@ -133,23 +133,23 @@ template<typename CMP> struct vel_search_binary_opt
         }
     };
 
-hipError_t gpu_search_min_max_velocity(const unsigned int group_size,
-                                       const Scalar4* const d_vel,
-                                       const Scalar4* const d_pos,
-                                       const unsigned int* const d_tag,
-                                       const unsigned int* const d_rtag,
-                                       const unsigned int* const d_group_members,
-                                       const BoxDim gl_box,
-                                       const unsigned int Nslabs,
-                                       const unsigned int max_slab,
-                                       const unsigned int min_slab,
-                                       Scalar3* const last_max_vel,
-                                       Scalar3* const last_min_vel,
-                                       const bool has_max_slab,
-                                       const bool has_min_slab,
-                                       const unsigned int blocksize,
-                                       const flow_enum::Direction flow_direction,
-                                       const flow_enum::Direction slab_direction)
+cudaError_t gpu_search_min_max_velocity(const unsigned int group_size,
+                                        const Scalar4* const d_vel,
+                                        const Scalar4* const d_pos,
+                                        const unsigned int* const d_tag,
+                                        const unsigned int* const d_rtag,
+                                        const unsigned int* const d_group_members,
+                                        const BoxDim gl_box,
+                                        const unsigned int Nslabs,
+                                        const unsigned int max_slab,
+                                        const unsigned int min_slab,
+                                        Scalar3* const last_max_vel,
+                                        Scalar3* const last_min_vel,
+                                        const bool has_max_slab,
+                                        const bool has_min_slab,
+                                        const unsigned int blocksize,
+                                        const flow_enum::Direction flow_direction,
+                                        const flow_enum::Direction slab_direction)
     {
     thrust::device_ptr<const unsigned int> member_ptr(d_group_members);
 
@@ -179,7 +179,7 @@ hipError_t gpu_search_min_max_velocity(const unsigned int group_size,
                                                  min_bin_opt);
         }
 
-    return hipPeekAtLastError();
+    return cudaPeekAtLastError();
     }
 
 void __global__ gpu_update_min_max_velocity_kernel(const unsigned int* const d_rtag,
@@ -233,29 +233,21 @@ void __global__ gpu_update_min_max_velocity_kernel(const unsigned int* const d_r
         }
     }
 
-hipError_t gpu_update_min_max_velocity(const unsigned int* const d_rtag,
-                                       Scalar4* const d_vel,
-                                       const unsigned int Ntotal,
-                                       const Scalar3 last_max_vel,
-                                       const Scalar3 last_min_vel,
-                                       const flow_enum::Direction flow_direction)
+cudaError_t gpu_update_min_max_velocity(const unsigned int* const d_rtag,
+                                        Scalar4* const d_vel,
+                                        const unsigned int Ntotal,
+                                        const Scalar3 last_max_vel,
+                                        const Scalar3 last_min_vel,
+                                        const flow_enum::Direction flow_direction)
     {
-    dim3 grid(1, 1, 1);
-    dim3 threads(1, 1, 1);
+    gpu_update_min_max_velocity_kernel<<<1, 1>>>(d_rtag,
+                                                 d_vel,
+                                                 Ntotal,
+                                                 last_max_vel,
+                                                 last_min_vel,
+                                                 flow_direction);
 
-    hipLaunchKernelGGL((gpu_update_min_max_velocity_kernel),
-                       dim3(grid),
-                       dim3(threads),
-                       0,
-                       0,
-                       d_rtag,
-                       d_vel,
-                       Ntotal,
-                       last_max_vel,
-                       last_min_vel,
-                       flow_direction);
-
-    return hipPeekAtLastError();
+    return cudaPeekAtLastError();
     }
 
     } // end namespace kernel

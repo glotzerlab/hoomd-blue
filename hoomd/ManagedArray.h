@@ -3,7 +3,7 @@
 
 #pragma once
 
-#ifndef __HIPCC__
+#ifndef __NVCC__
 #include "managed_allocator.h"
 
 #include <algorithm>
@@ -11,11 +11,11 @@
 #include <utility>
 #endif
 
-#ifdef ENABLE_HIP
-#include <hip/hip_runtime.h>
+#ifdef ENABLE_GPU
+#include <cuda_runtime.h>
 #endif
 
-#ifdef __HIPCC__
+#ifdef __NVCC__
 #define DEVICE __device__
 #define HOSTDEVICE __host__ __device__
 #else
@@ -36,7 +36,7 @@ template<class T> class ManagedArray
         {
         }
 
-#ifndef __HIPCC__
+#ifndef __NVCC__
     ManagedArray(unsigned int _N, bool _managed, size_t _align = 0)
         : data(nullptr), ptr(nullptr), N(_N), managed(_managed), align(_align),
           allocation_ptr(nullptr), allocation_bytes(0)
@@ -50,7 +50,7 @@ template<class T> class ManagedArray
 
     HOSTDEVICE ~ManagedArray()
         {
-#ifndef __HIPCC__
+#ifndef __NVCC__
         deallocate();
 #endif
         }
@@ -64,7 +64,7 @@ template<class T> class ManagedArray
         : data(nullptr), ptr(nullptr), N(other.N), managed(other.managed), align(other.align),
           allocation_ptr(nullptr), allocation_bytes(0)
         {
-#ifndef __HIPCC__
+#ifndef __NVCC__
         if (N > 0)
             {
             allocate();
@@ -86,7 +86,7 @@ template<class T> class ManagedArray
         : data(nullptr), ptr(nullptr), N(other.N), managed(other.managed), align(other.align),
           allocation_ptr(nullptr), allocation_bytes(0)
         {
-#ifndef __HIPCC__
+#ifndef __NVCC__
         if (N > 0)
             {
             allocate();
@@ -106,7 +106,7 @@ template<class T> class ManagedArray
      */
     HOSTDEVICE ManagedArray& operator=(const ManagedArray<T>& other)
         {
-#ifndef __HIPCC__
+#ifndef __NVCC__
         deallocate();
 #endif
 
@@ -114,7 +114,7 @@ template<class T> class ManagedArray
         managed = other.managed;
         align = other.align;
 
-#ifndef __HIPCC__
+#ifndef __NVCC__
         if (N > 0)
             {
             allocate();
@@ -136,7 +136,7 @@ template<class T> class ManagedArray
      */
     HOSTDEVICE ManagedArray& operator=(const ManagedArray<T>&& other)
         {
-#ifndef __HIPCC__
+#ifndef __NVCC__
         deallocate();
 #endif
 
@@ -144,7 +144,7 @@ template<class T> class ManagedArray
         managed = other.managed;
         align = other.align;
 
-#ifndef __HIPCC__
+#ifndef __NVCC__
         if (N > 0)
             {
             allocate();
@@ -183,15 +183,13 @@ template<class T> class ManagedArray
         return data;
         }
 
-#ifdef ENABLE_HIP
+#ifdef ENABLE_GPU
     //! Attach managed memory to CUDA stream
     void set_memory_hint() const
         {
         if (managed && ptr)
             {
-#if defined(__HIP_PLATFORM_NVCC__) && (CUDART_VERSION >= 8000)
             cudaMemAdvise(ptr, sizeof(T) * N, cudaMemAdviseSetReadMostly, 0);
-#endif
             }
         }
 #endif
@@ -244,7 +242,7 @@ template<class T> class ManagedArray
         if (!ptr_align)
             return false;
 
-#ifdef __HIP_DEVICE_COMPILE__
+#ifdef __CUDA_ARCH__
         // only in GPU code
         unsigned int tidx
             = threadIdx.x + blockDim.x * threadIdx.y + blockDim.x * blockDim.y * threadIdx.z;
@@ -285,7 +283,7 @@ template<class T> class ManagedArray
         }
 
     protected:
-#ifndef __HIPCC__
+#ifndef __NVCC__
     void allocate()
         {
         ptr = detail::managed_allocator<T>::allocate_construct_aligned(N,

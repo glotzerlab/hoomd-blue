@@ -2,8 +2,8 @@
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #include "TriangleAreaConservationMeshForceComputeGPU.cuh"
-#include "hip/hip_runtime.h"
 #include "hoomd/TextureTools.h"
+#include <cuda_runtime.h>
 
 /*! \file TriangleAreaConservationMeshForceComputeGPU.cu
     \brief Defines GPU kernel code for calculating the triangle area conservation forces. Used by
@@ -190,53 +190,44 @@ gpu_compute_TriangleAreaConservation_force_kernel(Scalar4* d_force,
     \param n_triangle_type number of mesh triangle types
     \param block_size Block size to use when performing calculations
     \returns Any error code resulting from the kernel launch
-    \note Always returns hipSuccess in release builds to avoid the hipDeviceSynchronize()
+    \note Always returns cudaSuccess in release builds to avoid the cudaDeviceSynchronize()
 */
-hipError_t gpu_compute_TriangleAreaConservation_force(Scalar4* d_force,
-                                                      Scalar* d_virial,
-                                                      const size_t virial_pitch,
-                                                      const unsigned int N,
-                                                      const Scalar4* d_pos,
-                                                      const BoxDim& box,
-                                                      const group_storage<3>* tlist,
-                                                      const unsigned int* tpos_list,
-                                                      const Index2D tlist_idx,
-                                                      const unsigned int* n_triangles_list,
-                                                      triangle_area_conservation_param_t* d_params,
-                                                      const unsigned int n_triangle_type,
-                                                      int block_size)
+cudaError_t gpu_compute_TriangleAreaConservation_force(Scalar4* d_force,
+                                                       Scalar* d_virial,
+                                                       const size_t virial_pitch,
+                                                       const unsigned int N,
+                                                       const Scalar4* d_pos,
+                                                       const BoxDim& box,
+                                                       const group_storage<3>* tlist,
+                                                       const unsigned int* tpos_list,
+                                                       const Index2D tlist_idx,
+                                                       const unsigned int* n_triangles_list,
+                                                       triangle_area_conservation_param_t* d_params,
+                                                       const unsigned int n_triangle_type,
+                                                       int block_size)
     {
     unsigned int max_block_size;
-    hipFuncAttributes attr;
-    hipFuncGetAttributes(&attr, (const void*)gpu_compute_TriangleAreaConservation_force_kernel);
+    cudaFuncAttributes attr;
+    cudaFuncGetAttributes(&attr, (const void*)gpu_compute_TriangleAreaConservation_force_kernel);
     max_block_size = attr.maxThreadsPerBlock;
 
     unsigned int run_block_size = min(block_size, max_block_size);
 
-    // setup the grid to run the kernel
-    dim3 grid(N / run_block_size + 1, 1, 1);
-    dim3 threads(run_block_size, 1, 1);
+    gpu_compute_TriangleAreaConservation_force_kernel<<<N / run_block_size + 1, run_block_size>>>(
+        d_force,
+        d_virial,
+        virial_pitch,
+        N,
+        d_pos,
+        box,
+        tlist,
+        tpos_list,
+        tlist_idx,
+        n_triangles_list,
+        d_params,
+        n_triangle_type);
 
-    // run the kernel
-    hipLaunchKernelGGL((gpu_compute_TriangleAreaConservation_force_kernel),
-                       dim3(grid),
-                       dim3(threads),
-                       0,
-                       0,
-                       d_force,
-                       d_virial,
-                       virial_pitch,
-                       N,
-                       d_pos,
-                       box,
-                       tlist,
-                       tpos_list,
-                       tlist_idx,
-                       n_triangles_list,
-                       d_params,
-                       n_triangle_type);
-
-    return hipSuccess;
+    return cudaSuccess;
     }
 
     } // end namespace kernel

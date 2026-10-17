@@ -8,7 +8,9 @@
 #include "hoomd/Index1D.h"
 #include "hoomd/VectorMath.h"
 #include "hoomd/hpmc/HPMCCounters.h"
-#include <hip/hip_runtime.h>
+
+#include <cuda_runtime.h>
+#include <stdint.h>
 
 namespace hoomd
     {
@@ -59,8 +61,8 @@ struct hpmc_args_t
                 const Index2D& _excli,
                 const unsigned int* _d_reject_in,
                 unsigned int* _d_reject_out,
-                const hipDeviceProp_t& _devprop,
-                const hipStream_t& _stream)
+                const cudaDeviceProp& _devprop,
+                const cudaStream_t& _stream)
         : d_postype(_d_postype), d_orientation(_d_orientation), d_vel(_d_vel),
           d_counters(_d_counters), counters_pitch(_counters_pitch), ci(_ci), cell_dim(_cell_dim),
           ghost_width(_ghost_width), N(_N), num_types(_num_types), seed(_seed), rank(_rank),
@@ -114,8 +116,8 @@ struct hpmc_args_t
     const Index2D& excli;                      //!< Excell indexer
     const unsigned int* d_reject_in;           //!< Reject flags per particle (in)
     unsigned int* d_reject_out;                //!< Reject flags per particle (out)
-    const hipDeviceProp_t& devprop;            //!< CUDA device properties
-    const hipStream_t& stream;                 //!< kernel streams
+    const cudaDeviceProp& devprop;             //!< CUDA device properties
+    const cudaStream_t& stream;                //!< kernel streams
     };
 
 //! Wraps arguments for hpmc_update_pdata

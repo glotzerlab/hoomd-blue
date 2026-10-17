@@ -177,7 +177,7 @@ set(_hoomd_headers
     WarpTools.cuh
     )
 
-if (ENABLE_HIP)
+if (ENABLE_GPU)
 list(APPEND _hoomd_sources BoxResizeUpdaterGPU.cc
                            CellListGPU.cc
                            CommunicatorGPU.cc
@@ -208,14 +208,13 @@ if (BUILD_MPCD)
     # headers will be installed by MPCD itself so they go in the right subdirectory
 endif()
 
-if (ENABLE_HIP)
-set(_cuda_sources ${_hoomd_cu_sources})
-set_source_files_properties(${_hoomd_cu_sources} PROPERTIES LANGUAGE ${HOOMD_DEVICE_LANGUAGE})
-endif (ENABLE_HIP)
+if (ENABLE_GPU)
+set_source_files_properties(${_hoomd_cu_sources} PROPERTIES LANGUAGE CUDA)
+endif (ENABLE_GPU)
 
 #########################
 ## Build the module
-hoomd_add_module(_hoomd SHARED module.cc ${_hoomd_sources} ${_cuda_sources} ${_hoomd_headers} NO_EXTRAS)
+hoomd_add_module(_hoomd SHARED module.cc ${_hoomd_sources} ${_hoomd_cu_sources} ${_hoomd_headers} NO_EXTRAS)
 
 # alias into the HOOMD namespace so that plugins and symlinked components both work
 add_library(HOOMD::_hoomd ALIAS _hoomd)
@@ -223,7 +222,7 @@ add_library(HOOMD::_hoomd ALIAS _hoomd)
 # Work around support for the delete operator with pybind11 and older versions of clang
 # https://github.com/pybind/pybind11/issues/1604
 if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang")
-    target_compile_options(_hoomd PUBLIC $<$<AND:$<COMPILE_LANGUAGE:CUDA>,$<STREQUAL:${HIP_PLATFORM},nvcc>>:-Xcompiler=>;-fsized-deallocation)
+    target_compile_options(_hoomd PUBLIC $<$<COMPILE_LANGUAGE:CUDA>:-Xcompiler=>;-fsized-deallocation)
 endif()
 
 # add quick hull as its own library so that it's symbols can be public
@@ -264,26 +263,10 @@ target_compile_definitions(_hoomd PUBLIC HOOMD_SHORTREAL_SIZE=${HOOMD_SHORTREAL_
 target_compile_definitions(_hoomd PUBLIC HOOMD_LONGREAL_SIZE=${HOOMD_LONGREAL_SIZE})
 
 # Libraries and compile definitions for CUDA enabled builds
-if (ENABLE_HIP)
-    if (HIP_PLATFORM STREQUAL "amd")
-        target_link_libraries(_hoomd PUBLIC hip::hipfft)
-    elseif(HIP_PLATFORM STREQUAL "nvcc")
-        target_link_libraries(_hoomd PUBLIC CUDA::cudart CUDA::cufft)
-    endif()
-    target_compile_definitions(_hoomd PUBLIC ENABLE_HIP CUDA_ARCH=${_cuda_min_arch})
-
-    if (CUSOLVER_AVAILABLE)
-        target_compile_definitions(_hoomd PUBLIC CUSOLVER_AVAILABLE)
-    endif()
-
-    target_link_libraries(_hoomd PUBLIC hip::host)
-
-    if (ENABLE_ROCTRACER)
-        target_link_libraries(_hoomd PUBLIC HIP::roctracer)
-        target_compile_definitions(_hoomd PUBLIC ENABLE_ROCTRACER)
-    endif()
+if (ENABLE_GPU)
+    target_link_libraries(_hoomd PUBLIC CUDA::cudart CUDA::cufft)
+    target_compile_definitions(_hoomd PUBLIC ENABLE_GPU)
 endif()
-
 
 # Libraries and compile definitions for MPI enabled builds
 if (ENABLE_MPI)

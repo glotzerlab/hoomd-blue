@@ -11,7 +11,7 @@
 
 #include "hoomd/HOOMDMath.h"
 
-#ifdef __HIPCC__
+#ifdef __NVCC__
 #define DEVICE __device__ __forceinline__
 #else
 #define DEVICE
@@ -41,7 +41,7 @@ struct thermo_index
         };
     };
 
-#ifndef __HIPCC__
+#ifndef __NVCC__
 //! Flags for optional thermo data
 typedef std::bitset<32> ThermoFlags;
 #endif

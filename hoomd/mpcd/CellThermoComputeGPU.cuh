@@ -21,7 +21,7 @@ namespace mpcd
     {
 namespace detail
     {
-#ifdef __HIPCC__
+#ifdef __NVCC__
 #define HOSTDEVICE __host__ __device__
 #else
 #define HOSTDEVICE

@@ -13,7 +13,7 @@
 #include "UpdaterGCA.h"
 #include "UpdaterMuVT.h"
 
-#ifdef ENABLE_HIP
+#ifdef ENABLE_GPU
 #include "ComputeFreeVolumeGPU.h"
 #include "IntegratorHPMCMonoGPU.h"
 #include "UpdaterGCAGPU.h"
@@ -36,7 +36,7 @@ void export_union_sphere(pybind11::module& m)
 
     export_ExternalFieldWall<ShapeUnion<ShapeSphere>>(m, "WallSphereUnion");
 
-#ifdef ENABLE_HIP
+#ifdef ENABLE_GPU
 
     export_IntegratorHPMCMonoGPU<ShapeUnion<ShapeSphere>>(m, "IntegratorHPMCMonoSphereUnionGPU");
     export_ComputeFreeVolumeGPU<ShapeUnion<ShapeSphere>>(m, "ComputeFreeVolumeSphereUnionGPU");

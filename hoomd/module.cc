@@ -59,12 +59,12 @@ void export_ParticleDataSnapshot(pybind11::module& pybind11);
 #endif
 
 // include GPU classes
-#ifdef ENABLE_HIP
+#ifdef ENABLE_GPU
 #include "BoxResizeUpdaterGPU.h"
 #include "CellListGPU.h"
 #include "LoadBalancerGPU.h"
 #include "SFCPackTunerGPU.h"
-#include <hip/hip_runtime.h>
+#include <cuda_runtime.h>
 #endif
 
 // include MPI classes
@@ -72,9 +72,9 @@ void export_ParticleDataSnapshot(pybind11::module& pybind11);
 #include "Communicator.h"
 #include "DomainDecomposition.h"
 
-#ifdef ENABLE_HIP
+#ifdef ENABLE_GPU
 #include "CommunicatorGPU.h"
-#endif // ENABLE_HIP
+#endif // ENABLE_GPU
 #endif // ENABLE_MPI
 
 #include "HOOMDVersion.h"
@@ -104,10 +104,6 @@ char env_enable_mpi_cuda[] = "MV2_USE_CUDA=1";
 //! Initialize the MPI environment
 int initialize_mpi()
     {
-#if defined(ENABLE_HIP) && defined(__HIP_PLATFORM_HCC__)
-    hipInit(0);
-#endif
-
     // initialize MPI if it has not been initialized by another program
     int external_init = 0;
     MPI_Initialized(&external_init);
@@ -233,14 +229,14 @@ PYBIND11_MODULE(_hoomd, m)
     // data structures
     export_HOOMDHostBuffer(m);
     export_GhostDataFlag(m);
-#if ENABLE_HIP
+#if ENABLE_GPU
     export_HOOMDDeviceBuffer(m);
 #endif
     export_BoxDim(m);
     export_ParticleData(m);
     export_SnapshotParticleData(m);
     export_LocalParticleData<HOOMDHostBuffer>(m, "LocalParticleDataHost");
-#if ENABLE_HIP
+#if ENABLE_GPU
     export_LocalParticleData<HOOMDDeviceBuffer>(m, "LocalParticleDataDevice");
 #endif
     export_MPIConfiguration(m);
@@ -270,7 +266,7 @@ PYBIND11_MODULE(_hoomd, m)
     export_LocalGroupData<HOOMDHostBuffer, ImproperData>(m, "LocalImproperDataHost");
     export_LocalGroupData<HOOMDHostBuffer, ConstraintData>(m, "LocalConstraintDataHost");
     export_LocalGroupData<HOOMDHostBuffer, PairData>(m, "LocalPairDataHost");
-#if ENABLE_HIP
+#if ENABLE_GPU
     export_LocalGroupData<HOOMDDeviceBuffer, BondData>(m, "LocalBondDataDevice");
     export_LocalGroupData<HOOMDDeviceBuffer, TriangleData>(m, "LocalTriangleDataDevice");
     export_LocalGroupData<HOOMDDeviceBuffer, AngleData>(m, "LocalAngleDataDevice");
@@ -296,12 +292,12 @@ PYBIND11_MODULE(_hoomd, m)
     export_CellListStencil(m);
     export_ForceCompute(m);
     export_LocalForceComputeData<HOOMDHostBuffer>(m, "LocalForceComputeDataHost");
-#ifdef ENABLE_HIP
+#ifdef ENABLE_GPU
     export_LocalForceComputeData<HOOMDDeviceBuffer>(m, "LocalForceComputeDataDevice");
 #endif
     export_ForceConstraint(m);
 
-#ifdef ENABLE_HIP
+#ifdef ENABLE_GPU
     export_CellListGPU(m);
 #endif
 
@@ -318,7 +314,7 @@ PYBIND11_MODULE(_hoomd, m)
     export_Integrator(m);
     export_BoxResizeUpdater(m);
     export_UpdaterRemoveDrift(m);
-#ifdef ENABLE_HIP
+#ifdef ENABLE_GPU
     export_BoxResizeUpdaterGPU(m);
 #endif
 
@@ -327,7 +323,7 @@ PYBIND11_MODULE(_hoomd, m)
     export_PythonTuner(m);
     export_SFCPackTuner(m);
     export_LoadBalancer(m);
-#ifdef ENABLE_HIP
+#ifdef ENABLE_GPU
     export_SFCPackTunerGPU(m);
     export_LoadBalancerGPU(m);
 #endif
@@ -335,9 +331,9 @@ PYBIND11_MODULE(_hoomd, m)
 #ifdef ENABLE_MPI
     export_Communicator(m);
     export_DomainDecomposition(m);
-#ifdef ENABLE_HIP
+#ifdef ENABLE_GPU
     export_CommunicatorGPU(m);
-#endif // ENABLE_HIP
+#endif // ENABLE_GPU
 #endif // ENABLE_MPI
 
     // system

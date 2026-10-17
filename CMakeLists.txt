@@ -1,6 +1,7 @@
-CMAKE_MINIMUM_REQUIRED(VERSION 3.15...3.27 FATAL_ERROR)
+CMAKE_MINIMUM_REQUIRED(VERSION 3.18...3.27 FATAL_ERROR)
 # >= 3.8 is required for CUDA language support
 # >= 3.9 is required for MPI::MPI_CXX target
+# >= 3.18 for CUDA architectures
 
 # Search for Python and other libraries in unix-like locations first and frameworks last.
 # This allows FindPython to find virtual environment Pythons before a homebrew or system Pythons.
@@ -59,37 +60,22 @@ if(NOT CMAKE_BUILD_TYPE AND NOT CMAKE_CONFIGURATION_TYPES)
 endif()
 
 # enable c++17
-# Since we support the last two major releases of the CUDA toolkit, we cannot
-# use C++17 as the CUDA standard until CUDA 12.
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CUDA_STANDARD 17)
-set(CMAKE_HIP_STANDARD 17)
 
-# Enable compiler warnings on gcc and clang (common compilers used by developers)
+# Enable compiler warnings and colors on gcc and clang (common compilers used by developers)
 if(CMAKE_COMPILER_IS_GNUCXX OR CMAKE_CXX_COMPILER_ID MATCHES "Clang")
-    if (NOT (ENABLE_GPU AND HOOMD_GPU_PLATFORM STREQUAL "HIP"))
-        set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wconversion")
-    endif()
-
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wno-sign-conversion -Wno-unknown-pragmas -Wno-deprecated-declarations -Wno-unused-result")
-
-    # suppress warnings regarding HIP's overly complex vector structs
-    if (CMAKE_COMPILER_IS_GNUCXXH AND OOMD_GPU_PLATFORM STREQUAL "HIP")
-        set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-class-memaccess")
-    endif()
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wconversion -Wno-sign-conversion -Wno-unknown-pragmas -Wno-deprecated-declarations -Wno-unused-result")
     set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wall")
-endif()
 
-# Enable color output from compiler
-if (CMAKE_COMPILER_IS_GNUCXX AND CMAKE_CXX_COMPILER_VERSION VERSION_GREATER 5.0)
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fdiagnostics-color=always")
-    set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -fdiagnostics-color=always")
-endif()
-
-if (CMAKE_CXX_COMPILER_ID MATCHES "Clang")
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fcolor-diagnostics")
-    set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -fcolor-diagnostics")
+    if (CMAKE_COMPILER_IS_GNUCXX)
+        set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fdiagnostics-color=always")
+        set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -fdiagnostics-color=always")
+    else()
+        set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fcolor-diagnostics")
+        set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -fcolor-diagnostics")
+    endif()
 endif()
 
 #################################
@@ -99,8 +85,6 @@ SET_PROPERTY(CACHE HOOMD_SHORTREAL_SIZE PROPERTY STRINGS "32" "64")
 set(HOOMD_LONGREAL_SIZE "64" CACHE STRING "Size of the LongReal type in bits.")
 SET_PROPERTY(CACHE HOOMD_LONGREAL_SIZE PROPERTY STRINGS "32" "64")
 OPTION(ENABLE_GPU "True if we are compiling for a GPU target" FALSE)
-SET(ENABLE_HIP ${ENABLE_GPU})
-set(HOOMD_GPU_PLATFORM "CUDA" CACHE STRING "Choose the GPU backend: HIP or CUDA.")
 
 # Components
 option(BUILD_MD "Build the md package" on)
@@ -110,25 +94,17 @@ else ()
 option(BUILD_HPMC "Build the hpmc package" off)
 endif()
 option(BUILD_METAL "Build the metal package" on)
-
-if (ENABLE_GPU AND HOOMD_GPU_PLATFORM STREQUAL "HIP")
-message("Defaulting BUILD_MPCD=off due to HIP GPU platform.")
-option(BUILD_MPCD "Build the mpcd package" off)
-else()
 option(BUILD_MPCD "Build the mpcd package" ${BUILD_MD})
-endif()
 
 # Add list of plugins
 set(PLUGINS "" CACHE STRING "List of plugin directories.")
-
-# this needs to go before CUDA setup
-include (HOOMDHIPSetup)
 
 # Find CUDA and set it up
 include (HOOMDCUDASetup)
 
 # setup MPI support
 include (HOOMDMPISetup)
+
 # find the python libraries to link to
 include(HOOMDPythonSetup)
 
@@ -144,7 +120,6 @@ endif()
 if (
     NOT EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/hoomd/extern/nano-signal-slot/nano_signal_slot.hpp OR
     NOT EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/hoomd/extern/upp11/upp11.h OR
-    NOT EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/hoomd/extern/HIP/include/hip/hip_runtime.h OR
     NOT EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/hoomd/extern/quickhull/ConvexHull.hpp OR
     NOT EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/hoomd/extern/OpenRAND/include/openrand/philox.h OR
     NOT EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/hoomd/extern/neighbor/include/neighbor/neighbor.h OR
@@ -213,9 +188,7 @@ configure_package_config_file(hoomd-config.cmake.in
   INSTALL_DESTINATION ${CONFIG_INSTALL_DIR}
   PATH_VARS CMAKE_INSTALL_PREFIX)
 
-install(FILES CMake/hoomd/FindCUDALibs.cmake
-              CMake/hoomd/HOOMDHIPSetup.cmake
-              CMake/hoomd/hoomd-macros.cmake
+install(FILES CMake/hoomd/hoomd-macros.cmake
               ${HOOMD_BINARY_DIR}/hoomd-config.cmake
         DESTINATION ${CONFIG_INSTALL_DIR})
 

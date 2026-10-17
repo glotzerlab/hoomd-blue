@@ -16,7 +16,7 @@
     \brief Declares MPIConfiguration, which initializes the MPI environment
 */
 
-#ifdef __HIPCC__
+#ifdef __NVCC__
 #error This header cannot be compiled by nvcc
 #endif
 
@@ -173,7 +173,7 @@ class PYBIND11_EXPORT MPIConfiguration
 namespace detail
     {
 //! Exports MPIConfiguration to python
-#ifndef __HIPCC__
+#ifndef __NVCC__
 void export_MPIConfiguration(pybind11::module& m);
 #endif
 

@@ -17,8 +17,8 @@
 #include "hoomd/managed_allocator.h"
 #include "hoomd/md/EvaluatorPairLJ.h"
 
-#ifdef ENABLE_HIP
-#include <hip/hip_runtime.h>
+#ifdef ENABLE_GPU
+#include <cuda_runtime.h>
 #endif
 
 #ifdef ENABLE_MPI
@@ -31,7 +31,7 @@
     \note This header cannot be compiled by nvcc
 */
 
-#ifdef __HIPCC__
+#ifdef __NVCC__
 #error This header cannot be compiled by nvcc
 #endif
 
@@ -368,7 +368,7 @@ PotentialPair<evaluator>::PotentialPair(std::shared_ptr<SystemDefinition> sysdef
     m_r_cut_nlist = std::make_shared<GPUArray<Scalar>>(m_typpair_idx.getNumElements(), m_exec_conf);
     nlist->addRCutMatrix(m_r_cut_nlist);
 
-#if defined(ENABLE_HIP) && defined(__HIP_PLATFORM_NVCC__)
+#ifdef ENABLE_GPU
     if (m_pdata->getExecConf()->isCUDAEnabled())
         {
         // m_params is _always_ in unified memory, so memadvise and prefetch

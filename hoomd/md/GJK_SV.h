@@ -7,7 +7,7 @@
 #include "hoomd/ManagedArray.h"
 #include "hoomd/VectorMath.h"
 
-#ifdef __HIPCC__
+#ifdef __NVCC__
 #define HOSTDEVICE __host__ __device__
 #else
 #define HOSTDEVICE
@@ -710,7 +710,7 @@ HOSTDEVICE inline void gjk(const ManagedArray<vec3<Scalar>>& verts1,
         // needs the algorithm to run to completion, so the early termination
         // due to degeneracy just adds extra work to check degeneracy without
         // any corresponding performance gains).
-#ifndef __HIPCC__
+#ifndef __NVCC__
         bool degenerate(false);
         for (unsigned int i = 0; i < max_num_points; ++i)
             {
@@ -728,7 +728,7 @@ HOSTDEVICE inline void gjk(const ManagedArray<vec3<Scalar>>& verts1,
         // intersect! Actually finding an intersection requires waiting until
         // we actually have an affinely dependent set of points, though.
         u = u > d ? u : d;
-#ifdef __HIPCC__
+#ifdef __NVCC__
         close_enough = (((vnorm - u) <= eps * vnorm) || (vnorm < omega));
 #else
         close_enough = (degenerate || ((vnorm - u) <= eps * vnorm) || (vnorm < omega));

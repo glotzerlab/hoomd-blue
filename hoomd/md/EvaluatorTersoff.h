@@ -4,7 +4,7 @@
 #ifndef __EVALUATOR_TERSOFF__
 #define __EVALUATOR_TERSOFF__
 
-#ifndef __HIPCC__
+#ifndef __NVCC__
 #include <string>
 #endif
 
@@ -14,7 +14,7 @@
     \brief Defines the evaluator class for the three-body Tersoff potential
 */
 
-#ifdef __HIPCC__
+#ifdef __NVCC__
 #define DEVICE __device__
 #define HOSTDEVICE __host__ __device__
 #else
@@ -46,7 +46,7 @@ class EvaluatorTersoff
                             //!< the Tersoff potential
         Scalar alpha;       //!< \a alpha in the exponential cutoff-smoothing function
 
-#ifdef ENABLE_HIP
+#ifdef ENABLE_GPU
         //! Set CUDA memory hints
         void set_memory_hint() const
             {
@@ -54,7 +54,7 @@ class EvaluatorTersoff
             }
 #endif
 
-#ifndef __HIPCC__
+#ifndef __NVCC__
         param_type()
             : cutoff_thickness(0), coeffs(make_scalar2(0, 0)), exp_consts(make_scalar2(0, 0)),
               dimer_r(0), tersoff_n(0), gamman(0), lambda_cube(0),
@@ -418,7 +418,7 @@ class EvaluatorTersoff
             return false;
         }
 
-#ifndef __HIPCC__
+#ifndef __NVCC__
     //! Get the name of this potential
     /*! \returns The potential name.
      */

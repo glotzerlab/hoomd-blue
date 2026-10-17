@@ -4,12 +4,8 @@
 #include "ExecutionConfiguration.h"
 #include "HOOMDVersion.h"
 
-#ifdef ENABLE_HIP
-#include <hip/hip_runtime.h>
-
-#if defined(__HIP_PLATFORM_NVCC__)
+#ifdef ENABLE_GPU
 #include <cuda_runtime.h>
-#endif
 #endif
 
 #ifdef ENABLE_MPI
@@ -25,7 +21,7 @@
 
 using namespace std;
 
-#if defined(ENABLE_HIP)
+#ifdef ENABLE_GPU
 #include "CachedAllocator.h"
 #endif
 
@@ -47,13 +43,13 @@ std::vector<std::string> ExecutionConfiguration::s_capable_gpu_descriptions;
     \param _msg Messenger to use for status message printing
 
     Explicitly force the use of either CPU or GPU execution. If GPU execution is selected, then a
-   default GPU choice is made by not calling hipSetDevice.
+   default GPU choice is made by not calling cudaSetDevice.
 */
 ExecutionConfiguration::ExecutionConfiguration(executionMode mode,
                                                int gpu_id,
                                                std::shared_ptr<MPIConfiguration> mpi_config,
                                                std::shared_ptr<Messenger> _msg)
-    : msg(_msg), m_hip_error_checking(false), m_mpi_config(mpi_config)
+    : msg(_msg), m_gpu_error_checking(false), m_mpi_config(mpi_config)
     {
     if (!m_mpi_config)
         {
@@ -70,7 +66,7 @@ ExecutionConfiguration::ExecutionConfiguration(executionMode mode,
     msg->notice(5) << "Constructing ExecutionConfiguration: ( " << gpu_id << ") " << endl;
     exec_mode = mode;
 
-#if defined(ENABLE_HIP)
+#ifdef ENABLE_GPU
     // scan the available GPUs
     scanGPUs();
     unsigned int dev_count = (unsigned int)s_capable_gpu_ids.size();
@@ -140,7 +136,7 @@ ExecutionConfiguration::ExecutionConfiguration(executionMode mode,
     s << m_active_device_description << endl;
     msg->collectiveNoticeStr(3, s.str());
 
-#if defined(ENABLE_HIP)
+#ifdef ENABLE_GPU
     if (exec_mode == GPU)
         {
         // Activate the GPU.
@@ -179,14 +175,14 @@ ExecutionConfiguration::~ExecutionConfiguration()
     {
     msg->notice(5) << "Destroying ExecutionConfiguration" << endl;
 
-#if defined(ENABLE_HIP)
+#ifdef ENABLE_GPU
     // the destructors of these objects can issue hip calls, so free them before the device reset
     m_cached_alloc.reset();
     m_cached_alloc_managed.reset();
 #endif
     }
 
-#if defined(ENABLE_HIP)
+#ifdef ENABLE_GPU
 
 std::pair<unsigned int, unsigned int> ExecutionConfiguration::getComputeCapability() const
     {
@@ -200,24 +196,20 @@ std::pair<unsigned int, unsigned int> ExecutionConfiguration::getComputeCapabili
     return result;
     }
 
-void ExecutionConfiguration::handleHIPError(hipError_t err,
+void ExecutionConfiguration::handleHIPError(cudaError_t err,
                                             const char* file,
                                             unsigned int line) const
     {
     // if there was an error
-    if (err != hipSuccess)
+    if (err != cudaSuccess)
         {
         // remove HOOMD_SOURCE_DIR from the front of the file
         if (strlen(file) > strlen(HOOMD_SOURCE_DIR))
             file += strlen(HOOMD_SOURCE_DIR);
 
         std::ostringstream s;
-#ifdef __HIP_PLATFORM_NVCC__
         cudaError_t cuda_error = cudaPeekAtLastError();
         s << "CUDA Error: " << string(cudaGetErrorString(cuda_error));
-#else
-        s << "HIP Error: " << string(hipGetErrorString(err));
-#endif
         s << " before " << file << ":" << line;
 
         // throw an error exception
@@ -263,33 +255,29 @@ void ExecutionConfiguration::initializeGPU(int gpu_id)
 
     if (gpu_id != -1)
         {
-#ifdef __HIP_PLATFORM_NVCC__
         cudaSetValidDevices(&s_capable_gpu_ids[gpu_id], 1);
-#endif
-        hipSetDeviceFlags(hipDeviceMapHost);
-        hipSetDevice(s_capable_gpu_ids[gpu_id]);
+        cudaSetDeviceFlags(cudaDeviceMapHost);
+        cudaSetDevice(s_capable_gpu_ids[gpu_id]);
         }
     else
         {
-            // initialize the default CUDA context from one of the capable GPUs
-#ifdef __HIP_PLATFORM_NVCC__
+        // initialize the default CUDA context from one of the capable GPUs
         cudaSetValidDevices(&s_capable_gpu_ids[0], (int)s_capable_gpu_ids.size());
-#endif
-        hipSetDeviceFlags(hipDeviceMapHost);
-        hipFree(0);
+        cudaSetDeviceFlags(cudaDeviceMapHost);
+        cudaFree(0);
         }
 
     int hip_gpu_id;
-    hipGetDevice(&hip_gpu_id);
+    cudaGetDevice(&hip_gpu_id);
 
     // record the device
     m_gpu_id = hip_gpu_id;
 
-    hipError_t err_sync = hipPeekAtLastError();
+    cudaError_t err_sync = cudaPeekAtLastError();
     handleHIPError(err_sync, __FILE__, __LINE__);
     }
 
-std::string ExecutionConfiguration::describeGPU(int id, hipDeviceProp_t prop)
+std::string ExecutionConfiguration::describeGPU(int id, cudaDeviceProp prop)
     {
     ostringstream s;
     s << "[" << id << "]";
@@ -323,16 +311,12 @@ void ExecutionConfiguration::scanGPUs()
 
     // determine the number of GPUs that CUDA thinks there is
     int dev_count;
-    hipError_t error = hipGetDeviceCount(&dev_count);
-    if (error != hipSuccess)
+    cudaError_t error = cudaGetDeviceCount(&dev_count);
+    if (error != cudaSuccess)
         {
         std::string message = "Failed to get GPU device count: ";
-#ifdef __HIP_PLATFORM_NVCC__
         cudaError_t cuda_error = cudaPeekAtLastError();
         message += string(cudaGetErrorString(cuda_error));
-#else
-        message += string(hipGetErrorString(error));
-#endif
         s_gpu_scan_messages.push_back(message);
         return;
         }
@@ -346,38 +330,20 @@ void ExecutionConfiguration::scanGPUs()
     for (int dev = 0; dev < dev_count; dev++)
         {
         // get the device properties
-        hipDeviceProp_t prop;
-        hipError_t error = hipGetDeviceProperties(&prop, dev);
+        cudaDeviceProp prop;
+        cudaError_t error = cudaGetDeviceProperties(&prop, dev);
 
-        if (error != hipSuccess)
+        if (error != cudaSuccess)
             {
             std::string message = "Failed to get device properties: ";
-#ifdef __HIP_PLATFORM_NVCC__
             cudaError_t cuda_error = cudaPeekAtLastError();
             message += string(cudaGetErrorString(cuda_error));
-#else
-            message += string(hipGetErrorString(error));
-#endif
             s_gpu_scan_messages.push_back(message);
             continue;
             }
 
-#ifdef __HIP_PLATFORM_NVCC__
-        // exclude a GPU if it's compute version is not high enough
-        int compoundComputeVer = prop.minor + prop.major * 10;
-
-        if (compoundComputeVer < CUDA_ARCH)
-            {
-            ostringstream s;
-            s << "The device " << prop.name << " with compute capability " << prop.major << "."
-              << prop.minor << " does not support HOOMD-blue.";
-            s_gpu_scan_messages.push_back(s.str());
-            continue;
-            }
-#endif
-
         // exclude a gpu if it is compute-prohibited
-        if (prop.computeMode == hipComputeModeProhibited)
+        if (prop.computeMode == cudaComputeModeProhibited)
             {
             ostringstream s;
             s << "The device " << prop.name << " is in a compute prohibited mode.";
@@ -386,7 +352,6 @@ void ExecutionConfiguration::scanGPUs()
             }
 
         // exclude a GPU when it doesn't support mapped memory
-#ifdef __HIP_PLATFORM_NVCC__
         int supports_managed_memory = 0;
         cudaError_t cuda_error = cudaDeviceGetAttribute(&supports_managed_memory,
                                                         cudaDevAttrConcurrentManagedAccess,
@@ -404,7 +369,6 @@ void ExecutionConfiguration::scanGPUs()
             s_gpu_scan_messages.push_back(s.str());
             continue;
             }
-#endif
 
         s_capable_gpu_descriptions.push_back(describeGPU((int)s_capable_gpu_ids.size(), prop));
         s_capable_gpu_ids.push_back(dev);
@@ -417,11 +381,11 @@ void ExecutionConfiguration::scanGPUs()
  */
 void ExecutionConfiguration::setupStats()
     {
-#if defined(ENABLE_HIP)
+#ifdef ENABLE_GPU
     if (exec_mode == GPU)
         {
-        hipSetDevice(m_gpu_id);
-        hipGetDeviceProperties(&m_dev_prop, m_gpu_id);
+        cudaSetDevice(m_gpu_id);
+        cudaGetDeviceProperties(&m_dev_prop, m_gpu_id);
 
         m_active_device_description = describeGPU(m_gpu_id, m_dev_prop);
 
@@ -486,7 +450,7 @@ void export_ExecutionConfiguration(pybind11::module& m)
         .def("setCUDAErrorChecking", &ExecutionConfiguration::setCUDAErrorChecking)
         .def("isCUDAErrorCheckingEnabled", &ExecutionConfiguration::isCUDAErrorCheckingEnabled)
         .def_readonly("msg", &ExecutionConfiguration::msg)
-#if defined(ENABLE_HIP)
+#ifdef ENABLE_GPU
         .def("getComputeCapability", &ExecutionConfiguration::getComputeCapability)
         .def("hipProfileStart", &ExecutionConfiguration::hipProfileStart)
         .def("hipProfileStop", &ExecutionConfiguration::hipProfileStop)

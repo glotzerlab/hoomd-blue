@@ -3,7 +3,7 @@
 
 #pragma once
 
-#ifdef ENABLE_HIP
+#ifdef ENABLE_GPU
 
 #include "hoomd/hpmc/IntegratorHPMCMono.h"
 #include "hoomd/hpmc/IntegratorHPMCMonoGPUTypes.cuh"
@@ -13,7 +13,7 @@
 #include "hoomd/RNGIdentifiers.h"
 #include "hoomd/RandomNumbers.h"
 
-#include <hip/hip_runtime.h>
+#include <cuda_runtime.h>
 
 #ifdef ENABLE_MPI
 #include "hoomd/MPIConfiguration.h"
@@ -25,7 +25,7 @@
     \note This header cannot be compiled by nvcc
 */
 
-#ifdef __HIPCC__
+#ifdef __NVCC__
 #error This header cannot be compiled by nvcc
 #endif
 
@@ -194,7 +194,7 @@ template<class Shape> class IntegratorHPMCMonoGPU : public IntegratorHPMCMono<Sh
     //! For energy evaluation
     GPUArray<Scalar> m_additive_cutoff; //!< Per-type additive cutoffs from patch potential
 
-    hipStream_t m_narrow_phase_stream; //!< Stream for narrow phase kernel
+    cudaStream_t m_narrow_phase_stream; //!< Stream for narrow phase kernel
 
 #ifdef ENABLE_MPI
     std::shared_ptr<MPIConfiguration> m_ntrial_comm; //!< Communicator for MPI parallel ntrial
@@ -302,7 +302,7 @@ IntegratorHPMCMonoGPU<Shape>::IntegratorHPMCMonoGPU(std::shared_ptr<SystemDefini
     m_excell_idx.swap(excell_idx);
 
     this->m_exec_conf->setDevice();
-    hipStreamCreate(&m_narrow_phase_stream);
+    cudaStreamCreate(&m_narrow_phase_stream);
 
     // patch
     GPUArray<Scalar>(this->m_pdata->getNTypes(), this->m_exec_conf).swap(m_additive_cutoff);
@@ -311,7 +311,7 @@ IntegratorHPMCMonoGPU<Shape>::IntegratorHPMCMonoGPU(std::shared_ptr<SystemDefini
 template<class Shape> IntegratorHPMCMonoGPU<Shape>::~IntegratorHPMCMonoGPU()
     {
     this->m_exec_conf->setDevice();
-    hipStreamDestroy(m_narrow_phase_stream);
+    cudaStreamDestroy(m_narrow_phase_stream);
     }
 
 template<class Shape> void IntegratorHPMCMonoGPU<Shape>::update(uint64_t timestep)
@@ -559,11 +559,11 @@ template<class Shape> void IntegratorHPMCMonoGPU<Shape>::update(uint64_t timeste
                 const unsigned int N = this->m_pdata->getN();
                 if (N != 0)
                     {
-                    hipMemcpyAsync(d_reject.data,
-                                   d_reject_out_of_cell.data,
-                                   sizeof(unsigned int) * N,
-                                   hipMemcpyDeviceToDevice);
-                    hipMemsetAsync(d_reject_out.data, 0, sizeof(unsigned int) * N);
+                    cudaMemcpyAsync(d_reject.data,
+                                    d_reject_out_of_cell.data,
+                                    sizeof(unsigned int) * N,
+                                    cudaMemcpyDeviceToDevice);
+                    cudaMemsetAsync(d_reject_out.data, 0, sizeof(unsigned int) * N);
                     }
                 if (this->m_exec_conf->isCUDAErrorCheckingEnabled())
                     CHECK_CUDA_ERROR();
@@ -576,7 +576,7 @@ template<class Shape> void IntegratorHPMCMonoGPU<Shape>::update(uint64_t timeste
                                                           access_location::device,
                                                           access_mode::overwrite);
                     // reset condition flag
-                    hipMemsetAsync(d_condition.data, 0, sizeof(unsigned int));
+                    cudaMemsetAsync(d_condition.data, 0, sizeof(unsigned int));
                     if (this->m_exec_conf->isCUDAErrorCheckingEnabled())
                         CHECK_CUDA_ERROR();
                     }
@@ -842,17 +842,15 @@ template<class Shape> void IntegratorHPMCMonoGPU<Shape>::updateCellWidth()
     // update the cell list
     this->m_cl->setNominalWidth(this->m_nominal_width);
 
-#ifdef __HIP_PLATFORM_NVCC__
     // set memory hints
     cudaMemAdvise(this->m_params.data(),
                   this->m_params.size() * sizeof(typename Shape::param_type),
                   cudaMemAdviseSetReadMostly,
                   0);
     CHECK_CUDA_ERROR();
-#endif
 
     // sync up so we can access the parameters
-    hipDeviceSynchronize();
+    cudaDeviceSynchronize();
 
     for (unsigned int i = 0; i < this->m_pdata->getNTypes(); ++i)
         {
@@ -881,4 +879,4 @@ void export_IntegratorHPMCMonoGPU(pybind11::module& m, const std::string& name)
     } // end namespace hpmc
     } // end namespace hoomd
 
-#endif // ENABLE_HIP
+#endif // ENABLE_GPU

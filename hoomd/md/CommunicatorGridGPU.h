@@ -4,7 +4,7 @@
 #ifndef __COMMUNICATOR_GRID_GPU_H__
 #define __COMMUNICATOR_GRID_GPU_H__
 
-#ifdef ENABLE_HIP
+#ifdef ENABLE_GPU
 #include "CommunicatorGrid.h"
 
 namespace hoomd

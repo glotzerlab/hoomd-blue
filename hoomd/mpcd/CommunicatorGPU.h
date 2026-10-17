@@ -10,9 +10,9 @@
 #define MPCD_COMMUNICATOR_GPU_H_
 
 #ifdef ENABLE_MPI
-#ifdef ENABLE_HIP
+#ifdef ENABLE_GPU
 
-#ifdef __HIPCC__
+#ifdef __NVCC__
 #error This header cannot be compiled by nvcc
 #endif
 
@@ -96,6 +96,6 @@ class PYBIND11_EXPORT CommunicatorGPU : public mpcd::Communicator
     };
     } // end namespace mpcd
     } // end namespace hoomd
-#endif // ENABLE_HIP
+#endif // ENABLE_GPU
 #endif // ENABLE_MPI
 #endif // MPCD_COMMUNICATOR_GPU_H_

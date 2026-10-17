@@ -5,7 +5,7 @@
     \brief Declares MeshGroupData
  */
 
-#ifdef __HIPCC__
+#ifdef __NVCC__
 #error This header cannot be compiled by nvcc
 #endif
 
@@ -20,7 +20,7 @@
 #include "Index1D.h"
 #include "ParticleData.h"
 
-#ifdef ENABLE_HIP
+#ifdef ENABLE_GPU
 #include "BondedGroupData.cuh"
 #include "CachedAllocator.h"
 #endif
@@ -28,7 +28,7 @@
 #include <hoomd/extern/nano-signal-slot/nano_signal_slot.hpp>
 #include <memory>
 #include <type_traits>
-#ifndef __HIPCC__
+#ifndef __NVCC__
 #include <pybind11/pybind11.h>
 #endif
 
