@@ -715,7 +715,12 @@ class CollectiveActive(Active):
     def _set_cpp_obj(self):
         sim = self._simulation
 
-        self._cpp_obj = _md.CollectiveActiveForceCompute(
+        if isinstance(sim.device, hoomd.device.CPU):
+            my_class = _md.CollectiveActiveForceCompute
+        else:
+            my_class = _md.CollectiveActiveForceComputeGPU
+
+        self._cpp_obj = my_class(
             sim.state._cpp_sys_def, sim.state._get_group(self.filter)
         )
 
