@@ -5,6 +5,7 @@
 #include "hoomd/ParticleData.h"
 #include "hoomd/SystemDefinition.h"
 #endif // __NVCC__
+
 #ifdef __NVCC__
 #define HOSTDEVICE __host__ __device__
 #else
@@ -17,6 +18,7 @@ class ParticleLoader
     {
     public:
     static constexpr bool use_particle_group = true;
+
 #ifndef __NVCC__
     ParticleLoader(std::shared_ptr<SystemDefinition> sysdef, std::shared_ptr<ParticleGroup> group)
         : m_pdata(sysdef->getParticleData()), m_group(group)

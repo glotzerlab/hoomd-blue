@@ -21,4 +21,3 @@ void export_ReverseNonequilibriumShearFlowGPU(pybind11::module& m)
 
     } // namespace md
     } // namespace hoomd
-#endif // ENABLE_HIP
