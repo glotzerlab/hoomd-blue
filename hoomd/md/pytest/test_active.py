@@ -2,6 +2,7 @@
 # Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 import hoomd
+import numpy as np
 import pytest
 from hoomd.conftest import pickling_check, autotuned_kernel_parameter_check
 
@@ -56,6 +57,37 @@ def test_attach(simulation_factory, two_particle_snapshot_factory):
     assert active.active_force["A"] == (0.5, 0.0, 0.0)
     active.active_force["A"] = (0.0, 0.0, 1.0)
     assert active.active_force["A"] == (0.0, 0.0, 1.0)
+
+
+def test_filter(simulation_factory, two_particle_snapshot_factory):
+    active = hoomd.md.force.Active(filter=hoomd.filter.Type(["A"]))
+    active.active_force["A"] = (1.0, 2.0, 3.0)
+    active.active_torque["A"] = (0.0, 0.0, 1.0)
+
+    snapshot = two_particle_snapshot_factory(
+        particle_types=["A", "B"], dimensions=3, d=8
+    )
+    if snapshot.communicator.rank == 0:
+        snapshot.particles.typeid[:] = (0, 1)
+    sim = simulation_factory(snapshot)
+    integrator = hoomd.md.Integrator(0.05)
+    integrator.methods.append(hoomd.md.methods.Langevin(hoomd.filter.All(), kT=0))
+    integrator.forces.append(active)
+    sim.operations.integrator = integrator
+    sim.run(0)
+
+    snap = sim.state.get_snapshot()
+    forces = active.forces
+    torques = active.torques
+    if snap.communicator.rank == 0:
+        for f, t, typeid in zip(forces, torques, snap.particles.typeid):
+            if typeid == 0:
+                np.testing.assert_allclose(f, (1.0, 2.0, 3.0), atol=1e-6)
+                np.testing.assert_allclose(t, (0.0, 0.0, 1.0), atol=1e-6)
+            else:
+                # particles outside the filter feel no force or torque
+                np.testing.assert_allclose(f, 0.0, atol=1e-6)
+                np.testing.assert_allclose(t, 0.0, atol=1e-6)
 
 
 def test_kernel_parameters(simulation_factory, two_particle_snapshot_factory):
