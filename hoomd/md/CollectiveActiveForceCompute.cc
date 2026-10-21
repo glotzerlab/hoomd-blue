@@ -46,7 +46,7 @@ void CollectiveActiveForceCompute::setForces()
     // zero forces so we do not leave any forces set for indices that are no longer part of our group
     m_force.zeroFill();
 
-    for (unsigned int i = 0; i < num_members; i++)
+    for (unsigned int i = 0; i < m_group->getNumMembers(); i++)
         {
         unsigned int idx = m_group->getMemberIndex(i);
         unsigned int type = __scalar_as_int(h_pos.data[idx].w);

@@ -36,7 +36,7 @@ class PYBIND11_EXPORT CollectiveActiveForceCompute : public ActiveForceCompute
     /** Hides the non-virtual ActiveForceCompute::setActiveTorque. The python export rebinds
         setA
     */
-    void setActiveTorque(const std::string& type_name, pybind11::tuple v)
+    void setActiveTorque(const std::string& typ, pybind11::tuple v)
         {
         if (pybind11::len(v) != 3)
             {
@@ -49,8 +49,19 @@ class PYBIND11_EXPORT CollectiveActiveForceCompute : public ActiveForceCompute
             m_exec_conf->msg->warning()
                 << "CollectiveActiveForceCompute does not apply torques, ignoring the nonzero "
                    "active torque set for type "
-                << type_name << "." << std::endl;
+                << typ << "." << std::endl;
             }
+
+	Scalar4 t_activeVec;
+	t_activeVec.x = 0;
+	t_activeVec.y = 0;
+	t_activeVec.z = 0;
+        t_activeVec.w = 0;
+
+    	ArrayHandle<Scalar4> h_t_activeVec(m_t_activeVec,
+                                       access_location::host,
+                                       access_mode::readwrite);
+    	h_t_activeVec.data[typ] = t_activeVec;
         }
 
     protected:
