@@ -3,6 +3,7 @@
 set(_md_sources module-md.cc
                    ActiveForceCompute.cc
                    ActiveRotationalDiffusionUpdater.cc
+                   CollectiveActiveForceCompute.cc
                    AreaConservationMeshForceCompute.cc
                    AlchemostatTwoStep.cc
                    AnisoPotentialPairALJ2.cc
@@ -72,6 +73,7 @@ set(_md_headers ActiveForceComputeGPU.h
                 ActiveForceConstraintComputeGPU.h
                 ActiveForceConstraintComputeGPU.cuh
                 ActiveRotationalDiffusionUpdater.h
+                CollectiveActiveForceCompute.h
                 AlchemyData.h
                 AnisoPotentialPairGPU.cuh
                 AnisoPotentialPairGPU.h

@@ -19,6 +19,7 @@ void export_ActiveForceConstraintComputePlane(pybind11::module& m);
 void export_ActiveForceConstraintComputePrimitive(pybind11::module& m);
 void export_ActiveForceConstraintComputeSphere(pybind11::module& m);
 void export_ActiveRotationalDiffusionUpdater(pybind11::module& m);
+void export_CollectiveActiveForceCompute(pybind11::module& m);
 void export_ComputeThermo(pybind11::module& m);
 void export_ComputeThermoHMA(pybind11::module& m);
 void export_ConstantForceCompute(pybind11::module& m);
@@ -341,6 +342,7 @@ using namespace hoomd::md::detail;
 PYBIND11_MODULE(_md, m)
     {
     export_ActiveForceCompute(m);
+    export_CollectiveActiveForceCompute(m);
     export_ActiveForceConstraintComputeCylinder(m);
     export_ActiveForceConstraintComputeDiamond(m);
     export_ActiveForceConstraintComputeEllipsoid(m);
