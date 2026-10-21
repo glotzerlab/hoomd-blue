@@ -74,6 +74,7 @@ set(_md_headers ActiveForceComputeGPU.h
                 ActiveForceConstraintComputeGPU.cuh
                 ActiveRotationalDiffusionUpdater.h
                 CollectiveActiveForceCompute.h
+                CollectiveActiveForceComputeGPU.h
                 AlchemyData.h
                 AnisoPotentialPairGPU.cuh
                 AnisoPotentialPairGPU.h
@@ -273,6 +274,7 @@ set(_md_headers ActiveForceComputeGPU.h
 
 if (ENABLE_HIP)
 list(APPEND _md_sources ActiveForceComputeGPU.cc
+                           CollectiveActiveForceComputeGPU.cc
                            AreaConservationMeshForceComputeGPU.cc
                            AnisoPotentialPairALJ2GPU.cc
                            AnisoPotentialPairALJ3GPU.cc
@@ -315,6 +317,7 @@ list(APPEND _md_sources ActiveForceComputeGPU.cc
 endif()
 
 set(_md_cu_sources ActiveForceComputeGPU.cu
+                      CollectiveActiveForceComputeGPU.cu
                       AreaConservationMeshForceComputeGPU.cu
                       AnisoPotentialPairALJ2GPUKernel.cu
                       AnisoPotentialPairALJ3GPUKernel.cu

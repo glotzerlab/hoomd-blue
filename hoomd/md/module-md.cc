@@ -195,6 +195,7 @@ void export_ActiveForceConstraintComputePlaneGPU(pybind11::module& m);
 void export_ActiveForceConstraintComputePrimitiveGPU(pybind11::module& m);
 void export_ActiveForceConstraintComputeSphereGPU(pybind11::module& m);
 void export_ActiveForceComputeGPU(pybind11::module& m);
+void export_CollectiveActiveForceComputeGPU(pybind11::module& m);
 void export_ComputeThermoGPU(pybind11::module& m);
 void export_ComputeThermoHMAGPU(pybind11::module& m);
 void export_ConstantForceComputeGPU(pybind11::module& m);
@@ -553,6 +554,7 @@ PYBIND11_MODULE(_md, m)
     export_PeriodicImproperForceComputeGPU(m);
     export_PPPMForceComputeGPU(m);
     export_ActiveForceComputeGPU(m);
+    export_CollectiveActiveForceComputeGPU(m);
     export_ActiveForceConstraintComputeCylinderGPU(m);
     export_ActiveForceConstraintComputeDiamondGPU(m);
     export_ActiveForceConstraintComputeEllipsoidGPU(m);
