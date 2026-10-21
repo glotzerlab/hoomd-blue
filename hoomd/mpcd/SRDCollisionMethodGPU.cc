@@ -107,53 +107,122 @@ void mpcd::SRDCollisionMethodGPU::rotate(uint64_t timestep)
         }
 
     const double angle_rad = m_angle * M_PI / 180.0;
-    if (m_embed_group)
+#ifdef ENABLE_MPI
+    unsigned int N_ghosts = m_cl->getNMPCDGhosts();
+    if (N_ghosts)
         {
-        ArrayHandle<unsigned int> d_embed_group(m_embed_group->getIndexArray(),
-                                                access_location::device,
-                                                access_mode::read);
-        ArrayHandle<Scalar4> d_vel_embed(m_pdata->getVelocities(),
-                                         access_location::device,
-                                         access_mode::readwrite);
-        ArrayHandle<unsigned int> d_embed_cell_ids(m_cl->getEmbeddedGroupCellIds(),
-                                                   access_location::device,
-                                                   access_mode::read);
+        ArrayHandle<Scalar4> d_vel_ghosts(m_cl->getMPCDGhostVelocities(),
+                                          access_location::device,
+                                          access_mode::readwrite);
+        unsigned int N_local = N_tot;
+        N_tot += N_ghosts;
+        if (m_embed_group)
+            {
+            ArrayHandle<unsigned int> d_embed_group(m_embed_group->getIndexArray(),
+                                                    access_location::device,
+                                                    access_mode::read);
+            ArrayHandle<Scalar4> d_vel_embed(m_pdata->getVelocities(),
+                                             access_location::device,
+                                             access_mode::readwrite);
+            ArrayHandle<unsigned int> d_embed_cell_ids(m_cl->getEmbeddedGroupCellIds(),
+                                                       access_location::device,
+                                                       access_mode::read);
 
-        N_tot += m_embed_group->getNumMembers();
-
-        m_tuner_rotate->begin();
-        mpcd::gpu::srd_rotate(d_vel.data,
-                              d_vel_embed.data,
-                              d_embed_group.data,
-                              d_embed_cell_ids.data,
-                              d_cell_vel.data,
-                              d_rotvec.data,
-                              angle_rad,
-                              (m_T) ? d_factors->data : NULL,
-                              N_mpcd,
-                              N_tot,
-                              m_tuner_rotate->getParam()[0]);
-        if (m_exec_conf->isCUDAErrorCheckingEnabled())
-            CHECK_CUDA_ERROR();
-        m_tuner_rotate->end();
+            N_tot += m_embed_group->getNumMembers();
+            m_tuner_rotate->begin();
+            mpcd::gpu::srd_rotate(d_vel.data,
+                                  d_vel_embed.data,
+                                  d_vel_ghosts.data,
+                                  d_embed_group.data,
+                                  d_embed_cell_ids.data,
+                                  d_cell_vel.data,
+                                  d_rotvec.data,
+                                  angle_rad,
+                                  (m_T) ? d_factors->data : NULL,
+                                  N_mpcd,
+                                  N_local,
+                                  N_tot,
+                                  m_tuner_rotate->getParam()[0]);
+            if (m_exec_conf->isCUDAErrorCheckingEnabled())
+                CHECK_CUDA_ERROR();
+            m_tuner_rotate->end();
+            }
+        else
+            {
+            m_tuner_rotate->begin();
+            mpcd::gpu::srd_rotate(d_vel.data,
+                                  NULL,
+                                  d_vel_ghosts.data,
+                                  NULL,
+                                  NULL,
+                                  d_cell_vel.data,
+                                  d_rotvec.data,
+                                  angle_rad,
+                                  (m_T) ? d_factors->data : NULL,
+                                  N_mpcd,
+                                  N_local,
+                                  N_tot,
+                                  m_tuner_rotate->getParam()[0]);
+            if (m_exec_conf->isCUDAErrorCheckingEnabled())
+                CHECK_CUDA_ERROR();
+            m_tuner_rotate->end();
+            }
         }
     else
+#endif // ENABLE_MPI
         {
-        m_tuner_rotate->begin();
-        mpcd::gpu::srd_rotate(d_vel.data,
-                              NULL,
-                              NULL,
-                              NULL,
-                              d_cell_vel.data,
-                              d_rotvec.data,
-                              angle_rad,
-                              (m_T) ? d_factors->data : NULL,
-                              N_mpcd,
-                              N_tot,
-                              m_tuner_rotate->getParam()[0]);
-        if (m_exec_conf->isCUDAErrorCheckingEnabled())
-            CHECK_CUDA_ERROR();
-        m_tuner_rotate->end();
+        if (m_embed_group)
+            {
+            ArrayHandle<unsigned int> d_embed_group(m_embed_group->getIndexArray(),
+                                                    access_location::device,
+                                                    access_mode::read);
+            ArrayHandle<Scalar4> d_vel_embed(m_pdata->getVelocities(),
+                                             access_location::device,
+                                             access_mode::readwrite);
+            ArrayHandle<unsigned int> d_embed_cell_ids(m_cl->getEmbeddedGroupCellIds(),
+                                                       access_location::device,
+                                                       access_mode::read);
+
+            N_tot += m_embed_group->getNumMembers();
+
+            m_tuner_rotate->begin();
+            mpcd::gpu::srd_rotate(d_vel.data,
+                                  d_vel_embed.data,
+                                  NULL,
+                                  d_embed_group.data,
+                                  d_embed_cell_ids.data,
+                                  d_cell_vel.data,
+                                  d_rotvec.data,
+                                  angle_rad,
+                                  (m_T) ? d_factors->data : NULL,
+                                  N_mpcd,
+                                  N_tot,
+                                  N_tot,
+                                  m_tuner_rotate->getParam()[0]);
+            if (m_exec_conf->isCUDAErrorCheckingEnabled())
+                CHECK_CUDA_ERROR();
+            m_tuner_rotate->end();
+            }
+        else
+            {
+            m_tuner_rotate->begin();
+            mpcd::gpu::srd_rotate(d_vel.data,
+                                  NULL,
+                                  NULL,
+                                  NULL,
+                                  NULL,
+                                  d_cell_vel.data,
+                                  d_rotvec.data,
+                                  angle_rad,
+                                  (m_T) ? d_factors->data : NULL,
+                                  N_mpcd,
+                                  N_tot,
+                                  N_tot,
+                                  m_tuner_rotate->getParam()[0]);
+            if (m_exec_conf->isCUDAErrorCheckingEnabled())
+                CHECK_CUDA_ERROR();
+            m_tuner_rotate->end();
+            }
         }
     }
 

@@ -161,6 +161,9 @@ void mpcd::CommunicatorGPU::initializeCommunicationStages()
 
 void mpcd::CommunicatorGPU::migrateParticles(uint64_t timestep)
     {
+    if (!shouldMigrate(timestep))
+        return;
+
     if (m_mpcd_pdata->getNVirtual() > 0)
         {
         m_exec_conf->msg->warning()
@@ -175,8 +178,7 @@ void mpcd::CommunicatorGPU::migrateParticles(uint64_t timestep)
     m_offsets.resize(m_n_unique_neigh);
 
     // determine local particles that are to be sent to neighboring processors
-    const BoxDim box = m_cl->getCoverageBox();
-    setCommFlags(box);
+    setCommFlags();
 
     for (unsigned int stage = 0; stage < m_num_stages; stage++)
         {
@@ -344,7 +346,7 @@ void mpcd::CommunicatorGPU::migrateParticles(uint64_t timestep)
             ArrayHandle<mpcd::detail::pdata_element> d_recvbuf(m_recvbuf,
                                                                access_location::device,
                                                                access_mode::readwrite);
-            const BoxDim wrap_box = getWrapBox(box);
+            const BoxDim wrap_box = m_pdata->getGlobalBox();
             mpcd::gpu::wrap_particles(n_recv_tot, d_recvbuf.data, wrap_box);
             if (m_exec_conf->isCUDAErrorCheckingEnabled())
                 CHECK_CUDA_ERROR();
@@ -354,6 +356,9 @@ void mpcd::CommunicatorGPU::migrateParticles(uint64_t timestep)
         m_mpcd_pdata->addParticlesGPU(m_recvbuf, comm_mask, timestep);
 
         } // end communication stage
+
+    m_last_migrate = timestep;
+    m_force_migrate = false;
     }
 
 /*!
@@ -362,8 +367,9 @@ void mpcd::CommunicatorGPU::migrateParticles(uint64_t timestep)
  * Particles lying outside of \a box have their communication flags set along
  * that face.
  */
-void mpcd::CommunicatorGPU::setCommFlags(const BoxDim& box)
+void mpcd::CommunicatorGPU::setCommFlags()
     {
+    const BoxDim& box = m_pdata->getBox();
     ArrayHandle<unsigned int> d_comm_flag(m_mpcd_pdata->getCommFlags(),
                                           access_location::device,
                                           access_mode::overwrite);

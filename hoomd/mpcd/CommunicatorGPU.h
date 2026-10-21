@@ -71,7 +71,7 @@ class PYBIND11_EXPORT CommunicatorGPU : public mpcd::Communicator
 
     protected:
     //! Set the communication flags for the particle data on the GPU
-    void setCommFlags(const BoxDim& box) override;
+    void setCommFlags() override;
 
     private:
     /* General communication */

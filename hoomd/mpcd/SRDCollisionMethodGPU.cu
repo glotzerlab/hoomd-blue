@@ -24,7 +24,7 @@ __global__ void srd_draw_vectors(double3* d_rotvec,
                                  const unsigned int* d_cell_np,
                                  const double* d_cell_temp,
                                  const Index3D ci,
-                                 const int3 origin,
+                                 const uint3 origin,
                                  const uint3 global_dim,
                                  const Index3D global_ci,
                                  const uint64_t timestep,
@@ -97,6 +97,7 @@ __global__ void srd_draw_vectors(double3* d_rotvec,
     }
 __global__ void srd_rotate(Scalar4* d_vel,
                            Scalar4* d_vel_embed,
+                           Scalar4* d_vel_ghosts,
                            const unsigned int* d_embed_group,
                            const unsigned int* d_embed_cell_ids,
                            const double4* d_cell_vel,
@@ -106,6 +107,7 @@ __global__ void srd_rotate(Scalar4* d_vel,
                            const double sin_a,
                            const double* d_factors,
                            const unsigned int N_mpcd,
+                           const unsigned int N_local,
                            const unsigned int N_tot)
     {
     // one thread per particle
@@ -119,20 +121,39 @@ __global__ void srd_rotate(Scalar4* d_vel,
     // these properties are needed for the embedded particles only
     unsigned int idx(0);
     double mass(0);
-    if (tid < N_mpcd)
+
+#ifdef ENABLE_MPI
+    if (tid >= N_local)
         {
-        const Scalar4 vel_cell = d_vel[tid];
+        const Scalar4 vel_cell = d_vel_ghosts[tid - N_local];
         vel = make_double3(vel_cell.x, vel_cell.y, vel_cell.z);
         cell = __scalar_as_int(vel_cell.w);
         }
     else
+#endif // ENABLE_MPI
         {
-        idx = d_embed_group[tid - N_mpcd];
+        if (tid < N_mpcd)
+            {
+            const Scalar4 vel_cell = d_vel[tid];
+            vel = make_double3(vel_cell.x, vel_cell.y, vel_cell.z);
+            cell = __scalar_as_int(vel_cell.w);
+            }
+        else
+            {
+            idx = d_embed_group[tid - N_mpcd];
 
-        const Scalar4 vel_mass = d_vel_embed[idx];
-        vel = make_double3(vel_mass.x, vel_mass.y, vel_mass.z);
-        mass = vel_mass.w;
-        cell = d_embed_cell_ids[tid - N_mpcd];
+            const Scalar4 vel_mass = d_vel_embed[idx];
+            vel = make_double3(vel_mass.x, vel_mass.y, vel_mass.z);
+            mass = vel_mass.w;
+            cell = d_embed_cell_ids[tid - N_mpcd];
+            }
+#ifdef ENABLE_MPI
+        // check if global cell
+        if ((cell) & (1u << (31)))
+            {
+            return;
+            }
+#endif // ENABLE_MPI
         }
 
     // subtract average velocity
@@ -172,13 +193,23 @@ __global__ void srd_rotate(Scalar4* d_vel,
     new_vel.z += avg_vel.z;
 
     // set the new velocity
-    if (tid < N_mpcd)
+#ifdef ENABLE_MPI
+    if (tid >= N_local)
         {
-        d_vel[tid] = make_scalar4(new_vel.x, new_vel.y, new_vel.z, __int_as_scalar(cell));
+        d_vel_ghosts[tid - N_local]
+            = make_scalar4(new_vel.x, new_vel.y, new_vel.z, __int_as_scalar(cell));
         }
     else
+#endif // ENABLE_MPI
         {
-        d_vel_embed[idx] = make_scalar4(new_vel.x, new_vel.y, new_vel.z, mass);
+        if (tid < N_mpcd)
+            {
+            d_vel[tid] = make_scalar4(new_vel.x, new_vel.y, new_vel.z, __int_as_scalar(cell));
+            }
+        else
+            {
+            d_vel_embed[idx] = make_scalar4(new_vel.x, new_vel.y, new_vel.z, mass);
+            }
         }
     }
     } // end namespace kernel
@@ -188,7 +219,7 @@ cudaError_t srd_draw_vectors(double3* d_rotvec,
                              const unsigned int* d_cell_np,
                              const double* d_cell_temp,
                              const Index3D& ci,
-                             const int3 origin,
+                             const uint3 origin,
                              const uint3 global_dim,
                              const Index3D& global_ci,
                              const uint64_t timestep,
@@ -253,6 +284,7 @@ cudaError_t srd_draw_vectors(double3* d_rotvec,
 
 cudaError_t srd_rotate(Scalar4* d_vel,
                        Scalar4* d_vel_embed,
+                       Scalar4* d_vel_ghosts,
                        const unsigned int* d_embed_group,
                        const unsigned int* d_embed_cell_ids,
                        const double4* d_cell_vel,
@@ -260,6 +292,7 @@ cudaError_t srd_rotate(Scalar4* d_vel,
                        const double angle,
                        const double* d_factors,
                        const unsigned int N_mpcd,
+                       const unsigned int N_local,
                        const unsigned int N_tot,
                        const unsigned int block_size)
     {
@@ -277,6 +310,7 @@ cudaError_t srd_rotate(Scalar4* d_vel,
     dim3 grid(N_tot / run_block_size + 1);
     mpcd::gpu::kernel::srd_rotate<<<grid, run_block_size>>>(d_vel,
                                                             d_vel_embed,
+                                                            d_vel_ghosts,
                                                             d_embed_group,
                                                             d_embed_cell_ids,
                                                             d_cell_vel,
@@ -286,6 +320,7 @@ cudaError_t srd_rotate(Scalar4* d_vel,
                                                             sin_a,
                                                             d_factors,
                                                             N_mpcd,
+                                                            N_local,
                                                             N_tot);
 
     return cudaSuccess;

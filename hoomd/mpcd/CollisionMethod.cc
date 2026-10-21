@@ -142,6 +142,10 @@ void mpcd::CollisionMethod::collide(uint64_t timestep)
     // apply collisions
     rule(timestep);
 
+#ifdef ENABLE_MPI
+    m_cl->reverseSendGhosts();
+    m_cl->updateLocalFromGhosts();
+#endif // ENABLE_MPI
     // apply collisions to rigid bodies
     if (rigid_body_collision)
         {

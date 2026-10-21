@@ -71,22 +71,6 @@ class PYBIND11_EXPORT Integrator : public hoomd::md::IntegratorTwoStep
 
     void setRigid(std::shared_ptr<hoomd::md::ForceComposite> new_rigid) override;
 
-#ifdef ENABLE_MPI
-    //! Set the MPCD communicator to use
-    void setMPCDCommunicator(std::shared_ptr<mpcd::Communicator> comm)
-        {
-        // if the current communicator is set, first disable the migrate signal request
-        if (m_mpcd_comm)
-            m_mpcd_comm->getMigrateRequestSignal()
-                .disconnect<mpcd::Integrator, &mpcd::Integrator::checkCollide>(this);
-
-        // then set the new communicator with the migrate signal request
-        m_mpcd_comm = comm;
-        m_mpcd_comm->getMigrateRequestSignal()
-            .connect<mpcd::Integrator, &mpcd::Integrator::checkCollide>(this);
-        }
-#endif
-
     //! Get current collision method
     std::shared_ptr<mpcd::CollisionMethod> getCollisionMethod() const
         {
@@ -146,6 +130,20 @@ class PYBIND11_EXPORT Integrator : public hoomd::md::IntegratorTwoStep
         return m_fillers;
         }
 
+#ifdef ENABLE_MPI
+    //! Get number of timesteps to wait to try migration
+    uint64_t getMigrateDelay() const
+        {
+        return m_migrate_delay;
+        }
+
+    //! Set number of timesteps to wait to try migration
+    void setMigrateDelay(uint64_t migrate_delay)
+        {
+        m_migrate_delay = migrate_delay;
+        }
+#endif // ENABLE_MPI
+
     protected:
     std::shared_ptr<mpcd::CellList> m_cl;             //!< MPCD cell list
     std::shared_ptr<mpcd::CollisionMethod> m_collide; //!< MPCD collision rule
@@ -153,6 +151,7 @@ class PYBIND11_EXPORT Integrator : public hoomd::md::IntegratorTwoStep
     std::shared_ptr<mpcd::Sorter> m_sorter;           //!< MPCD sorter
 #ifdef ENABLE_MPI
     std::shared_ptr<mpcd::Communicator> m_mpcd_comm; //!< MPCD communicator
+    uint64_t m_migrate_delay;                        //!< Number of timesteps to try migration
 #endif
     std::vector<std::shared_ptr<mpcd::VirtualParticleFiller>>
         m_fillers; //!< MPCD virtual particle fillers

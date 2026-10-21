@@ -33,6 +33,11 @@ class PYBIND11_EXPORT CellListGPU : public mpcd::CellList
 
     virtual ~CellListGPU();
 
+#ifdef ENABLE_MPI
+    //! update the local particles based on the updated ghosts
+    virtual void updateLocalFromGhosts();
+#endif
+
     protected:
     //! Compute the cell list of particles on the GPU
     void buildCellList() override;
@@ -44,8 +49,12 @@ class PYBIND11_EXPORT CellListGPU : public mpcd::CellList
     void computeNetProperties() override;
 
 #ifdef ENABLE_MPI
-    //! Determine if embedded particles require migration on the gpu
-    virtual bool needsEmbedMigrate(uint64_t timestep);
+    //! Fills ghost buffer arrays and determine where to send them
+    virtual void fillGhostBuffers();
+
+    //! Add ghost contribution to cell properties
+    virtual void addGhostsToCells();
+
     GPUFlags<unsigned int> m_migrate_flag; //!< Flag to signal migration is needed
 #endif                                     // ENABLE_MPI
 
@@ -64,8 +73,29 @@ class PYBIND11_EXPORT CellListGPU : public mpcd::CellList
     std::shared_ptr<Autotuner<1>> m_tuner_net;
 
 #ifdef ENABLE_MPI
+    GPUArray<unsigned int> m_ghost_idx;
+    GPUArray<unsigned int> m_ghost_idx_sorted;
+    GPUArray<unsigned int> m_ghost_dir;
+    GPUArray<unsigned int> m_ghost_dir_sorted;
+    GPUFlags<unsigned int> m_num_ghost_scan;
+
     /// Autotuner for checking embedded migration.
     std::shared_ptr<Autotuner<1>> m_tuner_embed_migrate;
+
+    /// Autotuner for filter particles
+    std::shared_ptr<Autotuner<1>> m_tuner_filter_ghosts;
+
+    /// Autotuner for determining the number of ghosts to send.
+    std::shared_ptr<Autotuner<1>> m_tuner_send_num;
+
+    /// Autotuner for filling ghost send buffer.
+    std::shared_ptr<Autotuner<1>> m_tuner_buffer;
+
+    /// Autotuner for adding ghosts in cell property calculation.
+    std::shared_ptr<Autotuner<1>> m_tuner_ghost_cell;
+
+    /// Autotuner for updating local particles with ghosts.
+    std::shared_ptr<Autotuner<1>> m_tuner_ghost_update;
 #endif // ENABLE_MPI
     };
     } // end namespace mpcd

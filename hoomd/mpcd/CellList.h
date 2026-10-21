@@ -111,7 +111,7 @@ class PYBIND11_EXPORT CellList : public Compute
 
     void setGlobalDim(const uint3& global_cell_dim);
 
-    const int3& getOriginIndex() const
+    const uint3& getOriginIndex() const
         {
         return m_origin_idx;
         }
@@ -125,49 +125,49 @@ class PYBIND11_EXPORT CellList : public Compute
     //! Wrap a cell into a global cell
     const int3 wrapGlobalCell(const int3& cell);
 
+    //! Check if a global cell is a local cell
+    const bool hasGlobalCell(const int3& global);
+
     //! Get the MPCD cell size (deprecated)
     Scalar3 getCellSize();
 
     //! Set the MPCD cell size (deprecated)
     void setCellSize(Scalar cell_size);
 
-    //! Get the box that is covered by the cell list
-    /*!
-     * In MPI simulations, this results in a calculation of the cell list
-     * dimension. In non-MPI simulations, the box is returned.
-     */
-    const BoxDim getCoverageBox()
-        {
 #ifdef ENABLE_MPI
-        computeDimensions();
-        return m_cover_box;
-#else
-        return m_pdata->getBox();
-#endif // ENABLE_MPI
+
+    //! Get the number of ghost particles
+    const unsigned int getNMPCDGhosts() const
+        {
+        return m_num_mpcd_ghosts_recv;
         }
 
-#ifdef ENABLE_MPI
-    //! Set the number of extra communication cells
-    void setNExtraCells(unsigned int num_extra)
+    //! Get the ghost velocities
+    const GPUArray<Scalar4>& getMPCDGhostVelocities() const
         {
-        m_num_extra = num_extra;
-        m_needs_compute_dim = true;
+        return m_mpcd_ghost_vel;
         }
 
-    //! Get the number of extra communication cells
-    unsigned int getNExtraCells() const
+    //! Get the ghost velocities
+    const GPUArray<Scalar3>& getMPCDGhostPositions() const
         {
-        return m_num_extra;
+        return m_mpcd_ghost_pos;
         }
 
-    //! Get the number of communication cells on each face of the box
-    const std::array<unsigned int, 6>& getNComm() const
+    //! Get the ghost cell ids
+    const GPUArray<unsigned int>& getEmbedGhostCellIds() const
         {
-        return m_num_comm;
+        return m_embed_ghost_cell_ids;
         }
 
     //! Check if communication is occurring along a direction
     bool isCommunicating(mpcd::detail::face dir);
+
+    //! do back communication for ghosts
+    void reverseSendGhosts();
+
+    //! update the local particles based on the updated ghosts
+    virtual void updateLocalFromGhosts();
 #endif // ENABLE_MPI
 
     //! Get whether grid shifting is enabled
@@ -335,7 +335,7 @@ class PYBIND11_EXPORT CellList : public Compute
     GPUVector<unsigned int> m_embed_cell_ids; //!< Cell ids of the embedded particles
     GPUFlags<uint3> m_conditions; //!< Detect conditions that might fail building cell list
 
-    int3 m_origin_idx; //!< Origin as a global index
+    uint3 m_origin_idx; //!< Origin as a global index
 
     GPUVector<double4> m_cell_vel;     //!< Average velocity of a cell + cell mass
     GPUVector<double> m_cell_energy;   //!< Kinetic energy
@@ -347,12 +347,41 @@ class PYBIND11_EXPORT CellList : public Compute
     mpcd::detail::ThermoFlags m_flags;                       //!< Requested thermo flags
 
 #ifdef ENABLE_MPI
-    unsigned int m_num_extra;               //!< Number of extra cells to communicate over
-    std::array<unsigned int, 6> m_num_comm; //!< Number of cells to communicate on each face
-    BoxDim m_cover_box;                     //!< Box covered by the cell list
+    std::shared_ptr<DomainDecomposition> m_decomposition;
 
-    //! Determine if embedded particles require migration
-    virtual bool needsEmbedMigrate(uint64_t timestep);
+    GPUVector<uint2> m_mpcd_comm_key;               //!< directions to send MPCD ghosts
+    GPUVector<Scalar4> m_mpcd_ghost_vel;            //!< velocity of MPCD ghost particles received
+    GPUVector<Scalar3> m_mpcd_ghost_pos;            //!< position of MPCD ghost particles received
+    GPUVector<Scalar4> m_mpcd_vel_sendbuf;          //!< Buffer for MPCD ghost velocity sent
+    GPUVector<Scalar3> m_mpcd_pos_sendbuf;          //!< Buffer for MPCD ghost position sent
+    unsigned int m_num_mpcd_ghosts_recv;            //!< total MPCD ghost particles received
+    unsigned int m_num_mpcd_ghosts_send;            //!< total MPCD ghost particles sent
+    GPUVector<unsigned int> m_embed_ghost_cell_ids; //!< Cell ids of the embedded ghost particles
+    std::vector<MPI_Request> m_reqs;                //!< MPI requests
+    MPI_Comm m_mpi_comm;                            //!< MPI communicator
+
+    std::vector<unsigned int> m_num_mpcd_send_ptls; //!< Number of MPCD ghosts sent per neighbor
+    std::vector<unsigned int> m_num_mpcd_recv_ptls; //!< Number of MPCD ghosts received per neighbor
+    GPUArray<unsigned int> m_mpcd_send_offsets;     //!< Offsets for MPCD ghost send buffers
+    GPUArray<unsigned int> m_mpcd_recv_offsets;     //!< Offsets for MPCD ghost receive buffers
+    std::vector<unsigned int> m_adj_dir;            //!< List of adjacent neighbors
+    unsigned int m_num_unique_neigh;                //!< Number of unique neighbors
+    std::vector<unsigned int> m_neigh_rank;         //!< adjacent neighbors to MPI rank
+
+    //! Generate a mapping of unique neighbors for ghost communication
+    void initializeCommunicationSetup();
+
+    //! Fills ghost buffer arrays and determine where to send them
+    virtual void fillGhostBuffers();
+
+    //! Communicate ghosts
+    void sendGhosts();
+
+    //! Add ghost contribution to cell properties
+    virtual void addGhostsToCells();
+
+    //! Check the condition flags for ghosts
+    bool checkGhostConditions();
 #endif // ENABLE_MPI
 
     //! Updates the requested optional flags
@@ -404,10 +433,6 @@ class PYBIND11_EXPORT CellList : public Compute
 
     //! Update global simulation box and check that cell list is compatible with it
     void updateGlobalBox();
-
-#ifdef ENABLE_MPI
-    std::shared_ptr<DomainDecomposition> m_decomposition;
-#endif // ENABLE_MPI
     };
     } // end namespace mpcd
     } // end namespace hoomd

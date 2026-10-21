@@ -162,7 +162,18 @@ void mpcd::SRDCollisionMethod::rotate(uint64_t timestep)
                                                              access_mode::read));
         N_tot += m_embed_group->getNumMembers();
         }
-
+    unsigned int N_local = N_tot;
+#ifdef ENABLE_MPI
+    unsigned int N_ghosts = m_cl->getNMPCDGhosts();
+    std::unique_ptr<ArrayHandle<Scalar4>> h_vel_ghosts;
+    if (N_ghosts)
+        {
+        h_vel_ghosts.reset(new ArrayHandle<Scalar4>(m_cl->getMPCDGhostVelocities(),
+                                                    access_location::host,
+                                                    access_mode::readwrite));
+        N_tot += N_ghosts;
+        }
+#endif // ENABLE_MPI
     // acquire cell velocities
     ArrayHandle<double4> h_cell_vel(m_cl->getCellVelocities(),
                                     access_location::host,
@@ -191,20 +202,38 @@ void mpcd::SRDCollisionMethod::rotate(uint64_t timestep)
         // these properties are needed for the embedded particles only
         unsigned int idx(0);
         double mass(0);
-        if (cur_p < N_mpcd)
+#ifdef ENABLE_MPI
+        if (cur_p >= N_local)
             {
-            const Scalar4 vel_cell = h_vel.data[cur_p];
+            const Scalar4 vel_cell = h_vel_ghosts->data[cur_p - N_local];
             vel = make_double3(vel_cell.x, vel_cell.y, vel_cell.z);
             cell = __scalar_as_int(vel_cell.w);
             }
         else
+#endif // ENABLE_MPI
             {
-            idx = h_embed_group->data[cur_p - N_mpcd];
+            if (cur_p < N_mpcd)
+                {
+                const Scalar4 vel_cell = h_vel.data[cur_p];
+                vel = make_double3(vel_cell.x, vel_cell.y, vel_cell.z);
+                cell = __scalar_as_int(vel_cell.w);
+                }
+            else
+                {
+                idx = h_embed_group->data[cur_p - N_mpcd];
 
-            const Scalar4 vel_mass = h_vel_embed->data[idx];
-            vel = make_double3(vel_mass.x, vel_mass.y, vel_mass.z);
-            mass = vel_mass.w;
-            cell = h_embed_cell_ids->data[cur_p - N_mpcd];
+                const Scalar4 vel_mass = h_vel_embed->data[idx];
+                vel = make_double3(vel_mass.x, vel_mass.y, vel_mass.z);
+                mass = vel_mass.w;
+                cell = h_embed_cell_ids->data[cur_p - N_mpcd];
+                }
+#ifdef ENABLE_MPI
+            // check if global cell
+            if ((cell) & (1 << (31)))
+                {
+                continue;
+                }
+#endif // ENABLE_MPI
             }
 
         // subtract average velocity
@@ -246,14 +275,24 @@ void mpcd::SRDCollisionMethod::rotate(uint64_t timestep)
         new_vel.z += avg_vel.z;
 
         // set the new velocity
-        if (cur_p < N_mpcd)
+#ifdef ENABLE_MPI
+        if (cur_p >= N_local)
             {
-            h_vel.data[cur_p]
+            h_vel_ghosts->data[cur_p - N_local]
                 = make_scalar4(new_vel.x, new_vel.y, new_vel.z, __int_as_scalar(cell));
             }
         else
+#endif // ENABLE_MPI
             {
-            h_vel_embed->data[idx] = make_scalar4(new_vel.x, new_vel.y, new_vel.z, mass);
+            if (cur_p < N_mpcd)
+                {
+                h_vel.data[cur_p]
+                    = make_scalar4(new_vel.x, new_vel.y, new_vel.z, __int_as_scalar(cell));
+                }
+            else
+                {
+                h_vel_embed->data[idx] = make_scalar4(new_vel.x, new_vel.y, new_vel.z, mass);
+                }
             }
         }
     }

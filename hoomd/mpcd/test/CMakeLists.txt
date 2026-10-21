@@ -22,6 +22,7 @@ if(ENABLE_MPI)
     ADD_TO_MPI_TESTS(parallel_plate_geometry_filler 8)
     ADD_TO_MPI_TESTS(planar_pore_geometry_filler 8)
     ADD_TO_MPI_TESTS(rejection_filler 8)
+    ADD_TO_MPI_TESTS(srd_collision_method 8)
 endif()
 
 macro(compile_test TEST_EXE TEST_SRC)

@@ -198,7 +198,7 @@ void celllist_small_test(std::shared_ptr<ExecutionConfiguration> exec_conf,
         ArrayHandle<Scalar4> h_pos(pdata_9->getPositions(),
                                    access_location::host,
                                    access_mode::overwrite);
-        h_pos.data[0] = scale(make_scalar4(2.1, 2.1, 2.1, __int_as_scalar(0)), ref_box, box);
+        h_pos.data[0] = scale(make_scalar4(3.1, 3.1, 3.1, __int_as_scalar(0)), ref_box, box);
         }
     UP_ASSERT_EXCEPTION(std::runtime_error, [&] { cl->compute(3); });
         // check the other side as well
@@ -206,7 +206,7 @@ void celllist_small_test(std::shared_ptr<ExecutionConfiguration> exec_conf,
         ArrayHandle<Scalar4> h_pos(pdata_9->getPositions(),
                                    access_location::host,
                                    access_mode::overwrite);
-        h_pos.data[0] = scale(make_scalar4(-2.1, -2.1, -2.1, __int_as_scalar(0)), ref_box, box);
+        h_pos.data[0] = scale(make_scalar4(-3.1, -3.1, -3.1, __int_as_scalar(0)), ref_box, box);
         }
     UP_ASSERT_EXCEPTION(std::runtime_error, [&] { cl->compute(4); });
     }

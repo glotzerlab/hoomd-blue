@@ -92,7 +92,6 @@ void test_communicator_migrate(communicator_creator comm_creator,
 
     // initialize the communicator
     std::shared_ptr<mpcd::Communicator> comm = comm_creator(sysdef, nstages);
-    comm->setCellList(cl);
 
     // check that all particles were initialized onto their proper ranks
     std::shared_ptr<mpcd::ParticleData> pdata = sysdef->getMPCDParticleData();
@@ -669,32 +668,6 @@ void test_communicator_migrate(communicator_creator comm_creator,
         }
     }
 
-class MigrateSelectOp
-    {
-    public:
-    MigrateSelectOp(std::shared_ptr<mpcd::Communicator> comm) : m_comm(comm)
-        {
-        if (m_comm)
-            m_comm->getMigrateRequestSignal()
-                .connect<MigrateSelectOp, &MigrateSelectOp::operator()>(this);
-        }
-
-    ~MigrateSelectOp()
-        {
-        if (m_comm)
-            m_comm->getMigrateRequestSignal()
-                .disconnect<MigrateSelectOp, &MigrateSelectOp::operator()>(this);
-        }
-
-    bool operator()(uint64_t timestep) const
-        {
-        return !(timestep % 2);
-        }
-
-    private:
-    std::shared_ptr<mpcd::Communicator> m_comm;
-    };
-
 //! Test particle migration of Communicator in orthorhombic box where decomposition is not cubic
 void test_communicator_migrate_ortho(communicator_creator comm_creator,
                                      std::shared_ptr<ExecutionConfiguration> exec_conf,
@@ -730,8 +703,7 @@ void test_communicator_migrate_ortho(communicator_creator comm_creator,
 
     // initialize the communicator
     std::shared_ptr<mpcd::Communicator> comm = comm_creator(sysdef, nstages);
-    comm->setCellList(cl);
-    MigrateSelectOp migrate_op(comm);
+    comm->setMigrateDelay(2);
 
     // check that all particles were initialized onto their proper ranks
     std::shared_ptr<mpcd::ParticleData> pdata = sysdef->getMPCDParticleData();
@@ -786,7 +758,7 @@ void test_communicator_migrate_ortho(communicator_creator comm_creator,
         h_pos.data[0].z = new_pos.z;
         }
 
-    comm->communicate(0);
+    comm->migrateParticles(0);
     UP_ASSERT_EQUAL(pdata->getN(), 1);
     int ref_tag = ((int)exec_conf->getRank() - 1) % 8;
     if (ref_tag < 0)
@@ -816,11 +788,11 @@ void test_communicator_migrate_ortho(communicator_creator comm_creator,
         h_pos.data[0].z = new_pos.z;
         }
     // first call to communicate should fail since only migrating on even steps
-    comm->communicate(1);
+    comm->migrateParticles(1);
     UP_ASSERT_EQUAL(pdata->getN(), 1);
     // but forcing a migration should proceed
     comm->forceMigrate();
-    comm->communicate(1);
+    comm->migrateParticles(1);
     if (rank == 5 || rank == 6)
         {
         UP_ASSERT_EQUAL(pdata->getN(), 4);
@@ -865,7 +837,7 @@ void test_communicator_migrate_ortho(communicator_creator comm_creator,
             h_pos.data[3].z = Scalar(0.0);
             }
         }
-    comm->communicate(2);
+    comm->migrateParticles(3);
     if (rank == 5)
         {
         UP_ASSERT_EQUAL(pdata->getN(), 3);
@@ -881,7 +853,7 @@ void test_communicator_migrate_ortho(communicator_creator comm_creator,
 
     // finally, call again and just make sure nobody moved
     comm->forceMigrate();
-    comm->communicate(3);
+    comm->migrateParticles(4);
     if (rank == 5)
         {
         UP_ASSERT_EQUAL(pdata->getN(), 3);
@@ -893,52 +865,6 @@ void test_communicator_migrate_ortho(communicator_creator comm_creator,
     else
         {
         UP_ASSERT_EQUAL(pdata->getN(), 0);
-        }
-    }
-
-//! Test particle migration of Communicator
-void test_communicator_overdecompose(std::shared_ptr<ExecutionConfiguration> exec_conf,
-                                     unsigned int nx,
-                                     unsigned int ny,
-                                     unsigned int nz,
-                                     bool should_fail)
-    {
-    // only run tests on first partition
-    if (exec_conf->getPartition() != 0)
-        return;
-    UP_ASSERT_EQUAL(exec_conf->getNRanks(), nx * ny * nz);
-
-    // default initialize an empty snapshot in the reference box
-    std::shared_ptr<SnapshotSystemData<Scalar>> snap(new SnapshotSystemData<Scalar>());
-    snap->global_box = std::make_shared<BoxDim>(4.0);
-    snap->particle_data.type_mapping.push_back("A");
-
-    auto decomposition
-        = std::make_shared<DomainDecomposition>(exec_conf, snap->global_box->getL(), nx, ny, nz);
-    auto sysdef = std::make_shared<SystemDefinition>(snap, exec_conf, decomposition);
-
-    // initialize the communicator
-    auto cl = std::make_shared<mpcd::CellList>(sysdef, 1.0, false);
-    auto comm = std::make_shared<mpcd::Communicator>(sysdef);
-    comm->setCellList(cl);
-    if (should_fail)
-        {
-        UP_ASSERT_EXCEPTION(std::runtime_error, [&] { comm->communicate(0); });
-        }
-    else
-        {
-        comm->communicate(0);
-        }
-
-    // make sure test gets run again
-    cl->setNExtraCells(1);
-    if (should_fail)
-        {
-        UP_ASSERT_EXCEPTION(std::runtime_error, [&] { comm->communicate(1); });
-        }
-    else
-        {
-        comm->communicate(1);
         }
     }
 
@@ -975,17 +901,6 @@ UP_TEST(mpcd_communicator_migrate_ortho_test)
 
     communicator_creator communicator_creator_base = bind(base_class_communicator_creator, _1, _2);
     test_communicator_migrate_ortho(communicator_creator_base, exec_conf_cpu, 3);
-    }
-
-UP_TEST(mpcd_communicator_overdecompose_test)
-    {
-    if (!exec_conf_cpu)
-        exec_conf_cpu = std::shared_ptr<ExecutionConfiguration>(
-            new ExecutionConfiguration(ExecutionConfiguration::CPU));
-
-    test_communicator_overdecompose(exec_conf_cpu, 8, 1, 1, true);
-    test_communicator_overdecompose(exec_conf_cpu, 1, 8, 1, true);
-    test_communicator_overdecompose(exec_conf_cpu, 1, 1, 8, true);
     }
 UP_SUITE_END()
 
