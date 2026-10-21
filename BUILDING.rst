@@ -126,21 +126,6 @@ Install additional packages needed to build the documentation:
 
 - **NVIDIA CUDA Toolkit**
 
-  *OR*
-
-- AMD ROCm
-- HIP [with ``hipcc`` and ``hcc`` as backend]
-- rocFFT
-- rocPRIM
-- rocThrust
-- hipCUB
-- roctracer-dev
-
-.. note::
-
-    When ``ENABLE_GPU=on``, HOOMD-blue will default to CUDA. Set ``HOOMD_GPU_PLATFORM=HIP`` to
-    choose HIP.
-
 **To build the documentation:**
 
 - **sphinx**
@@ -202,7 +187,7 @@ these options on the command line.
   - Default: ``python3.x`` found by `CMake's FindPython
     <https://cmake.org/cmake/help/latest/module/FindPython.html>`__.
 
-- ``CMAKE_CUDA_COMPILER`` - Specify which ``nvcc`` or ``hipcc`` to build with.
+- ``CMAKE_CUDA_COMPILER`` - Specify which ``nvcc`` to build with.
 
   - Default: location of ``nvcc`` detected on ``$PATH``.
 

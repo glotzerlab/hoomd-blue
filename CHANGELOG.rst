@@ -7,6 +7,13 @@ Change Log
 Next release
 ^^^^^^^^^^^^^^^^^^^^
 
+HOOMD-blue now uses CUDA and not HIP for GPU code paths. This change was
+required to support CUDA 13. Users can configure CUDA build options using CMake.
+Developers should note that preprocessor defines and API calls may need to be
+updated as in #2350. This change means that only NVIDIA GPUs are natively
+supported, but it may be possible to compile for AMD GPUs using
+`SCALE <https://scale-lang.com>`_.
+
 *Added*
 
 *Changed*
