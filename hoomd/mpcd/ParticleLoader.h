@@ -5,6 +5,7 @@
 #include "hoomd/SystemDefinition.h"
 #include "hoomd/mpcd/ParticleData.h"
 #endif // __NVCC__
+
 #ifdef __NVCC__
 #define HOSTDEVICE __host__ __device__
 #else
@@ -19,6 +20,7 @@ class ParticleLoader
     {
     public:
     static constexpr bool use_particle_group = false;
+
 #ifndef __NVCC__
     ParticleLoader(std::shared_ptr<SystemDefinition> sysdef)
         : m_mpcd_pdata(sysdef->getMPCDParticleData())
@@ -41,6 +43,7 @@ class ParticleLoader
         return m_mpcd_pdata->getN();
         }
 #endif // __NVCC__
+
     class IndexReader
         {
         public:
@@ -73,6 +76,7 @@ class ParticleLoader
         const Scalar4* m_velcell;
         Scalar m_mass;
         };
+
 #ifndef __NVCC__
     VelocityMassReader makeVelocityMassReader(const Scalar4* velcell) const
         {

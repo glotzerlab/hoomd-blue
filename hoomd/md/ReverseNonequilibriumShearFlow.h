@@ -8,7 +8,7 @@
 #ifndef MD_REVERSE_NONEQUILIBRIUM_SHEAR_FLOW_H_
 #define MD_REVERSE_NONEQUILIBRIUM_SHEAR_FLOW_H_
 
-#ifdef __HIPCC__
+#ifdef __NVCC__
 #error This header cannot be compiled by nvcc
 #endif
 
@@ -21,28 +21,10 @@ namespace hoomd
     {
 namespace md
     {
-//! Reverse nonequilibrium shear flow updater
-/*!
- * A flow is induced by swapping velocities in x direction based on particle position in
- * y-direction.
- */
-template<bool Use = false> class AddParticleGroup
-    {
-    };
-
-template<> class AddParticleGroup<true>
-    {
-    public:
-    AddParticleGroup(std::shared_ptr<ParticleGroup> group) : m_group(group) { }
-
-    protected:
-    std::shared_ptr<ParticleGroup> m_group;
-    };
 
 template<class ParticleLoaderT>
 class PYBIND11_EXPORT ReverseNonequilibriumShearFlow
-    : public Updater,
-      AddParticleGroup<ParticleLoaderT::use_particle_group>
+    : public Updater
     {
     public:
     //! Constructor
@@ -52,6 +34,7 @@ class PYBIND11_EXPORT ReverseNonequilibriumShearFlow
                                    unsigned int num_swap,
                                    Scalar slab_width,
                                    Scalar target_momentum);
+
     //! Constructor with ParticleGroup
     template<class T = ParticleLoaderT, std::enable_if_t<T::use_particle_group, bool> = true>
     ReverseNonequilibriumShearFlow(std::shared_ptr<SystemDefinition> sysdef,
@@ -177,7 +160,7 @@ ReverseNonequilibriumShearFlow<ParticleLoaderT>::ReverseNonequilibriumShearFlow(
     Scalar slab_width,
     Scalar target_momentum,
     std::shared_ptr<ParticleGroup> group)
-    : Updater(sysdef, trigger), AddParticleGroup<true>(group), m_particle_loader(sysdef, group),
+    : Updater(sysdef, trigger), m_particle_loader(sysdef, group),
       m_num_swap(num_swap), m_slab_width(slab_width), m_target_momentum(target_momentum),
       m_summed_momentum_exchange(0), m_num_lo(0), m_particles_lo(m_exec_conf), m_num_hi(0),
       m_particles_hi(m_exec_conf), m_update_slabs(true)
@@ -296,11 +279,8 @@ void ReverseNonequilibriumShearFlow<ParticleLoaderT>::findSwapParticles()
             // filter particles into their slab in y-direction and record momentum in x-direction
             m_num_lo = 0;
             m_num_hi = 0;
-            typename ParticleLoaderT::IndexReader index_reader;
             std::unique_ptr<ArrayHandle<unsigned int>> group_members;
-            const unsigned int N = m_particle_loader.getN();
-            const auto reader = m_particle_loader.makeVelocityMassReader(h_vel.data);
-
+            typename ParticleLoaderT::IndexReader index_reader;
             if constexpr (ParticleLoaderT::use_particle_group)
                 {
                 group_members.reset(
@@ -309,6 +289,9 @@ void ReverseNonequilibriumShearFlow<ParticleLoaderT>::findSwapParticles()
                                                   access_mode::read));
                 index_reader = typename ParticleLoaderT::IndexReader(group_members->data);
                 }
+
+            const unsigned int N = m_particle_loader.getN();
+            const auto reader = m_particle_loader.makeVelocityMassReader(h_vel.data);
 
             for (unsigned int idx = 0; idx < N; ++idx)
                 {

@@ -9,7 +9,7 @@
 #ifndef MD_REVERSE_NONEQUILIBRIUM_SHEAR_FLOW_GPU_H_
 #define MD_REVERSE_NONEQUILIBRIUM_SHEAR_FLOW_GPU_H_
 
-#ifdef __HIPCC__
+#ifdef __NVCC__
 #error This header cannot be compiled by nvcc
 #endif
 
@@ -142,9 +142,9 @@ void ReverseNonequilibriumShearFlowGPU<ParticleLoaderT>::findSwapParticles()
             ArrayHandle<unsigned int> d_num_lo_hi(m_num_lo_hi,
                                                   access_location::device,
                                                   access_mode::overwrite);
-            typename ParticleLoaderT::IndexReader index_reader;
-            std::unique_ptr<ArrayHandle<unsigned int>> group_members;
 
+            std::unique_ptr<ArrayHandle<unsigned int>> group_members;
+            typename ParticleLoaderT::IndexReader index_reader;
             if constexpr (ParticleLoaderT::use_particle_group)
                 {
                 group_members.reset(new ArrayHandle<unsigned int>(

@@ -36,8 +36,8 @@ if hoomd.communicator.Communicator().num_ranks == 2:
 class TestReverseNonequilibriumShearFlow:
     def test_create(self, simulation_factory, snap, flow):
         # before attachment
-        flow.num_swaps = 5  # changing the value before attachment
-        flow.target_momentum = 2.5  # changing the value before attachment
+        flow.num_swaps = 5
+        flow.target_momentum = 2.5
         trigger = hoomd.trigger.Periodic(1)
         flow.trigger = trigger
 
