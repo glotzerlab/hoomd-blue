@@ -641,6 +641,85 @@ class ActiveOnManifold(Active):
         )
 
 
+class CollectiveActive(Active):
+    r"""Active force with a direction shared by all particles of a type.
+
+    Args:
+        filter (`hoomd.filter`): Subset of particles on which to
+            apply active forces.
+
+    `CollectiveActive` applies the same active force to all particles of a
+    given type that are selected by the filter. The particle orientations are 
+    not used, so particles need not have an orientation, and no torque is 
+    applied. Use a separate particle type for each group of particles that
+    should move coherently.
+
+    Note:
+        To introduce rotational diffusion to the direction of the active force
+        of each type, use `create_diffusion_updater`. The direction diffuses
+        collectively for all particles of a type, and its magnitude is
+        preserved. `active_force` therefore changes during the simulation and
+        always holds the current vector.
+
+        .. seealso::
+
+            `hoomd.md.update.ActiveRotationalDiffusion`
+
+    .. rubric:: Example:
+
+    .. code-block:: python
+
+            collective_active = hoomd.md.force.CollectiveActive(
+                filter=hoomd.filter.All()
+            )
+            collective_active.active_force["A", "B"] = (1, 0, 0)
+            rotational_diffusion_updater = (
+                collective_active.create_diffusion_updater(
+                    trigger=10, rotational_diffusion=0.1
+                )
+            )
+
+    Note:
+        The energy and virial associated with the active force are 0.
+
+    {inherited}
+
+
+    **Members defined in** `CollectiveActive`:
+
+    Attributes:
+        filter (`hoomd.filter`): Subset of particles on which to
+            apply active forces.
+
+    .. py:attribute:: active_force
+
+        Active force vector in the box frame :math:`[\mathrm{force}]`. It is
+        defined per particle type. Rotational diffusion changes its direction
+        during the simulation, and reading it gives the current value. To
+        restart a simulation, set it to the value read at the end of the
+        previous run.
+
+        Type: `TypeParameter` [``particle_type``, `tuple` [`float`, `float`,
+        `float`]]
+    """
+
+    __doc__ = inspect.cleandoc(__doc__).replace(
+        "{inherited}", inspect.cleandoc(Force._doc_inherited)
+    )
+
+    def __init__(self, filter):
+        super().__init__(filter)
+        # No torque is applied, so drop the parameter inherited from Active.
+        del self._typeparam_dict["active_torque"]
+
+    def _set_cpp_obj(self):
+        sim = self._simulation
+
+        self._cpp_obj = _md.CollectiveActiveForceCompute(
+            sim.state._cpp_sys_def, sim.state._get_group(self.filter)
+        )
+
+
 class Constant(Force):
     r"""Constant force.
 
@@ -732,6 +811,7 @@ class Constant(Force):
 __all__ = [
     "Active",
     "ActiveOnManifold",
+    "CollectiveActive",
     "Constant",
     "Custom",
     "Force",
