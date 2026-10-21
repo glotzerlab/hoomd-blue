@@ -11,6 +11,7 @@ set(files __init__.py
     test_ylz.py
     test_array_view.py
     test_bond.py
+    test_collective_active.py
     test_constrain_distance.py
     test_constant_force.py
     test_custom_force.py
