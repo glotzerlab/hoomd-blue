@@ -18,6 +18,8 @@ supported, but it may be possible to compile for AMD GPUs using
 
 *Changed*
 
+* Support 2D systems with ``hoomd.md.external.field.Periodic`` (#2349).
+
 *Deprecated*
 
 *Removed*
