@@ -93,7 +93,6 @@ option(BUILD_HPMC "Build the hpmc package" on)
 else ()
 option(BUILD_HPMC "Build the hpmc package" off)
 endif()
-option(BUILD_METAL "Build the metal package" on)
 option(BUILD_MPCD "Build the mpcd package" ${BUILD_MD})
 
 # Add list of plugins

@@ -189,7 +189,6 @@ jobs:
                                -DENABLE_MPI=${ENABLE_MPI:-"OFF"} \
                                -DBUILD_MD=${BUILD_MD:-"ON"} \
                                -DBUILD_MPCD=${BUILD_MPCD:-"ON"} \
-                               -DBUILD_METAL=${BUILD_MD:-"ON"} \
                                -DBUILD_HPMC=${BUILD_HPMC:-"ON"} \
                                -DHOOMD_GPU_PLATFORM=${HOOMD_GPU_PLATFORM} \
                                -DCMAKE_CUDA_ARCHITECTURES="80" \
