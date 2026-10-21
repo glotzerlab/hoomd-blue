@@ -72,6 +72,7 @@ struct RNGIdentifier
     static const uint8_t MPCDCellList = 47;
     static const uint8_t MeshDynamicBondUpdateOrder = 48;
     static const uint8_t MeshDynamicBondUpdater = 49;
+    static const uint8_t CollectiveActiveForceCompute = 50;
     };
 
     } // namespace hoomd
