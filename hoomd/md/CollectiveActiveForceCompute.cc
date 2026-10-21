@@ -123,5 +123,20 @@ void CollectiveActiveForceCompute::rotationalDiffusion(Scalar rotational_diffusi
         }
     }
 
+namespace detail
+    {
+void export_CollectiveActiveForceCompute(pybind11::module& m)
+    {
+    pybind11::class_<CollectiveActiveForceCompute,
+                     ActiveForceCompute,
+                     std::shared_ptr<CollectiveActiveForceCompute>>(
+        m,
+        "CollectiveActiveForceCompute")
+        .def(pybind11::init<std::shared_ptr<SystemDefinition>, std::shared_ptr<ParticleGroup>>())
+        .def("setActiveTorque", &CollectiveActiveForceCompute::setActiveTorque);
+    }
+
+    } // end namespace detail
+
     } // end namespace md
     } // end namespace hoomd
