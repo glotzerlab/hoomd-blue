@@ -31,31 +31,6 @@ CollectiveActiveForceCompute::~CollectiveActiveForceCompute()
     m_exec_conf->msg->notice(5) << "Destroying CollectiveActiveForceCompute" << std::endl;
     }
 
-void CollectiveActiveForceCompute::setActiveTorque(const std::string& type_name, pybind11::tuple v)
-    {
-    unsigned int typ = m_pdata->getTypeByName(type_name);
-
-    if (pybind11::len(v) != 3)
-        {
-        throw std::invalid_argument("active_torque values must be 3-tuples");
-        }
-
-    if (pybind11::cast<Scalar>(v[0]) != 0 || pybind11::cast<Scalar>(v[1]) != 0
-        || pybind11::cast<Scalar>(v[2]) != 0)
-        {
-        m_exec_conf->msg->warning()
-            << "CollectiveActiveForceCompute does not apply torques, ignoring the nonzero "
-               "active torque set for type "
-            << type_name << "." << std::endl;
-        }
-
-    // the stored torque stays zero
-    ArrayHandle<Scalar4> h_t_activeVec(m_t_activeVec,
-                                       access_location::host,
-                                       access_mode::readwrite);
-    h_t_activeVec.data[typ] = make_scalar4(0, 0, 0, 0);
-    }
-
 /*! Applies the active force vector of each particle type in the box frame, to
     every member of the group. Particle orientations are not read, and no torque is applied.
  */
@@ -157,8 +132,7 @@ void export_CollectiveActiveForceCompute(pybind11::module& m)
                      std::shared_ptr<CollectiveActiveForceCompute>>(
         m,
         "CollectiveActiveForceCompute")
-        .def(pybind11::init<std::shared_ptr<SystemDefinition>, std::shared_ptr<ParticleGroup>>())
-        .def("setActiveTorque", &CollectiveActiveForceCompute::setActiveTorque);
+        .def(pybind11::init<std::shared_ptr<SystemDefinition>, std::shared_ptr<ParticleGroup>>());
     }
 
     } // end namespace detail

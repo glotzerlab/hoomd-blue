@@ -33,16 +33,6 @@ class PYBIND11_EXPORT CollectiveActiveForceCompute : public ActiveForceCompute
     //! Destructor
     virtual ~CollectiveActiveForceCompute();
 
-    /** Reject an active torque, as CollectiveActiveForceCompute applies none.
-        @param type_name Particle type name
-        @param v The active torque (a 3-tuple). A nonzero value is discarded with a warning, a zero
-               vector is accepted silently.
-
-        Hides the non-virtual ActiveForceCompute::setActiveTorque. The python export rebinds
-        setActiveTorque to this method, so calls from python reach it.
-    */
-    void setActiveTorque(const std::string& type_name, pybind11::tuple v);
-
     protected:
     //! Set the forces from the per-type active force vectors
     virtual void setForces();
