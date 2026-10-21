@@ -19,6 +19,7 @@ import hoomd.conftest
                 "manifold_constraint": hoomd.md.manifold.Plane(shift=0.1),
             },
         ),
+        (hoomd.md.force.CollectiveActive, {"filter": hoomd.filter.All()}),
     ],
     ids=lambda x: x[0].__name__,
 )
@@ -125,8 +126,11 @@ def test_attaching(active_force, local_simulation_factory):
 
 def test_update(active_force, local_simulation_factory):
     active_force.active_force.default = (1.0, 0.0, 0.0)
-    # Set torque to zero so no angular momentum exists to change orientations.
-    active_force.active_torque.default = (0.0, 0.0, 0.0)
+    collective = isinstance(active_force, hoomd.md.force.CollectiveActive)
+    if not collective:
+        # Set torque to zero so no angular momentum exists to change
+        # orientations.
+        active_force.active_torque.default = (0.0, 0.0, 0.0)
     rd_updater = hoomd.md.update.ActiveRotationalDiffusion(1, active_force, 0.1)
     sim = local_simulation_factory(active_force, rd_updater)
     snapshot = sim.state.get_snapshot()
@@ -134,10 +138,22 @@ def test_update(active_force, local_simulation_factory):
         old_orientations = snapshot.particles.orientation
 
     sim.run(10)
+
     snapshot = sim.state.get_snapshot()
-    if sim.device.communicator.rank == 0:
-        new_orientations = snapshot.particles.orientation
-        assert not np.allclose(old_orientations, new_orientations)
+    if collective:
+        # CollectiveActive diffuses the active force vector of the type, not
+        # the particle orientations. The magnitude is preserved.
+        new_active_force = np.array(active_force.active_force["A"])
+        assert not np.allclose(new_active_force, (1.0, 0.0, 0.0))
+        np.testing.assert_allclose(np.linalg.norm(new_active_force), 1.0, rtol=1e-5)
+        if sim.device.communicator.rank == 0:
+            np.testing.assert_allclose(
+                snapshot.particles.orientation, old_orientations
+            )
+    else:
+        if sim.device.communicator.rank == 0:
+            new_orientations = snapshot.particles.orientation
+            assert not np.allclose(old_orientations, new_orientations)
 
 
 def test_pickling(active_force, local_simulation_factory):
