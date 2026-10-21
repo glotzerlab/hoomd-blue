@@ -5,7 +5,7 @@ import numpy as np
 import pytest
 
 import hoomd
-from hoomd.conftest import pickling_check
+from hoomd.conftest import pickling_check, autotuned_kernel_parameter_check
 
 
 def test_attributes():
@@ -112,6 +112,19 @@ def test_no_diffusion_without_updater(simulation_factory, two_particle_snapshot_
     sim.run(20)
 
     np.testing.assert_allclose(active.active_force["A"], (1.0, 2.0, 3.0), atol=1e-6)
+
+
+def test_kernel_parameters(simulation_factory, two_particle_snapshot_factory):
+    active = hoomd.md.force.CollectiveActive(filter=hoomd.filter.All())
+
+    sim = simulation_factory(two_particle_snapshot_factory(dimensions=3, d=8))
+    integrator = hoomd.md.Integrator(0.05)
+    integrator.methods.append(hoomd.md.methods.Langevin(hoomd.filter.All(), kT=0))
+    integrator.forces.append(active)
+    sim.operations.integrator = integrator
+    sim.run(0)
+
+    autotuned_kernel_parameter_check(instance=active, activate=lambda: sim.run(1))
 
 
 def test_pickling(simulation_factory, two_particle_snapshot_factory):
