@@ -55,14 +55,17 @@ jobs:
         - config: [gcc, 14, -py, 315, -nomd, -nohpmc]
         - config: [gcc, 10, -py, 311, -mpi]
 
-        # newest cuda toolkit and python
+        # CUDA 13 with new python
         - config: [cuda, 134, -py, 315, -mpi]
           validate: true
         - config: [cuda, 134, -py, 315]
           validate: true
         - config: [cuda, 134, -py, 315, -mpi, -debug]
-        # oldest cuda toolkit and python
-        - config: [cuda, 124, -py, 311, -mpi]
+
+        # CUDA 12 with old python
+        - config: [cuda, 129, -py, 311, -mpi]
+          validate: true
+
         # rocm not currently supported
         # - config: [rocm, 72, -py, 313]
         # - config: [rocm, 71, -py, 313]
@@ -101,15 +104,6 @@ jobs:
         - config: [gcc, 13, -py, 313, -mpi]
         - config: [gcc, 12, -py, 312, -mpi]
         - config: [gcc, 11, -py, 311, -mpi]
-        # cuda toolkits not covered by typical tests
-        - config: [cuda, 125, -py, 315, -mpi]
-        - config: [cuda, 126, -py, 315, -mpi]
-        - config: [cuda, 128, -py, 315, -mpi]
-        - config: [cuda, 129, -py, 315, -mpi]
-        - config: [cuda, 130, -py, 315, -mpi]
-        - config: [cuda, 131, -py, 315, -mpi]
-        - config: [cuda, 132, -py, 315, -mpi]
-        - config: [cuda, 133, -py, 315, -mpi]
 
   tests_complete:
     name: Unit test
