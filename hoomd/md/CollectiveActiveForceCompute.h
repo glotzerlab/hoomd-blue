@@ -33,36 +33,15 @@ class PYBIND11_EXPORT CollectiveActiveForceCompute : public ActiveForceCompute
     //! Destructor
     virtual ~CollectiveActiveForceCompute();
 
-    /** Hides the non-virtual ActiveForceCompute::setActiveTorque. The python export rebinds
-        setA
+    /** Reject an active torque, as CollectiveActiveForceCompute applies none.
+        @param type_name Particle type name
+        @param v The active torque (a 3-tuple). A nonzero value is discarded with a warning, a zero
+               vector is accepted silently.
+
+        Hides the non-virtual ActiveForceCompute::setActiveTorque. The python export rebinds
+        setActiveTorque to this method, so calls from python reach it.
     */
-    void setActiveTorque(const std::string& typ, pybind11::tuple v)
-        {
-        if (pybind11::len(v) != 3)
-            {
-            throw std::invalid_argument("active_torque values must be 3-tuples");
-            }
-
-        if (pybind11::cast<Scalar>(v[0]) != 0 || pybind11::cast<Scalar>(v[1]) != 0
-            || pybind11::cast<Scalar>(v[2]) != 0)
-            {
-            m_exec_conf->msg->warning()
-                << "CollectiveActiveForceCompute does not apply torques, ignoring the nonzero "
-                   "active torque set for type "
-                << typ << "." << std::endl;
-            }
-
-	Scalar4 t_activeVec;
-	t_activeVec.x = 0;
-	t_activeVec.y = 0;
-	t_activeVec.z = 0;
-        t_activeVec.w = 0;
-
-    	ArrayHandle<Scalar4> h_t_activeVec(m_t_activeVec,
-                                       access_location::host,
-                                       access_mode::readwrite);
-    	h_t_activeVec.data[typ] = t_activeVec;
-        }
+    void setActiveTorque(const std::string& type_name, pybind11::tuple v);
 
     protected:
     //! Set the forces from the per-type active force vectors
