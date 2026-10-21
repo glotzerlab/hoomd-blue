@@ -1,6 +1,6 @@
 # setup CUDA compile options
 if (ENABLE_GPU)
-    ENABLE_LANGUAGE(CUDA)
+    enable_language(CUDA)
     find_package(CUDAToolkit REQUIRED)
 
     # ignore warnings about unused results

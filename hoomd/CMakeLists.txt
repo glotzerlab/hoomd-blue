@@ -40,56 +40,58 @@ install(FILES ${HOOMD_BINARY_DIR}/hoomd/version_config.py
 ##############################
 ## Source setup
 
-set(_hoomd_sources Action.cc
-                   Autotuned.cc
-                   Analyzer.cc
-                   BondedGroupData.cc
-                   BoxResizeUpdater.cc
-                   CellList.cc
-                   CellListStencil.cc
-                   ClockSource.cc
-                   Communicator.cc
-                   CommunicatorGPU.cc
-                   Compute.cc
-                   DCDDumpWriter.cc
-                   DomainDecomposition.cc
-                   ExecutionConfiguration.cc
-                   ForceCompute.cc
-                   ForceConstraint.cc
-                   GSDDequeWriter.cc
-                   GSDDumpWriter.cc
-                   GSDReader.cc
-                   HOOMDMath.cc
-                   HOOMDVersion.cc
-                   Initializers.cc
-                   Integrator.cc
-                   LoadBalancer.cc
-                   MeshGroupData.cc
-                   MeshDefinition.cc
-                   Messenger.cc
-                   MPIConfiguration.cc
-                   ParticleData.cc
-                   ParticleGroup.cc
-                   ParticleFilterUpdater.cc
-                   PythonLocalDataAccess.cc
-                   PythonAnalyzer.cc
-                   PythonTuner.cc
-                   PythonUpdater.cc
-                   SFCPackTuner.cc
-                   SnapshotSystemData.cc
-                   System.cc
-                   SystemDefinition.cc
-                   Trigger.cc
-                   Tuner.cc
-                   Updater.cc
-                   Variant.cc
-                   VectorVariant.cc
-                   extern/BVLSSolver.cc
-                   extern/gsd.c
-                   extern/kiss_fft.cc
-                   extern/kiss_fftnd.cc
-                   filter/export_filters.cc
-                   )
+set(_hoomd_sources
+    module.cc
+    Action.cc
+    Autotuned.cc
+    Analyzer.cc
+    BondedGroupData.cc
+    BoxResizeUpdater.cc
+    CellList.cc
+    CellListStencil.cc
+    ClockSource.cc
+    Communicator.cc
+    CommunicatorGPU.cc
+    Compute.cc
+    DCDDumpWriter.cc
+    DomainDecomposition.cc
+    ExecutionConfiguration.cc
+    ForceCompute.cc
+    ForceConstraint.cc
+    GSDDequeWriter.cc
+    GSDDumpWriter.cc
+    GSDReader.cc
+    HOOMDMath.cc
+    HOOMDVersion.cc
+    Initializers.cc
+    Integrator.cc
+    LoadBalancer.cc
+    MeshGroupData.cc
+    MeshDefinition.cc
+    Messenger.cc
+    MPIConfiguration.cc
+    ParticleData.cc
+    ParticleGroup.cc
+    ParticleFilterUpdater.cc
+    PythonLocalDataAccess.cc
+    PythonAnalyzer.cc
+    PythonTuner.cc
+    PythonUpdater.cc
+    SFCPackTuner.cc
+    SnapshotSystemData.cc
+    System.cc
+    SystemDefinition.cc
+    Trigger.cc
+    Tuner.cc
+    Updater.cc
+    Variant.cc
+    VectorVariant.cc
+    extern/BVLSSolver.cc
+    extern/gsd.c
+    extern/kiss_fft.cc
+    extern/kiss_fftnd.cc
+    filter/export_filters.cc
+    )
 
 # ignore conversion warnings in external files
 if(CMAKE_COMPILER_IS_GNUCXX OR CMAKE_CXX_COMPILER_ID MATCHES "Clang")
@@ -108,17 +110,11 @@ set(_hoomd_headers
     BondedGroupData.h
     BoxDim.h
     BoxResizeUpdater.h
-    BoxResizeUpdaterGPU.cuh
-    BoxResizeUpdaterGPU.h
     UpdaterRemoveDrift.h
     CachedAllocator.h
-    CellListGPU.cuh
-    CellListGPU.h
     CellList.h
     CellListStencil.h
     ClockSource.h
-    CommunicatorGPU.cuh
-    CommunicatorGPU.h
     Communicator.h
     Compute.h
     DCDDumpWriter.h
@@ -141,8 +137,6 @@ set(_hoomd_headers
     Initializers.h
     Integrator.cuh
     Integrator.h
-    LoadBalancerGPU.cuh
-    LoadBalancerGPU.h
     LoadBalancer.h
     managed_allocator.h
     ManagedArray.h
@@ -160,8 +154,6 @@ set(_hoomd_headers
     PythonAnalyzer.h
     RandomNumbers.h
     RNGIdentifiers.h
-    SFCPackTunerGPU.cuh
-    SFCPackTunerGPU.h
     SFCPackTuner.h
     SharedSignal.h
     SnapshotSystemData.h
@@ -169,32 +161,44 @@ set(_hoomd_headers
     System.h
     Trigger.h
     Tuner.h
-    TextureTools.h
     Updater.h
     Variant.h
     VectorVariant.h
     VectorMath.h
-    WarpTools.cuh
     )
 
 if (ENABLE_GPU)
-list(APPEND _hoomd_sources BoxResizeUpdaterGPU.cc
-                           CellListGPU.cc
-                           CommunicatorGPU.cc
-                           LoadBalancerGPU.cc
-                           SFCPackTunerGPU.cc
-                           )
+    list(APPEND _hoomd_sources
+        BondedGroupData.cu
+        BoxResizeUpdaterGPU.cc
+        BoxResizeUpdaterGPU.cu
+        CellListGPU.cc
+        CellListGPU.cu
+        CommunicatorGPU.cc
+        CommunicatorGPU.cu
+        Integrator.cu
+        LoadBalancerGPU.cc
+        LoadBalancerGPU.cu
+        ParticleData.cu
+        ParticleGroup.cu
+        SFCPackTunerGPU.cc
+        SFCPackTunerGPU.cu
+        )
+    list(APPEND _hoomd_headers
+        BoxResizeUpdaterGPU.cuh
+        BoxResizeUpdaterGPU.h
+        CellListGPU.cuh
+        CellListGPU.h
+        CommunicatorGPU.cuh
+        CommunicatorGPU.h
+        LoadBalancerGPU.cuh
+        LoadBalancerGPU.h
+        SFCPackTunerGPU.cuh
+        SFCPackTunerGPU.h
+        TextureTools.h
+        WarpTools.cuh
+        )
 endif()
-
-set(_hoomd_cu_sources BondedGroupData.cu
-                      BoxResizeUpdaterGPU.cu
-                      CellListGPU.cu
-                      CommunicatorGPU.cu
-                      Integrator.cu
-                      LoadBalancerGPU.cu
-                      ParticleData.cu
-                      ParticleGroup.cu
-                      SFCPackTunerGPU.cu)
 
 # add the MPCD base parts that should go into _hoomd (i.e., core particle data)
 if (BUILD_MPCD)
@@ -202,19 +206,17 @@ if (BUILD_MPCD)
         mpcd/ParticleData.cc
         mpcd/ParticleDataSnapshot.cc
         )
-    list(APPEND _hoomd_cu_sources
-        mpcd/ParticleData.cu
-    )
+    if (ENABLE_GPU)
+        list(APPEND _hoomd_sources
+            mpcd/ParticleData.cu
+        )
+    endif()
     # headers will be installed by MPCD itself so they go in the right subdirectory
 endif()
 
-if (ENABLE_GPU)
-set_source_files_properties(${_hoomd_cu_sources} PROPERTIES LANGUAGE CUDA)
-endif (ENABLE_GPU)
-
 #########################
 ## Build the module
-hoomd_add_module(_hoomd SHARED module.cc ${_hoomd_sources} ${_hoomd_cu_sources} ${_hoomd_headers} NO_EXTRAS)
+hoomd_add_module(_hoomd SHARED ${_hoomd_sources} ${_hoomd_headers} NO_EXTRAS)
 
 # alias into the HOOMD namespace so that plugins and symlinked components both work
 add_library(HOOMD::_hoomd ALIAS _hoomd)

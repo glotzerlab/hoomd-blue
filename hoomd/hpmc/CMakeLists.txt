@@ -1,57 +1,37 @@
-
-
-set(_hpmc_gpu_shapes ShapeSphere
-                 ShapeConvexPolygon
-                 ShapeSimplePolygon
-                 ShapeSpheropolygon
-                 ShapePolyhedron
-                 ShapeEllipsoid
-                 ShapeFacetedEllipsoid
-                 ShapeConvexPolyhedron
-                 ShapeSpheropolyhedron
-                 )
-
 option(ENABLE_HPMC_SPHINX_GPU "Enable sphinx on the GPU" OFF)
-if (ENABLE_HPMC_SPHINX_GPU)
-    set(_hpmc_gpu_shapes ${_hpmc_gpu_shapes} ShapeSphinx)
-endif()
 
-set(_hpmc_gpu_union_shapes ShapeSphere
-                       ShapeFacetedEllipsoid
-                       ShapeSpheropolyhedron
-   )
-
-set(_hpmc_sources   module.cc
-                    module_sphere.cc
-                    module_convex_polygon.cc
-                    module_simple_polygon.cc
-                    module_spheropolygon.cc
-                    module_polyhedron.cc
-                    module_ellipsoid.cc
-                    module_faceted_ellipsoid.cc
-                    module_sphinx.cc
-                    module_union_convex_polyhedron.cc
-                    module_union_faceted_ellipsoid.cc
-                    module_union_sphere.cc
-                    module_convex_polyhedron.cc
-                    module_convex_spheropolyhedron.cc
-                    ExternalFieldWall.cc
-                    ExternalPotential.cc
-                    ExternalPotentialLinear.cc
-                    PairPotential.cc
-                    PairPotentialLennardJones.cc
-                    PairPotentialExpandedGaussian.cc
-                    PairPotentialLJGauss.cc
-                    PairPotentialOPP.cc
-                    PairPotentialZetterling.cc
-                    PairPotentialStep.cc
-                    PairPotentialUnion.cc
-                    PairPotentialAngularStep.cc
-                    ShapeUtils.cc
-                    UpdaterBoxMC.cc
-                    UpdaterQuickCompress.cc
-                    IntegratorHPMC.cc
-                    )
+set(_hpmc_sources
+    module.cc
+    module_sphere.cc
+    module_convex_polygon.cc
+    module_simple_polygon.cc
+    module_spheropolygon.cc
+    module_polyhedron.cc
+    module_ellipsoid.cc
+    module_faceted_ellipsoid.cc
+    module_sphinx.cc
+    module_union_convex_polyhedron.cc
+    module_union_faceted_ellipsoid.cc
+    module_union_sphere.cc
+    module_convex_polyhedron.cc
+    module_convex_spheropolyhedron.cc
+    ExternalFieldWall.cc
+    ExternalPotential.cc
+    ExternalPotentialLinear.cc
+    PairPotential.cc
+    PairPotentialLennardJones.cc
+    PairPotentialExpandedGaussian.cc
+    PairPotentialLJGauss.cc
+    PairPotentialOPP.cc
+    PairPotentialZetterling.cc
+    PairPotentialStep.cc
+    PairPotentialUnion.cc
+    PairPotentialAngularStep.cc
+    ShapeUtils.cc
+    UpdaterBoxMC.cc
+    UpdaterQuickCompress.cc
+    IntegratorHPMC.cc
+    )
 
 set(_hpmc_headers
     ComputeFreeVolumeGPU.cuh
@@ -113,26 +93,47 @@ set(_hpmc_headers
     XenoSweep3D.h
     )
 
-set(_hpmc_cu_sources IntegratorHPMCMonoGPU.cu
-                     UpdaterGCAGPU.cu
-                     )
-
-set(_hpmc_kernel_templates kernel_free_volume
-                           kernel_gen_moves
-                           kernel_narrow_phase
-                           kernel_update_pdata
-                           kernel_cluster_overlaps
-                           kernel_cluster_transform)
-
 if(ENABLE_GPU)
+    list(APPEND _hpmc_sources
+         IntegratorHPMCMonoGPU.cu
+         UpdaterGCAGPU.cu
+         )
+
     # expand the shape x GPU kernel matrix of template instantiations
+    set(_hpmc_kernel_templates
+        kernel_free_volume
+        kernel_gen_moves
+        kernel_narrow_phase
+        kernel_update_pdata
+        kernel_cluster_overlaps
+        kernel_cluster_transform
+        )
+    set(_hpmc_gpu_shapes
+        ShapeSphere
+        ShapeConvexPolygon
+        ShapeSimplePolygon
+        ShapeSpheropolygon
+        ShapePolyhedron
+        ShapeEllipsoid
+        ShapeFacetedEllipsoid
+        ShapeConvexPolyhedron
+        ShapeSpheropolyhedron
+        )
+    if (ENABLE_HPMC_SPHINX_GPU)
+        list(APPEND _hpmc_gpu_shapes ShapeSphinx)
+    endif()
+    set(_hpmc_gpu_union_shapes
+        ShapeSphere
+        ShapeFacetedEllipsoid
+        ShapeSpheropolyhedron
+        )
     foreach(KERNEL ${_hpmc_kernel_templates})
         foreach(SHAPE ${_hpmc_gpu_shapes})
             set(SHAPE_INCLUDE ${SHAPE}.h)
             set(IS_UNION_SHAPE FALSE)
             set(_kernel_cu ${KERNEL}_${SHAPE}.cu)
             configure_file(${KERNEL}.cu.inc ${_kernel_cu} @ONLY)
-            set(_hpmc_cu_sources ${_hpmc_cu_sources} ${_kernel_cu})
+            list(APPEND _hpmc_sources ${_kernel_cu})
         endforeach()
 
         foreach(SHAPE ${_hpmc_gpu_union_shapes})
@@ -140,17 +141,12 @@ if(ENABLE_GPU)
             set(_kernel_cu ${KERNEL}_union_${SHAPE}.cu)
             set(IS_UNION_SHAPE TRUE)
             configure_file(${KERNEL}.cu.inc ${_kernel_cu} @ONLY)
-            set(_hpmc_cu_sources ${_hpmc_cu_sources} ${_kernel_cu})
+            list(APPEND _hpmc_sources ${_kernel_cu})
         endforeach()
     endforeach()
 endif(ENABLE_GPU)
 
-if (ENABLE_GPU)
-set(_cuda_sources ${_hpmc_cu_sources})
-set_source_files_properties(${_hpmc_cu_sources} PROPERTIES LANGUAGE CUDA)
-endif (ENABLE_GPU)
-
-hoomd_add_module(_hpmc SHARED ${_hpmc_sources} ${_cuda_sources} ${_hpmc_headers} NO_EXTRAS)
+hoomd_add_module(_hpmc SHARED ${_hpmc_sources} ${_hpmc_headers} NO_EXTRAS)
 # alias into the HOOMD namespace so that plugins and symlinked components both work
 add_library(HOOMD::_hpmc ALIAS _hpmc)
 if (APPLE)
