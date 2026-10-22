@@ -673,7 +673,7 @@ endif()
 # link the library to its dependencies
 target_link_libraries(_md PUBLIC _hoomd)
 if (ENABLE_GPU)
-    if (TARGET CUDA::cusolver)
+    if (TARGET CUDA::cusolver AND NOT DEFINED ENV{SCALE_ENV} )
         target_link_libraries(_md PUBLIC CUDA::cusolver CUDA::cublas CUDA::cusparse)
         target_compile_definitions(_md PUBLIC CUSOLVER_AVAILABLE)
     endif()
