@@ -8,10 +8,10 @@
 
 #ifdef ENABLE_GPU
 #include <cuda_runtime.h>
-#endif
 
 #define CUDA_VERSION_MAJOR (CUDART_VERSION / 1000)
 #define CUDA_VERSION_MINOR ((CUDART_VERSION % 1000) / 10)
+#endif
 
 namespace hoomd
     {

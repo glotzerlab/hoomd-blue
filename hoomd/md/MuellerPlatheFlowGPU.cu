@@ -12,8 +12,8 @@
 
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wconversion"
+#include <cuda/std/functional>
 #include <thrust/device_ptr.h>
-#include <thrust/functional.h>
 #include <thrust/transform_reduce.h>
 #pragma GCC diagnostic pop
 
@@ -157,7 +157,7 @@ cudaError_t gpu_search_min_max_velocity(const unsigned int group_size,
 
     if (has_max_slab)
         {
-        vel_search_binary_opt<thrust::greater<const Scalar>>
+        vel_search_binary_opt<cuda::std::greater<const Scalar>>
             max_bin_opt(d_rtag, d_pos, gl_box, Nslabs, max_slab, *last_max_vel, slab_direction);
         Scalar3 init = *last_max_vel;
         *last_max_vel = thrust::transform_reduce(member_ptr,
@@ -169,7 +169,7 @@ cudaError_t gpu_search_min_max_velocity(const unsigned int group_size,
 
     if (has_min_slab)
         {
-        vel_search_binary_opt<thrust::less<const Scalar>>
+        vel_search_binary_opt<cuda::std::less<const Scalar>>
             min_bin_opt(d_rtag, d_pos, gl_box, Nslabs, min_slab, *last_min_vel, slab_direction);
         Scalar3 init = *last_min_vel;
         *last_min_vel = thrust::transform_reduce(member_ptr,

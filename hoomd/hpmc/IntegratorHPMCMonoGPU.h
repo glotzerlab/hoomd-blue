@@ -843,10 +843,13 @@ template<class Shape> void IntegratorHPMCMonoGPU<Shape>::updateCellWidth()
     this->m_cl->setNominalWidth(this->m_nominal_width);
 
     // set memory hints
+    cudaMemLocation location;
+    location.type = cudaMemLocationTypeDevice;
+    location.id = this->m_exec_conf->getGPUId();
     cudaMemAdvise(this->m_params.data(),
                   this->m_params.size() * sizeof(typename Shape::param_type),
                   cudaMemAdviseSetReadMostly,
-                  0);
+                  location);
     CHECK_CUDA_ERROR();
 
     // sync up so we can access the parameters

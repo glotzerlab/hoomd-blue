@@ -13,6 +13,7 @@
 #pragma GCC diagnostic ignored "-Wconversion"
 #include <cub/cub.cuh>
 
+#include <cuda/iterator>
 #include <thrust/binary_search.h>
 #include <thrust/copy.h>
 #include <thrust/device_ptr.h>
@@ -20,7 +21,6 @@
 #include <thrust/fill.h>
 #include <thrust/functional.h>
 #include <thrust/gather.h>
-#include <thrust/iterator/constant_iterator.h>
 #include <thrust/iterator/counting_iterator.h>
 #include <thrust/iterator/zip_iterator.h>
 #include <thrust/scan.h>
@@ -275,7 +275,7 @@ void gpu_reset_rtags(unsigned int n_delete_ptls, unsigned int* d_delete_tags, un
     thrust::device_ptr<unsigned int> delete_tags_ptr(d_delete_tags);
     thrust::device_ptr<unsigned int> rtag_ptr(d_rtag);
 
-    thrust::constant_iterator<unsigned int> not_local(NOT_LOCAL);
+    cuda::constant_iterator<unsigned int> not_local(NOT_LOCAL);
     thrust::scatter(not_local, not_local + n_delete_ptls, delete_tags_ptr, rtag_ptr);
     }
 

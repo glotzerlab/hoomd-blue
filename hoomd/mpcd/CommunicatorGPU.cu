@@ -14,9 +14,9 @@
 
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wconversion"
+#include <cuda/iterator>
 #include <thrust/device_ptr.h>
 #include <thrust/functional.h>
-#include <thrust/iterator/constant_iterator.h>
 #include <thrust/reduce.h>
 #include <thrust/sort.h>
 #include <thrust/transform.h>
@@ -226,7 +226,7 @@ size_t mpcd::gpu::sort_comm_send_buffer(mpcd::detail::pdata_element* d_sendbuf,
     thrust::device_ptr<unsigned int> num_send(d_num_send);
     size_t num_neigh = thrust::reduce_by_key(keys,
                                              keys + Nsend,
-                                             thrust::constant_iterator<int>(1),
+                                             cuda::constant_iterator<int>(1),
                                              neigh_send,
                                              num_send)
                            .first

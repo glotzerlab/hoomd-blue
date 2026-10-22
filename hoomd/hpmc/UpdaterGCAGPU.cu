@@ -8,13 +8,13 @@
 
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wconversion"
+#include <cuda/iterator>
 #include <thrust/binary_search.h>
 #include <thrust/copy.h>
 #include <thrust/device_ptr.h>
 #include <thrust/execution_policy.h>
 #include <thrust/functional.h>
 #include <thrust/iterator/constant_iterator.h>
-#include <thrust/iterator/counting_iterator.h>
 #include <thrust/iterator/discard_iterator.h>
 #include <thrust/iterator/transform_iterator.h>
 #include <thrust/reduce.h>
@@ -298,7 +298,7 @@ void connected_components(uint2* d_adj,
     auto it = thrust::reduce_by_key(thrust::cuda::par(alloc),
                                     work,
                                     work + nverts,
-                                    thrust::constant_iterator<int>(1),
+                                    cuda::constant_iterator<int>(1),
                                     unique,
                                     thrust::discard_iterator<int>());
 

@@ -287,7 +287,13 @@ std::string ExecutionConfiguration::describeGPU(int id, cudaDeviceProp prop)
     s << setw(4) << prop.multiProcessorCount << " SM_" << prop.major << "." << prop.minor;
 
     // and the clock rate
-    double ghz = double(prop.clockRate) / 1e6;
+    int clockRate = 0;
+#if CUDART_VERSION >= 13000
+    cudaDeviceGetAttribute(&clockRate, cudaDevAttrClockRate, id);
+#else
+    clockRate = prop.clockRate;
+#endif
+    double ghz = double(clockRate) / 1e6;
     s.precision(3);
     s.fill('0');
     s << " @ " << setw(4) << ghz << " GHz";
@@ -332,18 +338,29 @@ void ExecutionConfiguration::scanGPUs()
         // get the device properties
         cudaDeviceProp prop;
         cudaError_t error = cudaGetDeviceProperties(&prop, dev);
-
         if (error != cudaSuccess)
             {
-            std::string message = "Failed to get device properties: ";
-            cudaError_t cuda_error = cudaPeekAtLastError();
-            message += string(cudaGetErrorString(cuda_error));
-            s_gpu_scan_messages.push_back(message);
+            s_gpu_scan_messages.push_back("Failed to get device properties: "
+                                          + string(cudaGetErrorString(error)));
             continue;
             }
 
+        // get compute mode
+        int computeMode = 0;
+#if CUDART_VERSION >= 13000
+        error = cudaDeviceGetAttribute(&computeMode, cudaDevAttrComputeMode, dev);
+        if (error != cudaSuccess)
+            {
+            s_gpu_scan_messages.push_back("Failed to get device compute mode: "
+                                          + string(cudaGetErrorString(error)));
+            continue;
+            }
+#else
+        computeMode = prop.computeMode;
+#endif
+
         // exclude a gpu if it is compute-prohibited
-        if (prop.computeMode == cudaComputeModeProhibited)
+        if (computeMode == cudaComputeModeProhibited)
             {
             ostringstream s;
             s << "The device " << prop.name << " is in a compute prohibited mode.";
@@ -353,13 +370,13 @@ void ExecutionConfiguration::scanGPUs()
 
         // exclude a GPU when it doesn't support mapped memory
         int supports_managed_memory = 0;
-        cudaError_t cuda_error = cudaDeviceGetAttribute(&supports_managed_memory,
-                                                        cudaDevAttrConcurrentManagedAccess,
-                                                        dev);
-        if (cuda_error != cudaSuccess)
+        error = cudaDeviceGetAttribute(&supports_managed_memory,
+                                       cudaDevAttrConcurrentManagedAccess,
+                                       dev);
+        if (error != cudaSuccess)
             {
             s_gpu_scan_messages.push_back("Failed to get device attribute: "
-                                          + string(cudaGetErrorString(cuda_error)));
+                                          + string(cudaGetErrorString(error)));
             continue;
             }
         if (!supports_managed_memory)

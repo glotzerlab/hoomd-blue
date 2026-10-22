@@ -6,10 +6,10 @@
 
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wconversion"
+#include <cuda/iterator>
 #include <cuda_runtime.h>
 #include <thrust/device_ptr.h>
 #include <thrust/execution_policy.h>
-#include <thrust/iterator/constant_iterator.h>
 #include <thrust/scan.h>
 #include <thrust/sort.h>
 #pragma GCC diagnostic pop
@@ -175,7 +175,7 @@ void gpu_update_group_table(const unsigned int n_groups,
 
         // perform a segmented scan of d_scratch_idx
         thrust::device_ptr<unsigned int> offsets(d_offsets);
-        thrust::constant_iterator<unsigned int> const_it(1);
+        cuda::constant_iterator<unsigned int> const_it(1);
         thrust::exclusive_scan_by_key(thrust::cuda::par(alloc),
                                       scratch_idx,
                                       scratch_idx + group_size * n_groups,

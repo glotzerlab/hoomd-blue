@@ -9,6 +9,7 @@
 
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wconversion"
+#include <cuda/iterator>
 #include <thrust/binary_search.h>
 #include <thrust/copy.h>
 #include <thrust/device_ptr.h>
@@ -19,7 +20,6 @@
 #include <thrust/functional.h>
 #include <thrust/gather.h>
 #include <thrust/iterator/constant_iterator.h>
-#include <thrust/iterator/counting_iterator.h>
 #include <thrust/iterator/permutation_iterator.h>
 #include <thrust/reduce.h>
 #include <thrust/scan.h>
@@ -173,7 +173,7 @@ cudaError_t gpu_sort_by_molecule(unsigned int nptl,
     n_local_ptls_in_molecules = (unsigned int)(end - local_molecule_tags);
 
     // gather unique molecule tags, and reduce their lengths by key
-    thrust::constant_iterator<unsigned int> one(1);
+    cuda::constant_iterator<unsigned int> one(1);
 
     // determine temporary storage
     d_temp_storage = NULL;
@@ -403,7 +403,7 @@ cudaError_t gpu_fill_molecule_table(unsigned int nptl,
     auto idx_lookup = thrust::make_permutation_iterator(molecule_order, idx_sorted_by_tag);
 
     // generate ascending index for every molecule
-    thrust::constant_iterator<unsigned int> one(1);
+    cuda::constant_iterator<unsigned int> one(1);
     thrust::exclusive_scan_by_key(thrust::cuda::par(alloc),
                                   local_molecule_tags,
                                   local_molecule_tags + n_local_ptls_in_molecules,

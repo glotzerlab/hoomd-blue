@@ -189,7 +189,10 @@ template<class T> class ManagedArray
         {
         if (managed && ptr)
             {
-            cudaMemAdvise(ptr, sizeof(T) * N, cudaMemAdviseSetReadMostly, 0);
+            cudaMemLocation location;
+            location.type = cudaMemLocationTypeDevice;
+            location.id = 0;
+            cudaMemAdvise(ptr, sizeof(T) * N, cudaMemAdviseSetReadMostly, location);
             }
         }
 #endif
