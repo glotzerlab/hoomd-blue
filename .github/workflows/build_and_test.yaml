@@ -173,6 +173,7 @@ jobs:
         echo "CPATH=${CPATH}" >> "$GITHUB_ENV"
         echo "CUDA_BIN_PATH=${CUDA_BIN_PATH}" >> "$GITHUB_ENV"
         echo "AMD_DEBUG=${AMD_DEBUG}" >> "$GITHUB_ENV"
+        echo "SCALE_ENV=${SCALE_ENV}" >> "$GITHUB_ENV"
 
     - name: Treat warnings as errors
       if: ${{ !inputs.release }}
