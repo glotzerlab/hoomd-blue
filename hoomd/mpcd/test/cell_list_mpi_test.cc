@@ -1111,7 +1111,7 @@ void celllist_edge_test(std::shared_ptr<ExecutionConfiguration> exec_conf,
                                    access_location::host,
                                    access_mode::read);
 
-        int3 cell = make_int3(0,0,0);
+        int3 cell = make_int3(0, 0, 0);
         switch (my_rank)
             {
         case 0:
@@ -1160,7 +1160,7 @@ void celllist_edge_test(std::shared_ptr<ExecutionConfiguration> exec_conf,
                                    access_location::host,
                                    access_mode::read);
 
-        int3 cell = make_int3(0,0,0);
+        int3 cell = make_int3(0, 0, 0);
         switch (my_rank)
             {
         case 0:
@@ -1242,7 +1242,7 @@ void celllist_edge_test(std::shared_ptr<ExecutionConfiguration> exec_conf,
                                    access_location::host,
                                    access_mode::read);
 
-        int3 cell = make_int3(0,0,0);
+        int3 cell = make_int3(0, 0, 0);
         switch (my_rank)
             {
         case 0:
@@ -1292,7 +1292,7 @@ void celllist_edge_test(std::shared_ptr<ExecutionConfiguration> exec_conf,
                                    access_location::host,
                                    access_mode::read);
 
-        int3 cell = make_int3(0,0,0);
+        int3 cell = make_int3(0, 0, 0);
         switch (my_rank)
             {
         case 0:
@@ -1341,7 +1341,7 @@ void celllist_edge_test(std::shared_ptr<ExecutionConfiguration> exec_conf,
                                    access_location::host,
                                    access_mode::read);
 
-        int3 cell = make_int3(0,0,0);
+        int3 cell = make_int3(0, 0, 0);
         switch (my_rank)
             {
         case 0:
