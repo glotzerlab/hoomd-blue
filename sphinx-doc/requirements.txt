@@ -120,7 +120,7 @@ pygments==2.21.0
     #   ipython-pygments-lexers
     #   nbconvert
     #   sphinx
-python-dateutil==2.9.0.post0
+python-dateutil==3.0.0
     # via jupyter-client
 pyzmq==27.2.0
     # via jupyter-client
@@ -140,7 +140,7 @@ six==1.17.0
     # via python-dateutil
 snowballstemmer==3.1.1
     # via sphinx
-soupsieve==3.0.3
+soupsieve==3.0.4
     # via beautifulsoup4
 sphinx==9.2.0
     # via
@@ -198,6 +198,8 @@ typing-extensions==4.16.0
     # via
     #   beautifulsoup4
     #   jupyter-client
+tzdata==2026.5
+    # via python-dateutil
 urllib3==2.8.0
     # via requests
 wcwidth==0.9.3
