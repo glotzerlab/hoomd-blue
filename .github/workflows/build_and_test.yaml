@@ -94,17 +94,13 @@ jobs:
             *)
               echo "Unknown compiler" && exit 1;;
             esac
-        elif [[ "${{ inputs.compiler_family }}" == "rocm" ]]
+        elif [[ "${{ inputs.compiler_family }}" == "scale-amd" ]]
         then
-          echo "rocm=rocm${{ inputs.compiler_version }}" >> "$GITHUB_OUTPUT"
-
           case "${{ inputs.compiler_version }}" in
-            72)
-              echo "image=rocm/dev-ubuntu-24.04:7.2-complete" >> "$GITHUB_OUTPUT";;
-            71)
-              echo "image=rocm/dev-ubuntu-24.04:7.1.1-complete" >> "$GITHUB_OUTPUT";;
-            64)
-              echo "image=rocm/dev-ubuntu-24.04:6.4.2-complete" >> "$GITHUB_OUTPUT";;
+            130)
+              echo "image=spectralcompute/scale:13.0.2-devel-ubuntu24.04" >> "$GITHUB_OUTPUT";;
+            121)
+              echo "image=spectralcompute/scale:12.1.0-devel-ubuntu24.04" >> "$GITHUB_OUTPUT";;
             *)
               echo "Unknown compiler" && exit 1;;
             esac
@@ -118,6 +114,7 @@ jobs:
     runs-on: ${{ fromJson(inputs.build_runner) }}
     container:
       image: ${{ needs.prepare.outputs.image }}
+      options: -e SCALE_LICENSE_ACCEPT=1
 
     steps:
     - name: "Show inputs"
@@ -127,7 +124,7 @@ jobs:
     - name: Clean HOME
       run: ( shopt -s dotglob nullglob; rm -rf $HOME/* )
     - name: Install git
-      if: ${{ startsWith(needs.prepare.outputs.image, 'nvidia') || startsWith(needs.prepare.outputs.image, 'rocm') }}
+      if: ${{ startsWith(needs.prepare.outputs.image, 'nvidia') || startsWith(needs.prepare.outputs.image, 'spectralcompute') }}
       run: |
         apt-get update
         apt-get install git --yes
@@ -158,6 +155,25 @@ jobs:
         echo "CC='clang'-${{ inputs.compiler_version }}" >> "$GITHUB_ENV"
         echo "CXX='clang++'-${{ inputs.compiler_version }}" >> "$GITHUB_ENV"
 
+    - name: Set GPU target (SCALE)
+      if: ${{ inputs.compiler_family == 'scale-amd' }}
+      run: |
+        source /opt/scale/bin/scaleenv gfx${{ inputs.config[5] }}
+        echo "CUDA_DIR=${CUDA_DIR}" >> "$GITHUB_ENV"
+        echo "CUDA_HOME=${CUDA_HOME}" >> "$GITHUB_ENV"
+        echo "CUDA_PATH=${CUDA_PATH}" >> "$GITHUB_ENV"
+        echo "CUDA_ROOT=${CUDA_ROOT}" >> "$GITHUB_ENV"
+        echo "CUDA_CXX=${CUDA_CXX}" >> "$GITHUB_ENV"
+        echo "CUDACXX=${CUDACXX}" >> "$GITHUB_ENV"
+        echo "CUCC=${CUCC}" >> "$GITHUB_ENV"
+        echo "CUDA_INC_DIR=${CUDA_INC_DIR}" >> "$GITHUB_ENV"
+        echo "PATH=${PATH}" >> "$GITHUB_ENV"
+        echo "LD_LIBRARY_PATH=${LD_LIBRARY_PATH}" >> "$GITHUB_ENV"
+        echo "LIBRARY_PATH=${LIBRARY_PATH}" >> "$GITHUB_ENV"
+        echo "CPATH=${CPATH}" >> "$GITHUB_ENV"
+        echo "CUDA_BIN_PATH=${CUDA_BIN_PATH}" >> "$GITHUB_ENV"
+        echo "AMD_DEBUG=${AMD_DEBUG}" >> "$GITHUB_ENV"
+
     - name: Treat warnings as errors
       if: ${{ !inputs.release }}
       run: |
@@ -174,19 +190,16 @@ jobs:
                                -DBUILD_MD=${BUILD_MD:-"ON"} \
                                -DBUILD_MPCD=${BUILD_MPCD:-"ON"} \
                                -DBUILD_HPMC=${BUILD_HPMC:-"ON"} \
-                               -DHOOMD_GPU_PLATFORM=${HOOMD_GPU_PLATFORM} \
                                -DCMAKE_CUDA_ARCHITECTURES="80" \
                                -DCMAKE_INSTALL_PREFIX=${GITHUB_WORKSPACE}/install \
                                -DPLUGINS=""
       env:
-        ENABLE_GPU: ${{ contains(inputs.config, 'cuda') || contains(inputs.config, 'rocm') }}
+        ENABLE_GPU: ${{ contains(inputs.config, 'cuda') || contains(inputs.config, 'scale-amd') }}
         ENABLE_MPI: ${{ contains(inputs.config, 'mpi') }}
         BUILD_MD: ${{ !contains(inputs.config, 'nomd') }}
-        BUILD_MPCD: ${{ !contains(inputs.config, 'nomd') && inputs.compiler_family != 'rocm' }}
+        BUILD_MPCD: ${{ !contains(inputs.config, 'nomd') }}
         BUILD_HPMC: ${{ !contains(inputs.config, 'nohpmc') }}
         BUILD_DEBUG: ${{ contains(inputs.config, 'debug') }}
-        HOOMD_GPU_PLATFORM: ${{ inputs.compiler_family == 'rocm' && 'HIP' || 'CUDA' }}
-        CMAKE_PREFIX_PATH: /opt/rocm-7.2.0:/opt/rocm-7.1.1:/opt/rocm-6.4.2
 
     - name: Build
       run: ninja install -j $(($(getconf _NPROCESSORS_ONLN) + 2)) -k 0
@@ -216,7 +229,7 @@ jobs:
 
   test:
     needs: [prepare, build]
-    if: ${{ inputs.compiler_family != 'rocm' }}
+    if: ${{ inputs.compiler_family != 'scale-amd' }}
     runs-on: ${{ fromJson(needs.prepare.outputs.test_runner) }}
     container:
       image: ${{ needs.prepare.outputs.image }}

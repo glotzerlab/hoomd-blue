@@ -66,10 +66,9 @@ jobs:
         - config: [cuda, 129, -py, 311, -mpi]
           validate: true
 
-        # rocm not currently supported
-        # - config: [rocm, 72, -py, 313]
-        # - config: [rocm, 71, -py, 313]
-        # - config: [rocm, 64, -py, 313]
+        # Build for AMD GPUs with SCALE
+        - config: [scale-amd, 130, -py, 315, -gfx, 90a, -mpi]
+        - config: [scale-amd, 121, -py, 315, -gfx, 90a, -mpi]
 
   release:
     if: ${{ contains(github.event.pull_request.labels.*.name, 'release') }}
