@@ -14,7 +14,11 @@
 
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wconversion"
+#if CUDART_VERSION >= 13400
 #include <cuda/iterator>
+#else
+#include <thrust/iterator/constant_iterator.h>
+#endif
 #include <thrust/device_ptr.h>
 #include <thrust/functional.h>
 #include <thrust/reduce.h>
@@ -224,13 +228,14 @@ size_t mpcd::gpu::sort_comm_send_buffer(mpcd::detail::pdata_element* d_sendbuf,
     // run length encode to get the number going to each rank
     thrust::device_ptr<unsigned int> neigh_send(d_neigh_send);
     thrust::device_ptr<unsigned int> num_send(d_num_send);
-    size_t num_neigh = thrust::reduce_by_key(keys,
-                                             keys + Nsend,
-                                             cuda::constant_iterator<int>(1),
-                                             neigh_send,
-                                             num_send)
-                           .first
-                       - neigh_send;
+#if CUDART_VERSION >= 13400
+    cuda::constant_iterator<int> const_one_it(1);
+#else
+    thrust::constant_iterator<int> const_one_it(1);
+#endif
+    size_t num_neigh
+        = thrust::reduce_by_key(keys, keys + Nsend, const_one_it, neigh_send, num_send).first
+          - neigh_send;
 
     return num_neigh;
     }

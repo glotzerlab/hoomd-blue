@@ -9,7 +9,11 @@
 
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wconversion"
+#if CUDART_VERSION >= 13400
 #include <cuda/iterator>
+#else
+#include <thrust/iterator/constant_iterator.h>
+#endif
 #include <thrust/binary_search.h>
 #include <thrust/copy.h>
 #include <thrust/device_ptr.h>
@@ -173,7 +177,11 @@ cudaError_t gpu_sort_by_molecule(unsigned int nptl,
     n_local_ptls_in_molecules = (unsigned int)(end - local_molecule_tags);
 
     // gather unique molecule tags, and reduce their lengths by key
+#if CUDART_VERSION >= 13400
     cuda::constant_iterator<unsigned int> one(1);
+#else
+    thrust::constant_iterator<unsigned int> one(1);
+#endif
 
     // determine temporary storage
     d_temp_storage = NULL;
@@ -403,7 +411,11 @@ cudaError_t gpu_fill_molecule_table(unsigned int nptl,
     auto idx_lookup = thrust::make_permutation_iterator(molecule_order, idx_sorted_by_tag);
 
     // generate ascending index for every molecule
+#if CUDART_VERSION >= 13400
     cuda::constant_iterator<unsigned int> one(1);
+#else
+    thrust::constant_iterator<unsigned int> one(1);
+#endif
     thrust::exclusive_scan_by_key(thrust::cuda::par(alloc),
                                   local_molecule_tags,
                                   local_molecule_tags + n_local_ptls_in_molecules,
