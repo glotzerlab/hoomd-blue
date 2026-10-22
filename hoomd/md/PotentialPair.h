@@ -379,7 +379,11 @@ PotentialPair<evaluator>::PotentialPair(std::shared_ptr<SystemDefinition> sysdef
                       m_params.size() * sizeof(param_type),
                       cudaMemAdviseSetReadMostly,
                       location);
+#if CUDART_VERSION >= 13000
         cudaMemPrefetchAsync(m_params.data(), sizeof(param_type) * m_params.size(), location, 0);
+#else
+        cudaMemPrefetchAsync(m_params.data(), sizeof(param_type) * m_params.size(), location.id, 0);
+#endif
         }
 #endif
 

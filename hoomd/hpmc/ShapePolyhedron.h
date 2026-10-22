@@ -54,7 +54,8 @@ namespace detail
 */
 struct TriangleMesh : ShapeParams
     {
-    TriangleMesh() : face_verts(), face_overlap(), n_faces(0), ignore(0) { };
+    TriangleMesh()
+        : n_verts(0), n_faces(0), ignore(0), hull_only(0), sweep_radius(0), diameter(0) { };
 
 #ifndef __NVCC__
     /** Initialize with a given number of vertices and vaces
@@ -63,7 +64,8 @@ struct TriangleMesh : ShapeParams
                  unsigned int n_faces_,
                  unsigned int n_face_verts_,
                  bool managed)
-        : n_verts(n_verts_), n_faces(n_faces_), hull_only(0), sweep_radius(0), diameter(0.0)
+        : n_verts(n_verts_), n_faces(n_faces_), ignore(0), hull_only(0), sweep_radius(0),
+          diameter(0.0)
         {
         verts = ManagedArray<vec3<ShortReal>>(n_verts, managed);
         face_offs = ManagedArray<unsigned int>(n_faces + 1, managed);
