@@ -67,8 +67,10 @@ jobs:
           validate: true
 
         # Build for AMD GPUs with SCALE
-        - config: [scale-amd, 130, -py, 315, -gfx, 90a, -mpi]
-        - config: [scale-amd, 121, -py, 315, -gfx, 90a, -mpi]
+        - config: [scale-amd, 130, -py, 315]
+        - config: [scale-amd, 121, -py, 315]
+        - config: [scale-amd, 130, -py, 315, -mpi]
+        - config: [scale-amd, 121, -py, 315, -mpi]
 
   release:
     if: ${{ contains(github.event.pull_request.labels.*.name, 'release') }}
