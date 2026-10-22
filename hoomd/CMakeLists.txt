@@ -268,6 +268,12 @@ target_compile_definitions(_hoomd PUBLIC HOOMD_LONGREAL_SIZE=${HOOMD_LONGREAL_SI
 if (ENABLE_GPU)
     target_link_libraries(_hoomd PUBLIC CUDA::cudart CUDA::cufft)
     target_compile_definitions(_hoomd PUBLIC ENABLE_GPU)
+
+    string(REPLACE "." ";" _cuda_version_list ${CMAKE_CUDA_COMPILER_VERSION})
+    list(GET _cuda_version_list 0 _cuda_version_major)
+    list(GET _cuda_version_list 1 _cuda_version_minor)
+    target_compile_definitions(_hoomd PUBLIC __SCALE_CUDA_VER_MAJOR__=${_cuda_version_major})
+    target_compile_definitions(_hoomd PUBLIC __SCALE_CUDA_VER_MINOR__=${_cuda_version_minor})
 endif()
 
 # Libraries and compile definitions for MPI enabled builds
