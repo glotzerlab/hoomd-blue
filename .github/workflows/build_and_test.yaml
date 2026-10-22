@@ -158,7 +158,7 @@ jobs:
     - name: Set GPU target (SCALE)
       if: ${{ inputs.compiler_family == 'scale-amd' }}
       run: |
-        source /opt/scale/bin/scaleenv gfx${{ inputs.config[5] }}
+        source /opt/scale/bin/scaleenv gfx90a
         echo "CUDA_DIR=${CUDA_DIR}" >> "$GITHUB_ENV"
         echo "CUDA_HOME=${CUDA_HOME}" >> "$GITHUB_ENV"
         echo "CUDA_PATH=${CUDA_PATH}" >> "$GITHUB_ENV"
