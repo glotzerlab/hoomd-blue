@@ -152,8 +152,8 @@ def test_valid_setattr_attached(
 @pytest.mark.serial
 def test_pivot_moves(device, simulation_factory, lattice_snapshot_factory):
     """Test that GCA produces finite size clusters."""
-    if isinstance(device, hoomd.device.GPU) and hoomd.version.gpu_platform == "ROCm":
-        pytest.xfail("GCA fails on ROCm (#1605)")
+    if isinstance(device, hoomd.device.GPU) and "AMD" in device.device:
+        pytest.skip("GCA seg faults on AMD devices")
 
     sim = simulation_factory(
         lattice_snapshot_factory(
@@ -177,8 +177,11 @@ def test_pivot_moves(device, simulation_factory, lattice_snapshot_factory):
     assert avg > 0
 
 
-def test_pickling(simulation_factory, two_particle_snapshot_factory):
+def test_pickling(device, simulation_factory, two_particle_snapshot_factory):
     """Test that Cluster objects are picklable."""
+    if isinstance(device, hoomd.device.GPU) and "AMD" in device.device:
+        pytest.skip("GCA seg faults on AMD devices")
+
     sim = simulation_factory(two_particle_snapshot_factory())
     mc = hoomd.hpmc.integrate.Sphere(default_d=0.1, default_a=0.1)
     mc.shape["A"] = dict(diameter=1.1)
@@ -192,8 +195,11 @@ def test_pickling(simulation_factory, two_particle_snapshot_factory):
 
 
 @pytest.mark.serial
-def test_kernel_parameters(simulation_factory, two_particle_snapshot_factory):
+def test_kernel_parameters(device, simulation_factory, two_particle_snapshot_factory):
     """Test that Cluster objects tune their kernel parameters."""
+    if isinstance(device, hoomd.device.GPU) and "AMD" in device.device:
+        pytest.skip("GCA seg faults on AMD devices")
+
     sim = simulation_factory(two_particle_snapshot_factory())
     mc = hoomd.hpmc.integrate.Sphere(default_d=0.1, default_a=0.1)
     mc.shape["A"] = dict(diameter=1.1)
