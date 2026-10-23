@@ -1099,9 +1099,14 @@ def test_force_energy_accuracy(
         sim_energies = sim.operations.integrator.forces[0].energies
         sim_forces = sim.operations.integrator.forces[0].forces
         if sim_energies is not None:
-            assert isclose(sum(sim_energies), forces_and_energies.energies[i], rtol=1e-4)
+            assert isclose(
+                sum(sim_energies), forces_and_energies.energies[i], rtol=1e-4
+            )
             assert np.allclose(
-                sim_forces[0], forces_and_energies.forces[i] * r, equal_nan=True, rtol=1e-4
+                sim_forces[0],
+                forces_and_energies.forces[i] * r,
+                equal_nan=True,
+                rtol=1e-4,
             )
 
 
