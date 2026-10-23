@@ -1180,7 +1180,8 @@ Communicator::Communicator(std::shared_ptr<SystemDefinition> sysdef,
     : m_sysdef(sysdef), m_pdata(sysdef->getParticleData()), m_meshdef(NULL),
       m_exec_conf(m_pdata->getExecConf()), m_mpi_comm(m_exec_conf->getMPICommunicator()),
       m_decomposition(decomposition), m_is_communicating(false), m_force_migrate(false),
-      m_nneigh(0), m_n_unique_neigh(0), m_pos_copybuf(m_exec_conf), m_charge_copybuf(m_exec_conf),
+      m_nneigh(0), m_n_unique_neigh(0), m_pos_copybuf(m_exec_conf),
+      m_ghost_array_sendbuf(m_exec_conf), m_charge_copybuf(m_exec_conf),
       m_diameter_copybuf(m_exec_conf), m_body_copybuf(m_exec_conf), m_image_copybuf(m_exec_conf),
       m_velocity_copybuf(m_exec_conf), m_orientation_copybuf(m_exec_conf),
       m_angmom_copybuf(m_exec_conf), m_inertia_copybuf(m_exec_conf), m_plan_copybuf(m_exec_conf),
@@ -3001,6 +3002,89 @@ void Communicator::beginUpdateGhosts(uint64_t timestep)
                 }
             }
 
+        } // end dir loop
+    }
+
+//! Forward a per-particle array from owned particles to their ghost copies
+void Communicator::updateGhostArray(GPUArray<Scalar4>& data)
+    {
+    m_exec_conf->msg->notice(7) << "Communicator: update ghost array" << std::endl;
+
+    if (data.getNumElements() < m_pdata->getN() + m_pdata->getNGhosts())
+        {
+        throw std::runtime_error("Array passed to updateGhostArray() is too small for the "
+                                 "local particles and ghosts.");
+        }
+
+    unsigned int num_tot_recv_ghosts = 0; // total number of ghosts received
+
+    for (unsigned int dir = 0; dir < 6; dir++)
+        {
+        if (!isCommunicating(dir))
+            continue;
+
+        // copy the data of the ghosts to send into the send buffer. Ghosts received in a
+        // previous stage are written to the array below and can be forwarded here.
+        m_ghost_array_sendbuf.resize(m_num_copy_ghosts[dir]);
+            {
+            ArrayHandle<Scalar4> h_data(data, access_location::host, access_mode::read);
+            ArrayHandle<unsigned int> h_copy_ghosts(m_copy_ghosts[dir],
+                                                    access_location::host,
+                                                    access_mode::read);
+            ArrayHandle<unsigned int> h_rtag(m_pdata->getRTags(),
+                                             access_location::host,
+                                             access_mode::read);
+            ArrayHandle<Scalar4> h_sendbuf(m_ghost_array_sendbuf,
+                                           access_location::host,
+                                           access_mode::overwrite);
+
+            for (unsigned int ghost_idx = 0; ghost_idx < m_num_copy_ghosts[dir]; ghost_idx++)
+                {
+                unsigned int idx = h_rtag.data[h_copy_ghosts.data[ghost_idx]];
+
+                assert(idx < m_pdata->getN() + m_pdata->getNGhosts());
+
+                h_sendbuf.data[ghost_idx] = h_data.data[idx];
+                }
+            }
+
+        unsigned int send_neighbor = m_decomposition->getNeighborRank(dir);
+
+        // we receive from the direction opposite to the one we send to
+        unsigned int recv_neighbor;
+        if (dir % 2 == 0)
+            recv_neighbor = m_decomposition->getNeighborRank(dir + 1);
+        else
+            recv_neighbor = m_decomposition->getNeighborRank(dir - 1);
+
+        unsigned int start_idx = m_pdata->getN() + num_tot_recv_ghosts;
+        num_tot_recv_ghosts += m_num_recv_ghosts[dir];
+
+
+        m_reqs.resize(2);
+        m_stats.resize(2);
+
+        ArrayHandle<Scalar4> h_data(data, access_location::host, access_mode::readwrite);
+        ArrayHandle<Scalar4> h_sendbuf(m_ghost_array_sendbuf,
+                                       access_location::host,
+                                       access_mode::read);
+
+        // exchange the data, write directly to the ghost entries of the array
+        MPI_Isend(h_sendbuf.data,
+                  (unsigned int)(m_num_copy_ghosts[dir] * sizeof(Scalar4)),
+                  MPI_BYTE,
+                  send_neighbor,
+                  5,
+                  m_mpi_comm,
+                  &m_reqs[0]);
+        MPI_Irecv(h_data.data + start_idx,
+                  (unsigned int)(m_num_recv_ghosts[dir] * sizeof(Scalar4)),
+                  MPI_BYTE,
+                  recv_neighbor,
+                  5,
+                  m_mpi_comm,
+                  &m_reqs[1]);
+        MPI_Waitall(2, &m_reqs.front(), &m_stats.front());
         } // end dir loop
     }
 
