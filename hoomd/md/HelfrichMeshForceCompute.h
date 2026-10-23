@@ -78,6 +78,21 @@ class PYBIND11_EXPORT HelfrichMeshForceCompute : public MeshForceCompute
     Scalar3 m_sigma_dash_diff_c;
     Scalar3 m_sigma_dash_diff_d;
 
+    //! Make sure the per-particle sigma arrays hold the local and the ghost particles
+    void resizeSigmaArrays();
+
+    //! Forward sigma and sigma_dash of the local particles to their ghost copies (MPI only)
+    /*! The force on a particle needs sigma of the particles opposite to its bonds, which are
+        ghosts when they belong to another rank. Their sigma depends on bonds that are not stored
+        on this rank, so it is computed by the owning rank and communicated.
+    */
+    void communicateSigma();
+
+#ifdef ENABLE_MPI
+    std::shared_ptr<Communicator> m_comm; //!< The communicator, set if domain decomposed
+    GPUArray<Scalar4> m_sigma_comm;       //!< Buffer holding (sigma_dash, sigma) for communication
+#endif
+
     //! Actually compute the forces
     void computeForces(uint64_t timestep) override;
 
