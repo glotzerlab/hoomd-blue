@@ -308,17 +308,18 @@ void HelfrichMeshForceCompute::computeForces(uint64_t timestep)
         dsigma_c = (dsigma_hat_ac * rsqac + dsigma_hat_bc * rsqbc) / 4;
         dsigma_d = (dsigma_hat_ad * rsqad + dsigma_hat_bd * rsqbd) / 4;
 
-        /* sigma_dash . d(sigma_dash)/d(dab) for each vertex of the triangle pair. Since sigma_dash 
-	   is a vector, its derivative is a matrix. Multiplying it by sigma_dash gives 
-           sigma_hat * sigma_dash plus + (sigma_dash . d_xy) * grad(sigma_hat) for every weight that 
-           depends on dab.
-	*/
+        // sigma_dash . d(sigma_dash)/d(dab) for each vertex of the triangle pair. Since sigma_dash
+        // is a vector, its derivative is a matrix. Multiplying it by sigma_dash gives
+        // sigma_hat * sigma_dash plus (sigma_dash . d_xy) * grad(sigma_hat) for every weight that
+        // depends on dab.
         Scalar3 g_a = sigma_hat_ab * sigma_dash_a + dot(sigma_dash_a, dac) * dsigma_hat_ac
                       + dot(sigma_dash_a, dad) * dsigma_hat_ad;
         Scalar3 g_b = -sigma_hat_ab * sigma_dash_b + dot(sigma_dash_b, dbc) * dsigma_hat_bc
                       + dot(sigma_dash_b, dbd) * dsigma_hat_bd;
-        Scalar3 g_c = -dot(sigma_dash_c, dac) * dsigma_hat_ac - dot(sigma_dash_c, dbc) * dsigma_hat_bc;
-        Scalar3 g_d = -dot(sigma_dash_d, dad) * dsigma_hat_ad - dot(sigma_dash_d, dbd) * dsigma_hat_bd;
+        Scalar3 g_c
+            = -dot(sigma_dash_c, dac) * dsigma_hat_ac - dot(sigma_dash_c, dbc) * dsigma_hat_bc;
+        Scalar3 g_d
+            = -dot(sigma_dash_d, dad) * dsigma_hat_ad - dot(sigma_dash_d, dbd) * dsigma_hat_bd;
 
         Scalar inv_sigma_a = 1.0 / sigma_a;
         Scalar inv_sigma_b = 1.0 / sigma_b;

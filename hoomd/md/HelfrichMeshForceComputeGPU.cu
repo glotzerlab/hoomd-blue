@@ -453,8 +453,10 @@ __global__ void gpu_compute_helfrich_force_kernel(Scalar4* d_force,
                       + dot(sigma_dash_a, dad) * dsigma_hat_ad;
         Scalar3 g_b = -sigma_hat_ab * sigma_dash_b + dot(sigma_dash_b, dbc) * dsigma_hat_bc
                       + dot(sigma_dash_b, dbd) * dsigma_hat_bd;
-        Scalar3 g_c = -dot(sigma_dash_c, dac) * dsigma_hat_ac - dot(sigma_dash_c, dbc) * dsigma_hat_bc;
-        Scalar3 g_d = -dot(sigma_dash_d, dad) * dsigma_hat_ad - dot(sigma_dash_d, dbd) * dsigma_hat_bd;
+        Scalar3 g_c
+            = -dot(sigma_dash_c, dac) * dsigma_hat_ac - dot(sigma_dash_c, dbc) * dsigma_hat_bc;
+        Scalar3 g_d
+            = -dot(sigma_dash_d, dad) * dsigma_hat_ad - dot(sigma_dash_d, dbd) * dsigma_hat_bd;
 
         Scalar K = __ldg(d_params + cur_bond_type);
 
