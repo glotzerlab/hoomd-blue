@@ -967,13 +967,6 @@ def test_force_energy_relationship(
             "Cannot test force energy relationship for " + pot_name + " pair force"
         )
 
-    if (
-        pot_name == "Tersoff"
-        and isinstance(device, hoomd.device.GPU)
-        and hoomd.version.gpu_platform == "ROCm"
-    ):
-        pytest.skip("Tersoff causes seg faults on ROCm (#1606).")
-
     pair_keys = valid_params.pair_potential_params.keys()
     particle_types = list(set(itertools.chain.from_iterable(pair_keys)))
     pot = valid_params.pair_potential(

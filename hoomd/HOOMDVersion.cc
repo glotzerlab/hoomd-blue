@@ -102,15 +102,6 @@ std::string BuildInfo::getGPUAPIVersion()
 #endif
     }
 
-std::string BuildInfo::getGPUPlatform()
-    {
-#if ENABLE_GPU
-    return std::string("CUDA");
-#else
-    return "";
-#endif
-    }
-
 std::string BuildInfo::getCXXCompiler()
     {
 #if defined(__GNUC__) && !(defined(__clang__) || defined(__INTEL_COMPILER))
