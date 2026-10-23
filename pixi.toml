@@ -21,7 +21,7 @@ pytest = "*"
 rowan = "*"
 sybil = "*"
 bump-my-version = "*"
-libpython = ">=3.11.17,<4"
+libpython = "*"
 
 [feature.py311.dependencies]
 python = "3.11.*"
