@@ -156,26 +156,7 @@ def get_mesh_potential_args_forces_and_energies():
         [[0.0, 0.0, 0.0], [0.0, 0.0, 0.0], [0.0, 0.0, 0.0], [0.0, 0.0, 0.0]],
     ]
     BendingRigidity_energies = [8, 40, 1200]
-    Helfrich_forces = [
-        [
-            [-12.710842, 0.0, 8.987922],
-            [12.710842, 0.0, 8.987922],
-            [0.0, -12.710842, -8.987922],
-            [0.0, 12.710842, -8.987922],
-        ],
-        [
-            [-254.216837, 0.0, 179.758449],
-            [254.216837, 0.0, 179.758449],
-            [0.0, -254.216837, -179.758449],
-            [0.0, 254.216837, -179.758449],
-        ],
-        [
-            [-1271.084184, 0.0, 898.792246],
-            [1271.084184, 0.0, 898.792246],
-            [0.0, -1271.084184, -898.792246],
-            [0.0, 1271.084184, -898.792246],
-        ],
-    ]
+    Helfrich_forces = [[[0.0, 0.0, 0.0]] * 4] * 3
     Helfrich_energies = [9.237604, 184.752086, 923.760431]
 
     AreaConservation_forces = [
@@ -654,3 +635,71 @@ def test_helfrich_mpi_error(simulation_factory, tetrahedron_snapshot_factory):
     if sim.device.communicator.num_ranks > 1:
         with pytest.raises(NotImplementedError):
             sim.run(0)
+
+
+def _helfrich_energy(x, triangles, k):
+    """Reference Helfrich energy k/2 sum_i |sigma'_i|^2 / sigma_i (cotangent weights)."""
+    cot = {}
+    for tri in triangles:
+        for i in range(3):
+            c, a, b = tri[i], tri[(i + 1) % 3], tri[(i + 2) % 3]
+            u, w = x[a] - x[c], x[b] - x[c]
+            key = tuple(sorted((a, b)))
+            cot[key] = cot.get(key, 0.0) + u @ w / np.linalg.norm(np.cross(u, w))
+    sigma = np.zeros(len(x))
+    sigma_dash = np.zeros((len(x), 3))
+    for (a, b), c in cot.items():
+        weight = c / 2
+        dab = x[a] - x[b]
+        sigma[a] += weight * dab @ dab / 4
+        sigma[b] += weight * dab @ dab / 4
+        sigma_dash[a] += weight * dab
+        sigma_dash[b] -= weight * dab
+    return 0.5 * k * np.sum(np.einsum("ij,ij->i", sigma_dash, sigma_dash) / sigma)
+
+
+def test_helfrich_forces_finite_difference(
+    tetrahedron_snapshot_factory, simulation_factory
+):
+    """Forces of a distorted tetrahedron are minus the gradient of the energy."""
+    k = 7.0
+    triangles = [[2, 1, 0], [0, 1, 3], [2, 0, 3], [1, 2, 3]]
+    snap = tetrahedron_snapshot_factory(d=0.969, L=5)
+    rng = np.random.default_rng(42)
+    if snap.communicator.rank == 0:
+        snap.particles.position[:] += rng.normal(scale=0.05, size=(4, 3))
+        positions = np.array(snap.particles.position)
+    sim = simulation_factory(snap)
+
+    mesh = hoomd.mesh.Mesh()
+    mesh.triangulation = dict(type_ids=[0] * 4, triangles=triangles)
+    helfrich = hoomd.md.mesh.bending.Helfrich(mesh)
+    helfrich.params["mesh"] = dict(k=k)
+    _skip_if_helfrich_mpi(sim, hoomd.md.mesh.bending.Helfrich)
+
+    integrator = hoomd.md.Integrator(dt=0.005)
+    integrator.forces.append(helfrich)
+    langevin = hoomd.md.methods.Langevin(
+        kT=1, filter=hoomd.filter.All(), default_gamma=0.1
+    )
+    integrator.methods.append(langevin)
+    sim.operations.integrator = integrator
+    sim.run(0)
+
+    if sim.device.communicator.rank == 0:
+        assert helfrich.energy == pytest.approx(
+            _helfrich_energy(positions, triangles, k), rel=1e-6
+        )
+        eps = 1e-6
+        expected = np.zeros((4, 3))
+        for i in range(4):
+            for j in range(3):
+                plus, minus = positions.copy(), positions.copy()
+                plus[i, j] += eps
+                minus[i, j] -= eps
+                expected[i, j] = -(
+                    _helfrich_energy(plus, triangles, k)
+                    - _helfrich_energy(minus, triangles, k)
+                ) / (2 * eps)
+        assert np.linalg.norm(expected) > 1.0
+        np.testing.assert_allclose(helfrich.forces, expected, rtol=1e-4, atol=1e-5)
