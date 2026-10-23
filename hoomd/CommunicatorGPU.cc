@@ -3500,6 +3500,12 @@ void CommunicatorGPU::finishUpdateGhosts(uint64_t timestep)
     }
 
 //! Perform ghosts update
+void CommunicatorGPU::updateGhostArray(GPUArray<Scalar4>& data)
+    {
+    throw std::runtime_error("updateGhostArray() is not yet implemented for GPU domain "
+                             "decomposition.");
+    }
+
 void CommunicatorGPU::updateNetForce(uint64_t timestep)
     {
     CommFlags flags = getFlags();
