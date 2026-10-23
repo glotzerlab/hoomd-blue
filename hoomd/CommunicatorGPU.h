@@ -66,6 +66,13 @@ class PYBIND11_EXPORT CommunicatorGPU : public Communicator
      * \parm timestep The time step
      */
     virtual void updateNetForce(uint64_t timestep);
+
+    /*! Forward a per-particle array to the ghost copies
+     *
+     * \param data Array indexed like the particle data, with at least N + NGhosts entries.
+     *             Entries [0, N) are sent, entries [N, N + NGhosts) are overwritten.
+     */
+    virtual void updateGhostArray(GPUArray<Scalar4>& data);
     //@}
 
     //! Set maximum number of communication stages
