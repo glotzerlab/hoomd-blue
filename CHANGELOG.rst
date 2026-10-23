@@ -19,6 +19,7 @@ Next release
 
 *Fixed*
 
+* Fixed buf in calculating Helfrich forces (#??).
 
 7.2.0 (2026-09-22)
 ^^^^^^^^^^^^^^^^^^^^
