@@ -5,7 +5,7 @@
 #include <memory>
 
 // need to declare these class methods with __device__ qualifiers when building in nvcc
-#ifdef __HIPCC__
+#ifdef __NVCC__
 #define DEVICE __device__
 #define HOSTDEVICE __host__ __device__
 #else
@@ -13,7 +13,7 @@
 #define HOSTDEVICE
 #endif
 
-#ifndef __HIPCC__
+#ifndef __NVCC__
 #include <pybind11/numpy.h>
 #include <pybind11/pybind11.h>
 #endif
@@ -64,7 +64,7 @@ class EvaluatorPairTable
             F_table.allocate_shared(ptr, available_bytes);
             }
 
-#ifdef ENABLE_HIP
+#ifdef ENABLE_GPU
         //! Attach managed memory to CUDA stream
         void set_memory_hint() const
             {
@@ -73,7 +73,7 @@ class EvaluatorPairTable
             }
 #endif
 
-#ifndef __HIPCC__
+#ifndef __NVCC__
         param_type() : rmin(0.0) { }
 
         param_type(pybind11::dict v, bool managed = false)
@@ -203,7 +203,7 @@ class EvaluatorPairTable
         return 0;
         }
 
-#ifndef __HIPCC__
+#ifndef __NVCC__
     //! Get the name of this potential
     /*! \returns The potential name.
      */

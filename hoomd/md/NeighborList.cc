@@ -1902,7 +1902,7 @@ void export_LocalNeighborListDataHost(pybind11::module& m)
     export_LocalNeighborListData<HOOMDHostBuffer>(m, "LocalNeighborListDataHost");
     };
 
-#if ENABLE_HIP
+#if ENABLE_GPU
 void export_LocalNeighborListDataGPU(pybind11::module& m)
     {
     export_LocalNeighborListData<HOOMDDeviceBuffer>(m, "LocalNeighborListDataDevice");

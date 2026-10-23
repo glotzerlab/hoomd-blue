@@ -13,7 +13,7 @@
 
 namespace hoomd
     {
-#ifdef __HIPCC__
+#ifdef __NVCC__
 //! Sentinel value
 const unsigned int GROUP_NOT_LOCAL = 0xffffffff;
 

@@ -126,21 +126,6 @@ Install additional packages needed to build the documentation:
 
 - **NVIDIA CUDA Toolkit**
 
-  *OR*
-
-- AMD ROCm
-- HIP [with ``hipcc`` and ``hcc`` as backend]
-- rocFFT
-- rocPRIM
-- rocThrust
-- hipCUB
-- roctracer-dev
-
-.. note::
-
-    When ``ENABLE_GPU=on``, HOOMD-blue will default to CUDA. Set ``HOOMD_GPU_PLATFORM=HIP`` to
-    choose HIP.
-
 **To build the documentation:**
 
 - **sphinx**
@@ -202,7 +187,7 @@ these options on the command line.
   - Default: ``python3.x`` found by `CMake's FindPython
     <https://cmake.org/cmake/help/latest/module/FindPython.html>`__.
 
-- ``CMAKE_CUDA_COMPILER`` - Specify which ``nvcc`` or ``hipcc`` to build with.
+- ``CMAKE_CUDA_COMPILER`` - Specify which ``nvcc`` to build with.
 
   - Default: location of ``nvcc`` detected on ``$PATH``.
 
@@ -218,7 +203,6 @@ Other option changes take effect at any time:
 
 - ``BUILD_HPMC`` - When enabled, build the ``hoomd.hpmc`` module (default: ``on``).
 - ``BUILD_MD`` - When enabled, build the ``hoomd.md`` module (default: ``on``).
-- ``BUILD_METAL`` - When enabled, build the ``hoomd.metal`` module (default: ``on``).
 - ``BUILD_MPCD`` - When enabled, build the ``hoomd.mpcd`` module. ``hoomd.md`` must also be built.
   (default: same as ``BUILD_MD``).
 - ``BUILD_TESTING`` - When enabled, build unit tests (default: ``on``).
@@ -234,7 +218,6 @@ Other option changes take effect at any time:
 - ``CMAKE_INSTALL_PREFIX`` - Directory to install **HOOMD-blue**. Defaults to the root path of the
   found Python executable.
 - ``ENABLE_GPU`` - When enabled, compiled GPU accelerated computations (default: ``off``).
-- ``HOOMD_GPU_PLATFORM`` - Choose either ``CUDA`` or ``HIP`` as a GPU backend (default: ``CUDA``).
 - ``HOOMD_SHORTREAL_SIZE`` - Size in bits of the ``ShortReal`` type (default: ``32``).
 
   - When set to ``32``, perform HPMC overlap checks in single precision.
@@ -259,7 +242,7 @@ Other option changes take effect at any time:
 
 These options control CUDA compilation via ``nvcc``:
 
-- ``CUDA_ARCH_LIST`` - A semicolon-separated list of GPU architectures to compile.
+- ``CMAKE_CUDA_ARCHITECTURES`` - A semicolon-separated list of GPU architectures to compile.
 
 .. tip::
 

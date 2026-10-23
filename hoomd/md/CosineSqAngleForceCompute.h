@@ -11,7 +11,7 @@
     \brief Declares a class for computing cosine squared angles
 */
 
-#ifdef __HIPCC__
+#ifdef __NVCC__
 #error This header cannot be compiled by nvcc
 #endif
 
@@ -29,7 +29,7 @@ struct cosinesq_params
     Scalar k;
     Scalar t_0;
 
-#ifndef __HIPCC__
+#ifndef __NVCC__
     cosinesq_params() : k(0), t_0(0) { }
 
     cosinesq_params(pybind11::dict params)

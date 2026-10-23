@@ -4,7 +4,7 @@
 #ifndef __GENERAL_ENVELOPE_H__
 #define __GENERAL_ENVELOPE_H__
 
-#ifndef __HIPCC__
+#ifndef __NVCC__
 #include <string>
 #endif
 #include "hoomd/HOOMDMath.h"
@@ -15,7 +15,7 @@
     DEVICE is __host__ __device__ when included in nvcc and blank when included into the host
     compiler
 */
-#ifdef __HIPCC__
+#ifdef __NVCC__
 #define DEVICE __device__
 #define HOSTDEVICE __host__ __device__
 #else
@@ -47,7 +47,7 @@ class PatchEnvelope
     struct param_type
         {
         param_type() : cosalpha(0), omega(0) { }
-#ifndef __HIPCC__
+#ifndef __NVCC__
         param_type(pybind11::dict params) //<! param dict can take any python type
             {
             cosalpha = fast::cos(params["alpha"].cast<Scalar>());
@@ -70,7 +70,7 @@ class PatchEnvelope
         {
         HOSTDEVICE shape_type() { }
 
-#ifndef __HIPCC__
+#ifndef __NVCC__
 
         shape_type(pybind11::object patch_location)
             {
@@ -131,7 +131,7 @@ class PatchEnvelope
         auto q_i = quat<LongReal>(_q_i);
         auto q_j = quat<LongReal>(_q_j);
 
-#ifndef __HIPCC__
+#ifndef __NVCC__
         auto R_i = rotmat3<LongReal>(q_i);
         auto R_j = rotmat3<LongReal>(q_j);
         a1 = R_i * ex;
@@ -256,7 +256,7 @@ class PatchEnvelope
         return true;
         }
 
-#ifndef _HIPCC_
+#ifndef __NVCC__
     static std::string getName()
         {
         return std::string("patchenvelope");

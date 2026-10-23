@@ -2,9 +2,9 @@
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #include "hoomd/mpcd/CellList.h"
-#ifdef ENABLE_HIP
+#ifdef ENABLE_GPU
 #include "hoomd/mpcd/CellListGPU.h"
-#endif // ENABLE_HIP
+#endif // ENABLE_GPU
 
 #include "hoomd/Communicator.h"
 #include "hoomd/SnapshotSystemData.h"
@@ -1111,7 +1111,7 @@ void celllist_edge_test(std::shared_ptr<ExecutionConfiguration> exec_conf,
                                    access_location::host,
                                    access_mode::read);
 
-        int3 cell;
+        int3 cell = make_int3(0, 0, 0);
         switch (my_rank)
             {
         case 0:
@@ -1160,7 +1160,7 @@ void celllist_edge_test(std::shared_ptr<ExecutionConfiguration> exec_conf,
                                    access_location::host,
                                    access_mode::read);
 
-        int3 cell;
+        int3 cell = make_int3(0, 0, 0);
         switch (my_rank)
             {
         case 0:
@@ -1242,7 +1242,7 @@ void celllist_edge_test(std::shared_ptr<ExecutionConfiguration> exec_conf,
                                    access_location::host,
                                    access_mode::read);
 
-        int3 cell;
+        int3 cell = make_int3(0, 0, 0);
         switch (my_rank)
             {
         case 0:
@@ -1292,7 +1292,7 @@ void celllist_edge_test(std::shared_ptr<ExecutionConfiguration> exec_conf,
                                    access_location::host,
                                    access_mode::read);
 
-        int3 cell;
+        int3 cell = make_int3(0, 0, 0);
         switch (my_rank)
             {
         case 0:
@@ -1341,7 +1341,7 @@ void celllist_edge_test(std::shared_ptr<ExecutionConfiguration> exec_conf,
                                    access_location::host,
                                    access_mode::read);
 
-        int3 cell;
+        int3 cell = make_int3(0, 0, 0);
         switch (my_rank)
             {
         case 0:
@@ -1539,7 +1539,7 @@ UP_TEST(mpcd_cell_list_edge_test_triclinic)
         make_scalar3(0.5, -0.75, 1.0));
     }
 
-#ifdef ENABLE_HIP
+#ifdef ENABLE_GPU
 //! dimension test case for MPCD CellListGPU class
 UP_TEST(mpcd_cell_list_gpu_dimensions)
     {
@@ -1706,4 +1706,4 @@ UP_TEST(mpcd_cell_list_gpu_edge_test_triclinic)
         make_scalar3(5.0, 5.0, 5.0),
         make_scalar3(0.5, -0.75, 1.0));
     }
-#endif // ENABLE_HIP
+#endif // ENABLE_GPU

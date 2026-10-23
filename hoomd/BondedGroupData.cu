@@ -6,10 +6,14 @@
 
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wconversion"
-#include <hip/hip_runtime.h>
+#if CUDART_VERSION >= 13400
+#include <cuda/iterator>
+#else
+#include <thrust/iterator/constant_iterator.h>
+#endif
+#include <cuda_runtime.h>
 #include <thrust/device_ptr.h>
 #include <thrust/execution_policy.h>
-#include <thrust/iterator/constant_iterator.h>
 #include <thrust/scan.h>
 #include <thrust/sort.h>
 #pragma GCC diagnostic pop
@@ -147,25 +151,20 @@ void gpu_update_group_table(const unsigned int n_groups,
     unsigned n_blocks = n_groups / block_size + 1;
 
     // reset number of groups
-    hipMemsetAsync(d_n_groups, 0, sizeof(unsigned int) * N);
+    cudaMemsetAsync(d_n_groups, 0, sizeof(unsigned int) * N);
 
-    hipLaunchKernelGGL(HIP_KERNEL_NAME(gpu_count_groups_kernel<group_size>),
-                       dim3(n_blocks),
-                       dim3(block_size),
-                       0,
-                       0,
-                       n_groups,
-                       d_group_table,
-                       d_rtag,
-                       d_scratch_idx,
-                       d_scratch_g,
-                       d_n_groups,
-                       max_n_groups,
-                       d_condition,
-                       next_flag);
+    gpu_count_groups_kernel<group_size><<<n_blocks, block_size>>>(n_groups,
+                                                                  d_group_table,
+                                                                  d_rtag,
+                                                                  d_scratch_idx,
+                                                                  d_scratch_g,
+                                                                  d_n_groups,
+                                                                  max_n_groups,
+                                                                  d_condition,
+                                                                  next_flag);
 
     // read back flag
-    hipMemcpy(&flag, d_condition, sizeof(unsigned int), hipMemcpyDeviceToHost);
+    cudaMemcpy(&flag, d_condition, sizeof(unsigned int), cudaMemcpyDeviceToHost);
 
     if (!(flag >= next_flag) && n_groups)
         {
@@ -173,23 +172,19 @@ void gpu_update_group_table(const unsigned int n_groups,
         // sort groups by particle idx
         thrust::device_ptr<unsigned int> scratch_idx(d_scratch_idx);
         thrust::device_ptr<unsigned int> scratch_g(d_scratch_g);
-#ifdef __HIP_PLATFORM_HCC__
-        thrust::sort_by_key(thrust::hip::par(alloc),
-#else
         thrust::sort_by_key(thrust::cuda::par(alloc),
-#endif
                             scratch_idx,
                             scratch_idx + group_size * n_groups,
                             scratch_g);
 
         // perform a segmented scan of d_scratch_idx
         thrust::device_ptr<unsigned int> offsets(d_offsets);
-        thrust::constant_iterator<unsigned int> const_it(1);
-#ifdef __HIP_PLATFORM_HCC__
-        thrust::exclusive_scan_by_key(thrust::hip::par(alloc),
+#if CUDART_VERSION >= 13400
+        cuda::constant_iterator<unsigned int> const_it(1);
 #else
-        thrust::exclusive_scan_by_key(thrust::cuda::par(alloc),
+        thrust::constant_iterator<unsigned int> const_it(1);
 #endif
+        thrust::exclusive_scan_by_key(thrust::cuda::par(alloc),
                                       scratch_idx,
                                       scratch_idx + group_size * n_groups,
                                       const_it,
@@ -199,22 +194,17 @@ void gpu_update_group_table(const unsigned int n_groups,
         block_size = 256;
         n_blocks = (group_size * n_groups) / block_size + 1;
 
-        hipLaunchKernelGGL(gpu_group_scatter_kernel<group_size>,
-                           dim3(n_blocks),
-                           dim3(block_size),
-                           0,
-                           0,
-                           n_groups * group_size,
-                           d_scratch_g,
-                           d_scratch_idx,
-                           d_offsets,
-                           d_group_table,
-                           d_group_typeval,
-                           d_rtag,
-                           d_pidx_group_table,
-                           d_pidx_gpos_table,
-                           pidx_group_table_pitch,
-                           has_type_mapping);
+        gpu_group_scatter_kernel<group_size><<<n_blocks, block_size>>>(n_groups * group_size,
+                                                                       d_scratch_g,
+                                                                       d_scratch_idx,
+                                                                       d_offsets,
+                                                                       d_group_table,
+                                                                       d_group_typeval,
+                                                                       d_rtag,
+                                                                       d_pidx_group_table,
+                                                                       d_pidx_gpos_table,
+                                                                       pidx_group_table_pitch,
+                                                                       has_type_mapping);
         }
     }
 

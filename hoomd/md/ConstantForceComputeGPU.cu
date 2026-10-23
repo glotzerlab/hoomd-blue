@@ -55,35 +55,26 @@ __global__ void gpu_compute_constant_force_set_forces_kernel(const unsigned int 
     d_torque[idx] = vec_to_scalar4(ti, 0);
     }
 
-hipError_t gpu_compute_constant_force_set_forces(const unsigned int group_size,
-                                                 unsigned int* d_index_array,
-                                                 Scalar4* d_force,
-                                                 Scalar4* d_torque,
-                                                 const Scalar4* d_pos,
-                                                 const Scalar3* d_f_const,
-                                                 const Scalar3* d_t_const,
-                                                 const unsigned int N,
-                                                 unsigned int block_size)
+cudaError_t gpu_compute_constant_force_set_forces(const unsigned int group_size,
+                                                  unsigned int* d_index_array,
+                                                  Scalar4* d_force,
+                                                  Scalar4* d_torque,
+                                                  const Scalar4* d_pos,
+                                                  const Scalar3* d_f_const,
+                                                  const Scalar3* d_t_const,
+                                                  const unsigned int N,
+                                                  unsigned int block_size)
     {
-    // setup the grid to run the kernel
-    dim3 grid(group_size / block_size + 1, 1, 1);
-    dim3 threads(block_size, 1, 1);
-
-    // run the kernel
-    hipLaunchKernelGGL((gpu_compute_constant_force_set_forces_kernel),
-                       dim3(grid),
-                       dim3(threads),
-                       0,
-                       0,
-                       group_size,
-                       d_index_array,
-                       d_force,
-                       d_torque,
-                       d_pos,
-                       d_f_const,
-                       d_t_const,
-                       N);
-    return hipSuccess;
+    gpu_compute_constant_force_set_forces_kernel<<<group_size / block_size + 1, block_size>>>(
+        group_size,
+        d_index_array,
+        d_force,
+        d_torque,
+        d_pos,
+        d_f_const,
+        d_t_const,
+        N);
+    return cudaSuccess;
     }
     } // end namespace kernel
     } // end namespace md

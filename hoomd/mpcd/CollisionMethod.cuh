@@ -6,6 +6,8 @@
  * \brief Declaration of CUDA kernels for mpcd::CollisionMethod
  */
 
+#include <stdint.h>
+
 #include "hoomd/BoxDim.h"
 #include "hoomd/HOOMDMath.h"
 #include "hoomd/Index1D.h"

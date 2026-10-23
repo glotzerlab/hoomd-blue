@@ -1,6 +1,6 @@
 #include "dfft_cuda.h"
 
-#include <hip/hip_runtime.h>
+#include <cuda_runtime.h>
 
 #include <mpi.h>
 
@@ -15,27 +15,16 @@
 #include <stdio.h>
 #define CHECK_CUDA() \
     {                                                                       \
-    hipDeviceSynchronize();                                                \
-    hipError_t err = hipGetLastError();                                   \
-    if (err != hipSuccess)                                                 \
+    cudaDeviceSynchronize();                                                \
+    cudaError_t err = cudaGetLastError();                                   \
+    if (err != cudaSuccess)                                                 \
         {                                                                   \
         printf("CUDA Error in file %s, line %d: %s\n", __FILE__,__LINE__,   \
-            hipGetErrorString(err));                                       \
+            cudaGetErrorString(err));                                       \
         exit(1);                                                            \
         }                                                                   \
     }                                                                       \
 
-#ifdef __HIP_PLATFORM_HCC__
-#define CHECK_LOCAL_FFT(res) \
-    {                                                                          \
-    if (res != HIPFFT_SUCCESS)                                                 \
-        {                                                                      \
-        printf("Local FFT failed, error code %d, file %s, line %d.\n",res, __FILE__,__LINE__); \
-        assert(!res);                                                          \
-        exit(1);                                                               \
-        }                                                                      \
-    }
-#else
 #define CHECK_LOCAL_FFT(res) \
     {                                                                          \
     if (res != CUFFT_SUCCESS)                                                 \
@@ -45,7 +34,6 @@
         exit(1);                                                               \
         }                                                                      \
     }
-#endif
 
 
 /*****************************************************************************
@@ -276,7 +264,7 @@ void dfft_cuda_redistribute_nd( dfft_plan *plan,int stage, int size_in, int *emb
 
     /* communicate */
     // stage into host buf
-    hipMemcpy(plan->h_stage_in, plan->d_scratch, sizeof(cuda_cpx_t)*size_in,hipMemcpyDefault);
+    cudaMemcpy(plan->h_stage_in, plan->d_scratch, sizeof(cuda_cpx_t)*size_in,cudaMemcpyDefault);
     if (plan->check_cuda_errors) CHECK_CUDA();
 
     MPI_Alltoallv(plan->h_stage_in,plan->nsend, plan->offset_send, MPI_BYTE,
@@ -284,7 +272,7 @@ void dfft_cuda_redistribute_nd( dfft_plan *plan,int stage, int size_in, int *emb
                   plan->comm);
 
     // copy back received data
-    hipMemcpy(plan->d_scratch_2,plan->h_stage_out, sizeof(cuda_cpx_t)*size_in,hipMemcpyDefault);
+    cudaMemcpy(plan->d_scratch_2,plan->h_stage_out, sizeof(cuda_cpx_t)*size_in,cudaMemcpyDefault);
     if (plan->check_cuda_errors) CHECK_CUDA();
 
     /* unpack data */
@@ -436,7 +424,7 @@ void dfft_cuda_redistribute_block_to_cyclic_1d(
 
     /* communicate */
     // stage into host buf
-    hipMemcpy(h_stage_in, d_scratch, sizeof(cuda_cpx_t)*npackets*size,hipMemcpyDefault);
+    cudaMemcpy(h_stage_in, d_scratch, sizeof(cuda_cpx_t)*npackets*size,cudaMemcpyDefault);
     if (check_err) CHECK_CUDA();
 
     MPI_Alltoallv(h_stage_in,dfft_nsend, dfft_offset_send, MPI_BYTE,
@@ -444,7 +432,7 @@ void dfft_cuda_redistribute_block_to_cyclic_1d(
                   comm);
 
     // copy back received data
-    hipMemcpy(d_work,h_stage_out, sizeof(cuda_cpx_t)*size_in,hipMemcpyDefault);
+    cudaMemcpy(d_work,h_stage_out, sizeof(cuda_cpx_t)*size_in,cudaMemcpyDefault);
     if (check_err) CHECK_CUDA();
     }
 
@@ -650,7 +638,7 @@ void dfft_cuda_redistribute_cyclic_to_block_1d(int *dim,
         /* perform communication */
         MPI_Barrier(comm);
         // stage into host buf
-        hipMemcpy(h_stage_in, d_scratch, sizeof(cuda_cpx_t)*length*stride,hipMemcpyDefault);
+        cudaMemcpy(h_stage_in, d_scratch, sizeof(cuda_cpx_t)*length*stride,cudaMemcpyDefault);
         if (check_err) CHECK_CUDA();
 
         MPI_Alltoallv(h_stage_in,dfft_nsend, dfft_offset_send, MPI_BYTE,
@@ -658,7 +646,7 @@ void dfft_cuda_redistribute_cyclic_to_block_1d(int *dim,
                       comm);
 
         // copy back received data
-        hipMemcpy(d_work,h_stage_out, sizeof(cuda_cpx_t)*npackets*size,hipMemcpyDefault);
+        cudaMemcpy(d_work,h_stage_out, sizeof(cuda_cpx_t)*npackets*size,cudaMemcpyDefault);
         if (check_err) CHECK_CUDA();
         }
     else
@@ -666,7 +654,7 @@ void dfft_cuda_redistribute_cyclic_to_block_1d(int *dim,
         /* perform communication */
         MPI_Barrier(comm);
         // stage into host buf
-        hipMemcpy(h_stage_in, d_work, sizeof(cuda_cpx_t)*size_in,hipMemcpyDefault);
+        cudaMemcpy(h_stage_in, d_work, sizeof(cuda_cpx_t)*size_in,cudaMemcpyDefault);
         if (check_err) CHECK_CUDA();
 
         MPI_Alltoallv(h_stage_in,dfft_nsend, dfft_offset_send, MPI_BYTE,
@@ -674,7 +662,7 @@ void dfft_cuda_redistribute_cyclic_to_block_1d(int *dim,
                       comm);
 
         // copy back received data
-        hipMemcpy(d_scratch,h_stage_out, sizeof(cuda_cpx_t)*npackets*size,hipMemcpyDefault);
+        cudaMemcpy(d_scratch,h_stage_out, sizeof(cuda_cpx_t)*npackets*size,cudaMemcpyDefault);
         if (check_err) CHECK_CUDA();
 
         /* unpack */
@@ -862,7 +850,7 @@ void cuda_fftnd_multi(dfft_plan *p,
                 }
 
             /* copy to device */
-            hipMemcpy(p->d_alpha[d], p->h_alpha[d], sizeof(cuda_scalar_t)*p->ndim,hipMemcpyDefault);
+            cudaMemcpy(p->d_alpha[d], p->h_alpha[d], sizeof(cuda_scalar_t)*p->ndim,cudaMemcpyDefault);
             CHECK_CUDA();
             }
 
@@ -913,15 +901,15 @@ void cuda_fftnd_multi(dfft_plan *p,
                 }
 
             /* copy to device */
-            hipMemcpy(p->d_c0[d], p->c0[d], sizeof(int)*p->ndim,hipMemcpyDefault);
+            cudaMemcpy(p->d_c0[d], p->c0[d], sizeof(int)*p->ndim,cudaMemcpyDefault);
             CHECK_CUDA();
-            hipMemcpy(p->d_c1[d], p->c1[d], sizeof(int)*p->ndim,hipMemcpyDefault);
+            cudaMemcpy(p->d_c1[d], p->c1[d], sizeof(int)*p->ndim,cudaMemcpyDefault);
             CHECK_CUDA();
-            hipMemcpy(p->d_rev_global[d], p->rev_global[d], sizeof(int)*p->ndim,hipMemcpyDefault);
+            cudaMemcpy(p->d_rev_global[d], p->rev_global[d], sizeof(int)*p->ndim,cudaMemcpyDefault);
             CHECK_CUDA();
-            hipMemcpy(p->d_rev_partial[d], p->rev_partial[d], sizeof(int)*p->ndim,hipMemcpyDefault);
+            cudaMemcpy(p->d_rev_partial[d], p->rev_partial[d], sizeof(int)*p->ndim,cudaMemcpyDefault);
             CHECK_CUDA();
-            hipMemcpy(p->d_rev_j1[d], p->rev_j1[d], sizeof(int)*p->ndim,hipMemcpyDefault);
+            cudaMemcpy(p->d_rev_j1[d], p->rev_j1[d], sizeof(int)*p->ndim,cudaMemcpyDefault);
             CHECK_CUDA();
             }
 
@@ -1015,15 +1003,15 @@ void dfft_cuda_redistribute(dfft_plan *plan, int size, int *embed, int *d_embed,
                 }
             }
 
-        hipMemcpy(plan->d_c0[d], plan->c0[d], sizeof(int)*plan->ndim,hipMemcpyDefault);
+        cudaMemcpy(plan->d_c0[d], plan->c0[d], sizeof(int)*plan->ndim,cudaMemcpyDefault);
         CHECK_CUDA();
-        hipMemcpy(plan->d_c1[d], plan->c1[d], sizeof(int)*plan->ndim,hipMemcpyDefault);
+        cudaMemcpy(plan->d_c1[d], plan->c1[d], sizeof(int)*plan->ndim,cudaMemcpyDefault);
         CHECK_CUDA();
-        hipMemcpy(plan->d_rev_global[d], plan->rev_global[d], sizeof(int)*plan->ndim,hipMemcpyDefault);
+        cudaMemcpy(plan->d_rev_global[d], plan->rev_global[d], sizeof(int)*plan->ndim,cudaMemcpyDefault);
         CHECK_CUDA();
-        hipMemcpy(plan->d_rev_partial[d], plan->rev_partial[d], sizeof(int)*plan->ndim,hipMemcpyDefault);
+        cudaMemcpy(plan->d_rev_partial[d], plan->rev_partial[d], sizeof(int)*plan->ndim,cudaMemcpyDefault);
         CHECK_CUDA();
-        hipMemcpy(plan->d_rev_j1[d], plan->rev_j1[d], sizeof(int)*plan->ndim,hipMemcpyDefault);
+        cudaMemcpy(plan->d_rev_j1[d], plan->rev_j1[d], sizeof(int)*plan->ndim,cudaMemcpyDefault);
         CHECK_CUDA();
         }
     else
@@ -1050,7 +1038,7 @@ int dfft_cuda_execute(cuda_cpx_t *d_in, cuda_cpx_t *d_out, int dir, dfft_plan *p
         if (out_of_place)
             {
             d_work = p->d_scratch_3;
-            hipMemcpy(d_work, d_in, p->size_in*sizeof(cuda_cpx_t),hipMemcpyDefault);
+            cudaMemcpy(d_work, d_in, p->size_in*sizeof(cuda_cpx_t),cudaMemcpyDefault);
             if (check_err) CHECK_CUDA();
             }
         else
@@ -1100,8 +1088,8 @@ int dfft_cuda_create_plan(dfft_plan *p,
         pdim, pidx, row_m, input_cyclic, output_cyclic, comm, proc_map, 1);
 
     /* allocate staging bufs */
-    /* we need to use posix_memalign/hipHostRegister instead
-     * of hipHostMalloc, because hipHostMalloc doesn't have hooks
+    /* we need to use posix_memalign/cudaHostRegister instead
+     * of cudaHostMalloc, because cudaHostMalloc doesn't have hooks
      * in the MPI library, and using it would lead to data corruption
      */
     int size = (unsigned int)(p->scratch_size*sizeof(cuda_cpx_t));
@@ -1115,21 +1103,21 @@ int dfft_cuda_create_plan(dfft_plan *p,
     if (retval != 0)
         return 1;
 
-    hipHostRegister(p->h_stage_in, size, hipHostMallocDefault);
+    cudaHostRegister(p->h_stage_in, size, cudaHostAllocDefault);
     CHECK_CUDA();
-    hipHostRegister(p->h_stage_out, size, hipHostMallocDefault);
+    cudaHostRegister(p->h_stage_out, size, cudaHostAllocDefault);
     CHECK_CUDA();
 
     /* allocate memory for passing variables */
-   hipMalloc((void **)&(p->d_pidx), sizeof(int)*ndim);
+   cudaMalloc((void **)&(p->d_pidx), sizeof(int)*ndim);
     CHECK_CUDA();
-    hipMalloc((void **)&(p->d_pdim), sizeof(int)*ndim);
+    cudaMalloc((void **)&(p->d_pdim), sizeof(int)*ndim);
     CHECK_CUDA();
-    hipMalloc((void **)&(p->d_iembed), sizeof(int)*ndim);
+    cudaMalloc((void **)&(p->d_iembed), sizeof(int)*ndim);
     CHECK_CUDA();
-    hipMalloc((void **)&(p->d_oembed), sizeof(int)*ndim);
+    cudaMalloc((void **)&(p->d_oembed), sizeof(int)*ndim);
     CHECK_CUDA();
-    hipMalloc((void **)&(p->d_length), sizeof(int)*ndim);
+    cudaMalloc((void **)&(p->d_length), sizeof(int)*ndim);
     CHECK_CUDA();
 
     /* initialize cuda buffers */
@@ -1137,15 +1125,15 @@ int dfft_cuda_create_plan(dfft_plan *p,
     int i;
     for (i = 0; i < ndim; ++i)
         h_length[i] = gdim[i]/pdim[i];
-    hipMemcpy(p->d_pidx, pidx, sizeof(int)*ndim, hipMemcpyDefault);
+    cudaMemcpy(p->d_pidx, pidx, sizeof(int)*ndim, cudaMemcpyDefault);
     CHECK_CUDA();
-    hipMemcpy(p->d_pdim, pdim, sizeof(int)*ndim, hipMemcpyDefault);
+    cudaMemcpy(p->d_pdim, pdim, sizeof(int)*ndim, cudaMemcpyDefault);
     CHECK_CUDA();
-    hipMemcpy(p->d_iembed, p->inembed, sizeof(int)*ndim, hipMemcpyDefault);
+    cudaMemcpy(p->d_iembed, p->inembed, sizeof(int)*ndim, cudaMemcpyDefault);
     CHECK_CUDA();
-    hipMemcpy(p->d_oembed, p->oembed, sizeof(int)*ndim, hipMemcpyDefault);
+    cudaMemcpy(p->d_oembed, p->oembed, sizeof(int)*ndim, cudaMemcpyDefault);
     CHECK_CUDA();
-    hipMemcpy(p->d_length, h_length, sizeof(int)*ndim, hipMemcpyDefault);
+    cudaMemcpy(p->d_length, h_length, sizeof(int)*ndim, cudaMemcpyDefault);
     CHECK_CUDA();
     free(h_length);
 
@@ -1164,21 +1152,21 @@ int dfft_cuda_create_plan(dfft_plan *p,
     int d;
     for (d = 0; d < dmax; ++d)
         {
-        hipMalloc((void **)&(p->d_rev_j1[d]), sizeof(int)*ndim);
+        cudaMalloc((void **)&(p->d_rev_j1[d]), sizeof(int)*ndim);
         CHECK_CUDA();
-        hipMalloc((void **)&(p->d_rev_partial[d]), sizeof(int)*ndim);
+        cudaMalloc((void **)&(p->d_rev_partial[d]), sizeof(int)*ndim);
         CHECK_CUDA();
-        hipMalloc((void **)&(p->d_rev_global[d]), sizeof(int)*ndim);
+        cudaMalloc((void **)&(p->d_rev_global[d]), sizeof(int)*ndim);
         CHECK_CUDA();
-        hipMalloc((void **)&(p->d_c0[d]), sizeof(int)*ndim);
+        cudaMalloc((void **)&(p->d_c0[d]), sizeof(int)*ndim);
         CHECK_CUDA();
-        hipMalloc((void **)&(p->d_c1[d]), sizeof(int)*ndim);
+        cudaMalloc((void **)&(p->d_c1[d]), sizeof(int)*ndim);
         CHECK_CUDA();
         }
 
     for (d = 0; d < p->max_depth; ++d)
         {
-        hipMalloc((void **)&(p->d_alpha[d]), sizeof(cuda_scalar_t)*ndim);
+        cudaMalloc((void **)&(p->d_alpha[d]), sizeof(cuda_scalar_t)*ndim);
         CHECK_CUDA();
         p->h_alpha[d] = (cuda_scalar_t *) malloc(sizeof(cuda_scalar_t)*ndim);
         }
@@ -1195,23 +1183,23 @@ int dfft_cuda_create_plan(dfft_plan *p,
 void dfft_cuda_destroy_plan(dfft_plan plan)
     {
     dfft_destroy_plan_common(plan, 1);
-    hipHostUnregister(plan.h_stage_in);
-    hipHostUnregister(plan.h_stage_out);
+    cudaHostUnregister(plan.h_stage_in);
+    cudaHostUnregister(plan.h_stage_out);
     free(plan.h_stage_in);
     free(plan.h_stage_out);
     int dmax = plan.max_depth + 2;
     int d;
     for (d = 0; d < dmax; ++d)
         {
-        hipFree(plan.d_rev_j1[d]);
-        hipFree(plan.d_rev_partial[d]);
-        hipFree(plan.d_rev_global[d]);
-        hipFree(plan.d_c0[d]);
-        hipFree(plan.d_c1[d]);
+        cudaFree(plan.d_rev_j1[d]);
+        cudaFree(plan.d_rev_partial[d]);
+        cudaFree(plan.d_rev_global[d]);
+        cudaFree(plan.d_c0[d]);
+        cudaFree(plan.d_c1[d]);
         }
     for (d = 0; d < plan.max_depth; ++d)
         {
-        hipFree(plan.d_alpha[d]);
+        cudaFree(plan.d_alpha[d]);
         free(plan.h_alpha[d]);
         }
     free(plan.d_c0);
@@ -1225,11 +1213,11 @@ void dfft_cuda_destroy_plan(dfft_plan plan)
         free(plan.h_alpha);
         }
 
-    hipFree(plan.d_pidx);
-    hipFree(plan.d_pdim);
-    hipFree(plan.d_iembed);
-    hipFree(plan.d_oembed);
-    hipFree(plan.d_length);
+    cudaFree(plan.d_pidx);
+    cudaFree(plan.d_pdim);
+    cudaFree(plan.d_iembed);
+    cudaFree(plan.d_oembed);
+    cudaFree(plan.d_length);
     }
 
 void dfft_cuda_check_errors(dfft_plan *plan, int check_err)

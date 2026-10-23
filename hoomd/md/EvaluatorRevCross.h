@@ -6,7 +6,7 @@
 #ifndef __EVALUATOR_REVCROSS__
 #define __EVALUATOR_REVCROSS__
 
-#ifndef __HIPCC__
+#ifndef __NVCC__
 #include <string>
 #endif
 
@@ -16,7 +16,7 @@
     \brief Defines the evaluator class for the three-body RevCross potential
 */
 
-#ifdef __HIPCC__
+#ifdef __NVCC__
 #define DEVICE __device__
 #define HOSTDEVICE __host__ __device__
 #else
@@ -39,7 +39,7 @@ class EvaluatorRevCross
         Scalar epsilon;
         Scalar lambda3;
 
-#ifdef ENABLE_HIP
+#ifdef ENABLE_GPU
         //! Set CUDA memory hints
         void set_memory_hint() const
             {
@@ -47,7 +47,7 @@ class EvaluatorRevCross
             }
 #endif
 
-#ifndef __HIPCC__
+#ifndef __NVCC__
         param_type() : sigma(0), n(0), epsilon(0), lambda3(0) { }
 
         param_type(pybind11::dict v)
@@ -240,7 +240,7 @@ class EvaluatorRevCross
             return false;
         }
 
-#ifndef __HIPCC__
+#ifndef __NVCC__
     //! Get the name of this potential
     /*! \returns The potential name.
      */

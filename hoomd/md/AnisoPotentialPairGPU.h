@@ -4,7 +4,7 @@
 #ifndef __ANISO_POTENTIAL_PAIR_GPU_H__
 #define __ANISO_POTENTIAL_PAIR_GPU_H__
 
-#ifdef ENABLE_HIP
+#ifdef ENABLE_GPU
 
 #include "AnisoPotentialPair.h"
 #include "AnisoPotentialPairGPU.cuh"
@@ -15,7 +15,7 @@
     \note This header cannot be compiled by nvcc
 */
 
-#ifdef __HIPCC__
+#ifdef __NVCC__
 #error This header cannot be compiled by nvcc
 #endif
 
@@ -215,5 +215,5 @@ template<class T> void export_AnisoPotentialPairGPU(pybind11::module& m, const s
     } // end namespace md
     } // end namespace hoomd
 
-#endif // ENABLE_HIP
+#endif // ENABLE_GPU
 #endif // __ANISO_POTENTIAL_PAIR_GPU_H__

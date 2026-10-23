@@ -7,7 +7,7 @@
 
 #pragma once
 
-#include <hip/hip_runtime.h>
+#include <cuda_runtime.h>
 
 #include "HPMCMiscFunctions.h"
 #include "hoomd/BoxDim.h"
@@ -21,13 +21,8 @@
 
 #include "IntegratorHPMCMonoGPUTypes.cuh"
 
-#ifdef __HIP_PLATFORM_NVCC__
 #define MAX_BLOCK_SIZE 1024
 #define MIN_BLOCK_SIZE 256 // a reasonable minimum to limit the number of template instantiations
-#else
-#define MAX_BLOCK_SIZE 1024
-#define MIN_BLOCK_SIZE 1024 // on AMD, we do not use __launch_bounds__
-#endif
 
 namespace hoomd
     {
@@ -69,8 +64,8 @@ struct cluster_args_t
                    const vec3<Scalar> _pivot,
                    const quat<Scalar> _q,
                    const bool _update_shape_param,
-                   const hipDeviceProp_t& _devprop,
-                   const hipStream_t& _stream)
+                   const cudaDeviceProp& _devprop,
+                   const cudaStream_t& _stream)
         : d_postype(_d_postype), d_orientation(_d_orientation), ci(_ci), cell_dim(_cell_dim),
           ghost_width(_ghost_width), N(_N), num_types(_num_types), seed(_seed),
           d_check_overlaps(_check_overlaps), overlap_idx(_overlap_idx), timestep(_timestep),
@@ -110,8 +105,8 @@ struct cluster_args_t
     const vec3<Scalar> pivot;             //!< pivot point
     const quat<Scalar> q;                 //!< Rotation
     const bool update_shape_param;        //!< True if shape parameters have changed
-    const hipDeviceProp_t& devprop;       //!< CUDA device properties
-    const hipStream_t& stream;            //!< kernel stream
+    const cudaDeviceProp& devprop;        //!< CUDA device properties
+    const cudaStream_t& stream;           //!< kernel stream
     };
 
 void __attribute__((visibility("default"))) connected_components(uint2* d_adj,
@@ -119,7 +114,7 @@ void __attribute__((visibility("default"))) connected_components(uint2* d_adj,
                                                                  const unsigned int n_elements,
                                                                  int* d_components,
                                                                  unsigned int& num_components,
-                                                                 const hipDeviceProp_t& dev_prop,
+                                                                 const cudaDeviceProp& dev_prop,
                                                                  CachedAllocator& alloc);
 
 void get_num_neighbors(const unsigned int* d_nneigh,
@@ -189,36 +184,34 @@ void transform_particles(const clusters_transform_args_t& args,
 template<class Shape>
 void hpmc_cluster_overlaps(const cluster_args_t& args, const typename Shape::param_type* params);
 
-#ifdef __HIPCC__
+#ifdef __NVCC__
 namespace kernel
     {
 //! Check narrow-phase overlaps
 template<class Shape, unsigned int max_threads>
-#ifdef __HIP_PLATFORM_NVCC__
-__launch_bounds__(max_threads)
-#endif
-    __global__ void hpmc_cluster_overlaps(const Scalar4* d_postype,
-                                          const Scalar4* d_orientation,
-                                          const Scalar4* d_trial_postype,
-                                          const Scalar4* d_trial_orientation,
-                                          const unsigned int* d_excell_idx,
-                                          const unsigned int* d_excell_size,
-                                          const Index2D excli,
-                                          unsigned int* d_adjacency,
-                                          unsigned int* d_nneigh,
-                                          const unsigned int maxn,
-                                          unsigned int* d_overflow,
-                                          const unsigned int num_types,
-                                          const BoxDim box,
-                                          const Scalar3 ghost_width,
-                                          const uint3 cell_dim,
-                                          const Index3D ci,
-                                          const unsigned int* d_check_overlaps,
-                                          const Index2D overlap_idx,
-                                          const typename Shape::param_type* d_params,
-                                          const unsigned int max_extra_bytes,
-                                          const unsigned int max_queue_size,
-                                          const unsigned int nwork)
+__launch_bounds__(max_threads) __global__
+    void hpmc_cluster_overlaps(const Scalar4* d_postype,
+                               const Scalar4* d_orientation,
+                               const Scalar4* d_trial_postype,
+                               const Scalar4* d_trial_orientation,
+                               const unsigned int* d_excell_idx,
+                               const unsigned int* d_excell_size,
+                               const Index2D excli,
+                               unsigned int* d_adjacency,
+                               unsigned int* d_nneigh,
+                               const unsigned int maxn,
+                               unsigned int* d_overflow,
+                               const unsigned int num_types,
+                               const BoxDim box,
+                               const Scalar3 ghost_width,
+                               const uint3 cell_dim,
+                               const Index3D ci,
+                               const unsigned int* d_check_overlaps,
+                               const Index2D overlap_idx,
+                               const typename Shape::param_type* d_params,
+                               const unsigned int max_extra_bytes,
+                               const unsigned int max_queue_size,
+                               const unsigned int nwork)
     {
     __shared__ unsigned int s_queue_size;
     __shared__ unsigned int s_still_searching;
@@ -230,7 +223,7 @@ __launch_bounds__(max_threads)
     unsigned int n_groups = blockDim.y;
 
     // load the per type pair parameters into shared memory
-    HIP_DYNAMIC_SHARED(char, s_data)
+    extern __shared__ char s_data[];
 
     typename Shape::param_type* s_params = (typename Shape::param_type*)(&s_data[0]);
     Scalar4* s_orientation_group = (Scalar4*)(s_params + num_types);
@@ -481,16 +474,16 @@ void cluster_overlaps_launcher(const cluster_args_t& args,
         {
         // determine the maximum block size and clamp the input block size down
         int max_block_size;
-        hipFuncAttributes attr;
+        cudaFuncAttributes attr;
         constexpr unsigned int launch_bounds_nonzero
             = cur_launch_bounds > 0 ? cur_launch_bounds : 1;
-        hipFuncGetAttributes(
+        cudaFuncGetAttributes(
             &attr,
             reinterpret_cast<const void*>(
                 kernel::hpmc_cluster_overlaps<Shape, launch_bounds_nonzero * MIN_BLOCK_SIZE>));
         max_block_size = attr.maxThreadsPerBlock;
         if (max_block_size % args.devprop.warpSize)
-            // handle non-sensical return values from hipFuncGetAttributes
+            // handle non-sensical return values from cudaFuncGetAttributes
             max_block_size = (max_block_size / args.devprop.warpSize - 1) * args.devprop.warpSize;
 
         // choose a block size based on the max block size by regs (max_block_size) and include
@@ -567,33 +560,29 @@ void cluster_overlaps_launcher(const cluster_args_t& args,
 
         dim3 grid(num_blocks, 1, 1);
 
-        hipLaunchKernelGGL((hpmc_cluster_overlaps<Shape, launch_bounds_nonzero * MIN_BLOCK_SIZE>),
-                           grid,
-                           thread,
-                           shared_bytes,
-                           args.stream,
-                           args.d_postype,
-                           args.d_orientation,
-                           args.d_trial_postype,
-                           args.d_trial_orientation,
-                           args.d_excell_idx,
-                           args.d_excell_size,
-                           args.excli,
-                           args.d_adjacency,
-                           args.d_nneigh,
-                           args.maxn,
-                           args.d_overflow,
-                           args.num_types,
-                           args.box,
-                           args.ghost_width,
-                           args.cell_dim,
-                           args.ci,
-                           args.d_check_overlaps,
-                           args.overlap_idx,
-                           params,
-                           max_extra_bytes,
-                           max_queue_size,
-                           nwork);
+        hpmc_cluster_overlaps<Shape, launch_bounds_nonzero * MIN_BLOCK_SIZE>
+            <<<grid, thread, shared_bytes, args.stream>>>(args.d_postype,
+                                                          args.d_orientation,
+                                                          args.d_trial_postype,
+                                                          args.d_trial_orientation,
+                                                          args.d_excell_idx,
+                                                          args.d_excell_size,
+                                                          args.excli,
+                                                          args.d_adjacency,
+                                                          args.d_nneigh,
+                                                          args.maxn,
+                                                          args.d_overflow,
+                                                          args.num_types,
+                                                          args.box,
+                                                          args.ghost_width,
+                                                          args.cell_dim,
+                                                          args.ci,
+                                                          args.d_check_overlaps,
+                                                          args.overlap_idx,
+                                                          params,
+                                                          max_extra_bytes,
+                                                          max_queue_size,
+                                                          nwork);
         }
     else
         {
@@ -691,8 +680,9 @@ void transform_particles(const clusters_transform_args_t& args,
     {
     // determine the maximum block size and clamp the input block size down
     int max_block_size;
-    hipFuncAttributes attr;
-    hipFuncGetAttributes(&attr, reinterpret_cast<const void*>(&kernel::transform_particles<Shape>));
+    cudaFuncAttributes attr;
+    cudaFuncGetAttributes(&attr,
+                          reinterpret_cast<const void*>(&kernel::transform_particles<Shape>));
     max_block_size = attr.maxThreadsPerBlock;
 
     // setup the grid to run the kernel
@@ -700,27 +690,20 @@ void transform_particles(const clusters_transform_args_t& args,
 
     const size_t shared_bytes = sizeof(typename Shape::param_type) * args.num_types;
 
-    dim3 threads(run_block_size, 1, 1);
-
     unsigned int nwork = args.N;
     const unsigned int num_blocks = nwork / run_block_size + 1;
-    dim3 grid(num_blocks, 1, 1);
 
-    hipLaunchKernelGGL((kernel::transform_particles<Shape>),
-                       grid,
-                       threads,
-                       shared_bytes,
-                       0,
-                       args.d_postype,
-                       args.d_orientation,
-                       args.d_image,
-                       args.pivot,
-                       args.q,
-                       args.line,
-                       args.num_types,
-                       args.box,
-                       nwork,
-                       d_params);
+    kernel::transform_particles<Shape>
+        <<<num_blocks, run_block_size, shared_bytes>>>(args.d_postype,
+                                                       args.d_orientation,
+                                                       args.d_image,
+                                                       args.pivot,
+                                                       args.q,
+                                                       args.line,
+                                                       args.num_types,
+                                                       args.box,
+                                                       nwork,
+                                                       d_params);
     }
 #endif
 

@@ -1,7 +1,7 @@
 // Copyright (c) 2009-2026 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
-#include "hip/hip_runtime.h"
+#include <cuda_runtime.h>
 // Copyright (c) 2009-2021 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
@@ -76,45 +76,25 @@ __global__ void gpu_fire_zero_angmom_kernel(Scalar4* d_angmom,
 This function is just the driver for gpu_fire_zero_v_kernel(), see that function
 for details.
 */
-hipError_t gpu_fire_zero_v(Scalar4* d_vel, unsigned int* d_group_members, unsigned int group_size)
+cudaError_t gpu_fire_zero_v(Scalar4* d_vel, unsigned int* d_group_members, unsigned int group_size)
     {
-    // setup the grid to run the kernel
     int block_size = 256;
-    dim3 grid((group_size / block_size) + 1, 1, 1);
-    dim3 threads(block_size, 1, 1);
+    gpu_fire_zero_v_kernel<<<(group_size / block_size) + 1, block_size>>>(d_vel,
+                                                                          d_group_members,
+                                                                          group_size);
 
-    // run the kernel
-    hipLaunchKernelGGL((gpu_fire_zero_v_kernel),
-                       dim3(grid),
-                       dim3(threads),
-                       0,
-                       0,
-                       d_vel,
-                       d_group_members,
-                       group_size);
-
-    return hipSuccess;
+    return cudaSuccess;
     }
 
-hipError_t
+cudaError_t
 gpu_fire_zero_angmom(Scalar4* d_angmom, unsigned int* d_group_members, unsigned int group_size)
     {
-    // setup the grid to run the kernel
     int block_size = 256;
-    dim3 grid((group_size / block_size) + 1, 1, 1);
-    dim3 threads(block_size, 1, 1);
+    gpu_fire_zero_angmom_kernel<<<(group_size / block_size) + 1, block_size>>>(d_angmom,
+                                                                               d_group_members,
+                                                                               group_size);
 
-    // run the kernel
-    hipLaunchKernelGGL((gpu_fire_zero_angmom_kernel),
-                       dim3(grid),
-                       dim3(threads),
-                       0,
-                       0,
-                       d_angmom,
-                       d_group_members,
-                       group_size);
-
-    return hipSuccess;
+    return cudaSuccess;
     }
 
 //! Kernel function for reducing the potential energy to a partial sum
@@ -217,39 +197,26 @@ gpu_fire_reduce_partial_sum_kernel(Scalar* d_sum, Scalar* d_partial_sum, unsigne
     This is a driver for gpu_fire_reduce_pe_partial_kernel() and
     gpu_fire_reduce_partial_sum_kernel(), see them for details
 */
-hipError_t gpu_fire_compute_sum_pe(unsigned int* d_group_members,
-                                   unsigned int group_size,
-                                   Scalar4* d_net_force,
-                                   Scalar* d_sum_pe,
-                                   Scalar* d_partial_sum_pe,
-                                   unsigned int block_size,
-                                   unsigned int num_blocks)
+cudaError_t gpu_fire_compute_sum_pe(unsigned int* d_group_members,
+                                    unsigned int group_size,
+                                    Scalar4* d_net_force,
+                                    Scalar* d_sum_pe,
+                                    Scalar* d_partial_sum_pe,
+                                    unsigned int block_size,
+                                    unsigned int num_blocks)
     {
-    // setup the grid to run the kernel
-    dim3 grid(num_blocks, 1, 1);
-    dim3 threads(block_size, 1, 1);
+    gpu_fire_reduce_pe_partial_kernel<<<num_blocks, block_size, block_size * sizeof(Scalar)>>>(
+        d_group_members,
+        group_size,
+        d_net_force,
+        d_partial_sum_pe);
 
-    // run the kernel
-    hipLaunchKernelGGL((gpu_fire_reduce_pe_partial_kernel),
-                       dim3(grid),
-                       dim3(threads),
-                       block_size * sizeof(Scalar),
-                       0,
-                       d_group_members,
-                       group_size,
-                       d_net_force,
-                       d_partial_sum_pe);
+    gpu_fire_reduce_partial_sum_kernel<<<1, block_size, block_size * sizeof(Scalar)>>>(
+        d_sum_pe,
+        d_partial_sum_pe,
+        num_blocks);
 
-    hipLaunchKernelGGL((gpu_fire_reduce_partial_sum_kernel),
-                       dim3(1, 1, 1),
-                       dim3(threads),
-                       block_size * sizeof(Scalar),
-                       0,
-                       d_sum_pe,
-                       d_partial_sum_pe,
-                       num_blocks);
-
-    return hipSuccess;
+    return cudaSuccess;
     }
 
 //! Kernel function to compute the partial sum over the P term in the FIRE algorithm
@@ -573,171 +540,109 @@ __global__ void gpu_fire_reduce_tsq_partial_kernel(const Scalar4* d_net_torque,
     This is a driver for gpu_fire_reduce_{X}_partial_kernel() (where X = P, vsq, asq)
     and gpu_fire_reduce_partial_sum_kernel(), see them for details
 */
-hipError_t gpu_fire_compute_sum_all(const unsigned int N,
-                                    const Scalar4* d_vel,
-                                    const Scalar3* d_accel,
-                                    unsigned int* d_group_members,
-                                    unsigned int group_size,
-                                    Scalar* d_sum_all,
-                                    Scalar* d_partial_sum_P,
-                                    Scalar* d_partial_sum_vsq,
-                                    Scalar* d_partial_sum_asq,
-                                    unsigned int block_size,
-                                    unsigned int num_blocks)
+cudaError_t gpu_fire_compute_sum_all(const unsigned int N,
+                                     const Scalar4* d_vel,
+                                     const Scalar3* d_accel,
+                                     unsigned int* d_group_members,
+                                     unsigned int group_size,
+                                     Scalar* d_sum_all,
+                                     Scalar* d_partial_sum_P,
+                                     Scalar* d_partial_sum_vsq,
+                                     Scalar* d_partial_sum_asq,
+                                     unsigned int block_size,
+                                     unsigned int num_blocks)
     {
-    // setup the grid to run the kernel
-    dim3 grid(num_blocks, 1, 1);
-    dim3 grid1(1, 1, 1);
-    dim3 threads(block_size, 1, 1);
-    dim3 threads1(256, 1, 1);
+    gpu_fire_reduce_P_partial_kernel<<<num_blocks, block_size, block_size * sizeof(Scalar)>>>(
+        d_vel,
+        d_accel,
+        d_group_members,
+        group_size,
+        d_partial_sum_P);
 
-    // run the kernels
-    hipLaunchKernelGGL((gpu_fire_reduce_P_partial_kernel),
-                       dim3(grid),
-                       dim3(threads),
-                       block_size * sizeof(Scalar),
-                       0,
-                       d_vel,
-                       d_accel,
-                       d_group_members,
-                       group_size,
-                       d_partial_sum_P);
+    gpu_fire_reduce_partial_sum_kernel<<<1, block_size, block_size * sizeof(Scalar)>>>(
+        &d_sum_all[0],
+        d_partial_sum_P,
+        num_blocks);
 
-    hipLaunchKernelGGL((gpu_fire_reduce_partial_sum_kernel),
-                       dim3(grid1),
-                       dim3(threads1),
-                       block_size * sizeof(Scalar),
-                       0,
-                       &d_sum_all[0],
-                       d_partial_sum_P,
-                       num_blocks);
+    gpu_fire_reduce_vsq_partial_kernel<<<num_blocks, block_size, block_size * sizeof(Scalar)>>>(
+        d_vel,
+        d_group_members,
+        group_size,
+        d_partial_sum_vsq);
 
-    hipLaunchKernelGGL((gpu_fire_reduce_vsq_partial_kernel),
-                       dim3(grid),
-                       dim3(threads),
-                       block_size * sizeof(Scalar),
-                       0,
-                       d_vel,
-                       d_group_members,
-                       group_size,
-                       d_partial_sum_vsq);
+    gpu_fire_reduce_partial_sum_kernel<<<1, block_size, block_size * sizeof(Scalar)>>>(
+        &d_sum_all[1],
+        d_partial_sum_vsq,
+        num_blocks);
 
-    hipLaunchKernelGGL((gpu_fire_reduce_partial_sum_kernel),
-                       dim3(grid1),
-                       dim3(threads1),
-                       block_size * sizeof(Scalar),
-                       0,
-                       &d_sum_all[1],
-                       d_partial_sum_vsq,
-                       num_blocks);
+    gpu_fire_reduce_asq_partial_kernel<<<num_blocks, block_size, block_size * sizeof(Scalar)>>>(
+        d_accel,
+        d_group_members,
+        group_size,
+        d_partial_sum_asq);
 
-    hipLaunchKernelGGL((gpu_fire_reduce_asq_partial_kernel),
-                       dim3(grid),
-                       dim3(threads),
-                       block_size * sizeof(Scalar),
-                       0,
-                       d_accel,
-                       d_group_members,
-                       group_size,
-                       d_partial_sum_asq);
+    gpu_fire_reduce_partial_sum_kernel<<<1, block_size, block_size * sizeof(Scalar)>>>(
+        &d_sum_all[2],
+        d_partial_sum_asq,
+        num_blocks);
 
-    hipLaunchKernelGGL((gpu_fire_reduce_partial_sum_kernel),
-                       dim3(grid1),
-                       dim3(threads1),
-                       block_size * sizeof(Scalar),
-                       0,
-                       &d_sum_all[2],
-                       d_partial_sum_asq,
-                       num_blocks);
-
-    return hipSuccess;
+    return cudaSuccess;
     }
 
-hipError_t gpu_fire_compute_sum_all_angular(const unsigned int N,
-                                            const Scalar4* d_orientation,
-                                            const Scalar3* d_inertia,
-                                            const Scalar4* d_angmom,
-                                            const Scalar4* d_net_torque,
-                                            unsigned int* d_group_members,
-                                            unsigned int group_size,
-                                            Scalar* d_sum_all,
-                                            Scalar* d_partial_sum_Pr,
-                                            Scalar* d_partial_sum_wnorm,
-                                            Scalar* d_partial_sum_tsq,
-                                            unsigned int block_size,
-                                            unsigned int num_blocks)
+cudaError_t gpu_fire_compute_sum_all_angular(const unsigned int N,
+                                             const Scalar4* d_orientation,
+                                             const Scalar3* d_inertia,
+                                             const Scalar4* d_angmom,
+                                             const Scalar4* d_net_torque,
+                                             unsigned int* d_group_members,
+                                             unsigned int group_size,
+                                             Scalar* d_sum_all,
+                                             Scalar* d_partial_sum_Pr,
+                                             Scalar* d_partial_sum_wnorm,
+                                             Scalar* d_partial_sum_tsq,
+                                             unsigned int block_size,
+                                             unsigned int num_blocks)
     {
-    // setup the grid to run the kernel
-    dim3 grid(num_blocks, 1, 1);
-    dim3 grid1(1, 1, 1);
-    dim3 threads(block_size, 1, 1);
-    dim3 threads1(256, 1, 1);
+    gpu_fire_reduce_Pr_partial_kernel<<<num_blocks, block_size, block_size * sizeof(Scalar)>>>(
+        d_angmom,
+        d_orientation,
+        d_inertia,
+        d_net_torque,
+        d_group_members,
+        group_size,
+        d_partial_sum_Pr);
 
-    // run the kernels
-    hipLaunchKernelGGL((gpu_fire_reduce_Pr_partial_kernel),
-                       dim3(grid),
-                       dim3(threads),
-                       block_size * sizeof(Scalar),
-                       0,
-                       d_angmom,
-                       d_orientation,
-                       d_inertia,
-                       d_net_torque,
-                       d_group_members,
-                       group_size,
-                       d_partial_sum_Pr);
+    gpu_fire_reduce_partial_sum_kernel<<<1, block_size, block_size * sizeof(Scalar)>>>(
+        &d_sum_all[0],
+        d_partial_sum_Pr,
+        num_blocks);
 
-    hipLaunchKernelGGL((gpu_fire_reduce_partial_sum_kernel),
-                       dim3(grid1),
-                       dim3(threads1),
-                       block_size * sizeof(Scalar),
-                       0,
-                       &d_sum_all[0],
-                       d_partial_sum_Pr,
-                       num_blocks);
+    gpu_fire_reduce_wnorm_partial_kernel<<<num_blocks, block_size, block_size * sizeof(Scalar)>>>(
+        d_angmom,
+        d_orientation,
+        d_group_members,
+        group_size,
+        d_partial_sum_wnorm);
 
-    hipLaunchKernelGGL((gpu_fire_reduce_wnorm_partial_kernel),
-                       dim3(grid),
-                       dim3(threads),
-                       block_size * sizeof(Scalar),
-                       0,
-                       d_angmom,
-                       d_orientation,
-                       d_group_members,
-                       group_size,
-                       d_partial_sum_wnorm);
+    gpu_fire_reduce_partial_sum_kernel<<<1, block_size, block_size * sizeof(Scalar)>>>(
+        &d_sum_all[1],
+        d_partial_sum_wnorm,
+        num_blocks);
 
-    hipLaunchKernelGGL((gpu_fire_reduce_partial_sum_kernel),
-                       dim3(grid1),
-                       dim3(threads1),
-                       block_size * sizeof(Scalar),
-                       0,
-                       &d_sum_all[1],
-                       d_partial_sum_wnorm,
-                       num_blocks);
+    gpu_fire_reduce_tsq_partial_kernel<<<num_blocks, block_size, block_size * sizeof(Scalar)>>>(
+        d_net_torque,
+        d_orientation,
+        d_inertia,
+        d_group_members,
+        group_size,
+        d_partial_sum_tsq);
 
-    hipLaunchKernelGGL((gpu_fire_reduce_tsq_partial_kernel),
-                       dim3(grid),
-                       dim3(threads),
-                       block_size * sizeof(Scalar),
-                       0,
-                       d_net_torque,
-                       d_orientation,
-                       d_inertia,
-                       d_group_members,
-                       group_size,
-                       d_partial_sum_tsq);
+    gpu_fire_reduce_partial_sum_kernel<<<1, block_size, block_size * sizeof(Scalar)>>>(
+        &d_sum_all[2],
+        d_partial_sum_tsq,
+        num_blocks);
 
-    hipLaunchKernelGGL((gpu_fire_reduce_partial_sum_kernel),
-                       dim3(grid1),
-                       dim3(threads1),
-                       block_size * sizeof(Scalar),
-                       0,
-                       &d_sum_all[2],
-                       d_partial_sum_tsq,
-                       num_blocks);
-
-    return hipSuccess;
+    return cudaSuccess;
     }
 
 //! Kernel function to update the velocities used by the FIRE algorithm
@@ -784,32 +689,22 @@ __global__ void gpu_fire_update_v_kernel(Scalar4* d_vel,
 
     This function is a driver for gpu_fire_update_v_kernel(), see it for details.
 */
-hipError_t gpu_fire_update_v(Scalar4* d_vel,
-                             const Scalar3* d_accel,
-                             unsigned int* d_group_members,
-                             unsigned int group_size,
-                             Scalar alpha,
-                             Scalar factor_t)
+cudaError_t gpu_fire_update_v(Scalar4* d_vel,
+                              const Scalar3* d_accel,
+                              unsigned int* d_group_members,
+                              unsigned int group_size,
+                              Scalar alpha,
+                              Scalar factor_t)
     {
-    // setup the grid to run the kernel
     int block_size = 256;
-    dim3 grid((group_size / block_size) + 1, 1, 1);
-    dim3 threads(block_size, 1, 1);
+    gpu_fire_update_v_kernel<<<(group_size / block_size) + 1, block_size>>>(d_vel,
+                                                                            d_accel,
+                                                                            d_group_members,
+                                                                            group_size,
+                                                                            alpha,
+                                                                            factor_t);
 
-    // run the kernel
-    hipLaunchKernelGGL((gpu_fire_update_v_kernel),
-                       dim3(grid),
-                       dim3(threads),
-                       0,
-                       0,
-                       d_vel,
-                       d_accel,
-                       d_group_members,
-                       group_size,
-                       alpha,
-                       factor_t);
-
-    return hipSuccess;
+    return cudaSuccess;
     }
 
 __global__ void gpu_fire_update_angmom_kernel(const Scalar4* d_net_torque,
@@ -855,36 +750,26 @@ __global__ void gpu_fire_update_angmom_kernel(const Scalar4* d_net_torque,
         }
     }
 
-hipError_t gpu_fire_update_angmom(const Scalar4* d_net_torque,
-                                  const Scalar4* d_orientation,
-                                  const Scalar3* d_inertia,
-                                  Scalar4* d_angmom,
-                                  unsigned int* d_group_members,
-                                  unsigned int group_size,
-                                  Scalar alpha,
-                                  Scalar factor_r)
+cudaError_t gpu_fire_update_angmom(const Scalar4* d_net_torque,
+                                   const Scalar4* d_orientation,
+                                   const Scalar3* d_inertia,
+                                   Scalar4* d_angmom,
+                                   unsigned int* d_group_members,
+                                   unsigned int group_size,
+                                   Scalar alpha,
+                                   Scalar factor_r)
     {
-    // setup the grid to run the kernel
     int block_size = 256;
-    dim3 grid((group_size / block_size) + 1, 1, 1);
-    dim3 threads(block_size, 1, 1);
+    gpu_fire_update_angmom_kernel<<<(group_size / block_size) + 1, block_size>>>(d_net_torque,
+                                                                                 d_orientation,
+                                                                                 d_inertia,
+                                                                                 d_angmom,
+                                                                                 d_group_members,
+                                                                                 group_size,
+                                                                                 alpha,
+                                                                                 factor_r);
 
-    // run the kernel
-    hipLaunchKernelGGL((gpu_fire_update_angmom_kernel),
-                       dim3(grid),
-                       dim3(threads),
-                       0,
-                       0,
-                       d_net_torque,
-                       d_orientation,
-                       d_inertia,
-                       d_angmom,
-                       d_group_members,
-                       group_size,
-                       alpha,
-                       factor_r);
-
-    return hipSuccess;
+    return cudaSuccess;
     }
 
     } // end namespace kernel

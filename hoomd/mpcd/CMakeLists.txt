@@ -1,9 +1,8 @@
-
 if(NOT BUILD_MD)
     message(FATAL_ERROR "MPCD package cannot be built without MD.")
 endif()
 
-set(_mpcd_cc_sources
+set(_mpcd_sources
     module.cc
     ATCollisionMethod.cc
     CellCommunicator.cc
@@ -50,8 +49,6 @@ set(_mpcd_headers
     VirtualParticleFiller.h
     )
 
-set(_mpcd_cu_sources "")
-
 set(_forces
     BlockForce
     ConstantForce
@@ -68,17 +65,30 @@ set(_geometries
     SphereGeometry
     )
 
-if(ENABLE_HIP)
-    list(APPEND _mpcd_cc_sources
+if(ENABLE_GPU)
+    list(APPEND _mpcd_sources
         ATCollisionMethodGPU.cc
+        ATCollisionMethodGPU.cu
+        BounceBackNVEGPU.cu
         CellThermoComputeGPU.cc
+        CellThermoComputeGPU.cu
         CellListGPU.cc
+        CellListGPU.cu
+        CollisionMethod.cu
         CommunicatorGPU.cc
+        CommunicatorGPU.cu
         ParallelPlateGeometryFillerGPU.cc
+        ParallelPlateGeometryFillerGPU.cu
+        ParticleData.cu
         PlanarPoreGeometryFillerGPU.cc
+        PlanarPoreGeometryFillerGPU.cu
+        RejectionVirtualParticleFillerGPU.cu
         ReverseNonequilibriumShearFlowGPU.cc
+        ReverseNonequilibriumShearFlowGPU.cu
         SorterGPU.cc
+        SorterGPU.cu
         SRDCollisionMethodGPU.cc
+        SRDCollisionMethodGPU.cu
         )
     list(APPEND _mpcd_headers
         ATCollisionMethodGPU.cuh
@@ -110,33 +120,18 @@ if(ENABLE_HIP)
         SRDCollisionMethodGPU.cuh
         SRDCollisionMethodGPU.h
         )
-    set(_mpcd_cu_sources
-        ATCollisionMethodGPU.cu
-        BounceBackNVEGPU.cu
-        CellThermoComputeGPU.cu
-        CellListGPU.cu
-        CollisionMethod.cu
-        CommunicatorGPU.cu
-        ParticleData.cu
-        ParallelPlateGeometryFillerGPU.cu
-        PlanarPoreGeometryFillerGPU.cu
-        RejectionVirtualParticleFillerGPU.cu
-        ReverseNonequilibriumShearFlowGPU.cu
-        SorterGPU.cu
-        SRDCollisionMethodGPU.cu
-        )
 endif()
 
 # add cc and h file for geometries
 foreach(_geometry ${_geometries})
     # append force itself first
-    list(APPEND _mpcd_cc_sources ${_geometry}.cc)
+    list(APPEND _mpcd_sources ${_geometry}.cc)
     list(APPEND _mpcd_headers ${_geometry}.h)
 endforeach()
 
 # add cc and h file for forces
 foreach(_force ${_forces})
-    list(APPEND _mpcd_cc_sources ${_force}.cc)
+    list(APPEND _mpcd_sources ${_force}.cc)
     list(APPEND _mpcd_headers ${_force}.h)
 endforeach()
 
@@ -148,8 +143,8 @@ foreach(_force ${_forces})
         BulkStreamingMethod${_force}.cc
         @ONLY
         )
-    list(APPEND _mpcd_cc_sources BulkStreamingMethod${_force}.cc)
-    if(ENABLE_HIP)
+    list(APPEND _mpcd_sources BulkStreamingMethod${_force}.cc)
+    if(ENABLE_GPU)
         configure_file(
             BulkStreamingMethodGPU.cc.inc
             BulkStreamingMethod${_force}GPU.cc
@@ -160,8 +155,10 @@ foreach(_force ${_forces})
             BulkStreamingMethod${_force}GPU.cu
             @ONLY
         )
-        list(APPEND _mpcd_cc_sources BulkStreamingMethod${_force}GPU.cc)
-        list(APPEND _mpcd_cu_sources BulkStreamingMethod${_force}GPU.cu)
+        list(APPEND _mpcd_sources
+            BulkStreamingMethod${_force}GPU.cc
+            BulkStreamingMethod${_force}GPU.cu
+            )
     endif()
 
     # then the bounce back geometries
@@ -171,8 +168,8 @@ foreach(_force ${_forces})
             BounceBackStreamingMethod${_geometry}${_force}.cc
             @ONLY
             )
-        list(APPEND _mpcd_cc_sources BounceBackStreamingMethod${_geometry}${_force}.cc)
-        if(ENABLE_HIP)
+        list(APPEND _mpcd_sources BounceBackStreamingMethod${_geometry}${_force}.cc)
+        if(ENABLE_GPU)
             configure_file(
                 BounceBackStreamingMethodGPU.cc.inc
                 BounceBackStreamingMethod${_geometry}${_force}GPU.cc
@@ -183,8 +180,10 @@ foreach(_force ${_forces})
                 BounceBackStreamingMethod${_geometry}${_force}GPU.cu
                 @ONLY
             )
-            list(APPEND _mpcd_cc_sources BounceBackStreamingMethod${_geometry}${_force}GPU.cc)
-            list(APPEND _mpcd_cu_sources BounceBackStreamingMethod${_geometry}${_force}GPU.cu)
+            list(APPEND _mpcd_sources
+                BounceBackStreamingMethod${_geometry}${_force}GPU.cc
+                BounceBackStreamingMethod${_geometry}${_force}GPU.cu
+            )
         endif()
     endforeach()
 endforeach()
@@ -196,8 +195,8 @@ foreach(_geometry ${_geometries})
         BounceBackNVE${_geometry}.cc
         @ONLY
         )
-    list(APPEND _mpcd_cc_sources BounceBackNVE${_geometry}.cc)
-    if(ENABLE_HIP)
+    list(APPEND _mpcd_sources BounceBackNVE${_geometry}.cc)
+    if(ENABLE_GPU)
         configure_file(
             BounceBackNVEGPU.cc.inc
             BounceBackNVE${_geometry}GPU.cc
@@ -208,15 +207,17 @@ foreach(_geometry ${_geometries})
             BounceBackNVE${_geometry}GPU.cu
             @ONLY
         )
-        list(APPEND _mpcd_cc_sources BounceBackNVE${_geometry}GPU.cc)
-        list(APPEND _mpcd_cu_sources BounceBackNVE${_geometry}GPU.cu)
+        list(APPEND _mpcd_sources
+            BounceBackNVE${_geometry}GPU.cc
+            BounceBackNVE${_geometry}GPU.cu
+        )
     endif()
 endforeach()
 
 # virtual particle fillers for the different geometries
 foreach(_geometry ${_geometries})
     # skip fillers that are already done manually, guessed by filename
-    if(${_geometry}Filler.cc IN_LIST _mpcd_cc_sources)
+    if(${_geometry}Filler.cc IN_LIST _mpcd_sources)
         continue()
     endif()
 
@@ -225,8 +226,8 @@ foreach(_geometry ${_geometries})
         RejectionVirtualParticleFiller${_geometry}.cc
         @ONLY
         )
-    list(APPEND _mpcd_cc_sources RejectionVirtualParticleFiller${_geometry}.cc)
-    if(ENABLE_HIP)
+    list(APPEND _mpcd_sources RejectionVirtualParticleFiller${_geometry}.cc)
+    if(ENABLE_GPU)
         configure_file(
             RejectionVirtualParticleFillerGPU.cc.inc
             RejectionVirtualParticleFiller${_geometry}GPU.cc
@@ -237,16 +238,14 @@ foreach(_geometry ${_geometries})
             RejectionVirtualParticleFiller${_geometry}GPUDrawKernel.cu
             @ONLY
         )
-        list(APPEND _mpcd_cc_sources RejectionVirtualParticleFiller${_geometry}GPU.cc)
-        list(APPEND _mpcd_cu_sources RejectionVirtualParticleFiller${_geometry}GPUDrawKernel.cu)
+        list(APPEND _mpcd_sources
+            RejectionVirtualParticleFiller${_geometry}GPU.cc
+            RejectionVirtualParticleFiller${_geometry}GPUDrawKernel.cu
+        )
     endif()
 endforeach()
 
-if(ENABLE_HIP)
-    set_source_files_properties(${_mpcd_cu_sources} PROPERTIES LANGUAGE ${HOOMD_DEVICE_LANGUAGE})
-endif (ENABLE_HIP)
-
-hoomd_add_module(_mpcd SHARED ${_mpcd_cc_sources} ${_mpcd_cu_sources} ${_mpcd_headers} NO_EXTRAS)
+hoomd_add_module(_mpcd SHARED ${_mpcd_sources} ${_mpcd_headers} NO_EXTRAS)
 # alias into the HOOMD namespace so that plugins and symlinked components both work
 add_library(HOOMD::_mpcd ALIAS _mpcd)
 
