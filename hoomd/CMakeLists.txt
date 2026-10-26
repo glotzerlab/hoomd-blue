@@ -163,8 +163,9 @@ set(_hoomd_headers
     Tuner.h
     Updater.h
     Variant.h
-    VectorVariant.h
     VectorMath.h
+    VectorTypes.h
+    VectorVariant.h
     )
 
 if (ENABLE_GPU)

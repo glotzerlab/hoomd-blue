@@ -7,6 +7,7 @@
  */
 
 #include "ATCollisionMethod.h"
+#include "RequiredDouble.h"
 #include "hoomd/RNGIdentifiers.h"
 #include "hoomd/RandomNumbers.h"
 
@@ -182,12 +183,12 @@ void mpcd::ATCollisionMethod::applyVelocities()
         N_tot += m_embed_group->getNumMembers();
         }
 
-    ArrayHandle<double4> h_cell_vel(m_thermo->getCellVelocities(),
-                                    access_location::host,
-                                    access_mode::read);
-    ArrayHandle<double4> h_rand_vel(m_rand_thermo->getCellVelocities(),
-                                    access_location::host,
-                                    access_mode::read);
+    ArrayHandle<RequiredDouble4> h_cell_vel(m_thermo->getCellVelocities(),
+                                            access_location::host,
+                                            access_mode::read);
+    ArrayHandle<RequiredDouble4> h_rand_vel(m_rand_thermo->getCellVelocities(),
+                                            access_location::host,
+                                            access_mode::read);
 
     for (unsigned int idx = 0; idx < N_tot; ++idx)
         {
@@ -208,8 +209,8 @@ void mpcd::ATCollisionMethod::applyVelocities()
             }
 
         // load cell data
-        const double4 v_c = h_cell_vel.data[cell];
-        const double4 vrand_c = h_rand_vel.data[cell];
+        const RequiredDouble4 v_c = h_cell_vel.data[cell];
+        const RequiredDouble4 vrand_c = h_rand_vel.data[cell];
 
         // compute new velocity using the cell + the random draw
         const Scalar3 vnew = make_scalar3(v_c.x - vrand_c.x + vel_rand.x,

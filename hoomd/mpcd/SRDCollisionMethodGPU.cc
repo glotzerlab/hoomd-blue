@@ -89,9 +89,9 @@ void mpcd::SRDCollisionMethodGPU::rotate(uint64_t timestep)
     unsigned int N_tot = N_mpcd;
 
     // acquire cell velocities and rotation vectors
-    ArrayHandle<double4> d_cell_vel(m_thermo->getCellVelocities(),
-                                    access_location::device,
-                                    access_mode::read);
+    ArrayHandle<RequiredDouble4> d_cell_vel(m_thermo->getCellVelocities(),
+                                            access_location::device,
+                                            access_mode::read);
     ArrayHandle<double3> d_rotvec(m_rotvec, access_location::device, access_mode::read);
 
     // load scale factors if required

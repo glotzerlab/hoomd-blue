@@ -8,7 +8,7 @@
 
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wconversion"
-#if CUDART_VERSION >= 13400
+#if CUDART_VERSION >= 13040
 #include <cuda/iterator>
 #else
 #include <thrust/iterator/constant_iterator.h>
@@ -299,7 +299,7 @@ void connected_components(uint2* d_adj,
     int* d_unique = alloc.getTemporaryBuffer<int>(nverts);
     thrust::device_ptr<int> unique(d_unique);
 
-#if CUDART_VERSION >= 13400
+#if CUDART_VERSION >= 13040
     cuda::constant_iterator<unsigned int> const_one_it(1);
 #else
     thrust::constant_iterator<unsigned int> const_one_it(1);

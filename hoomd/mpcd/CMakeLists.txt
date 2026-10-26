@@ -41,6 +41,7 @@ set(_mpcd_headers
     ParallelPlateGeometryFiller.h
     PlanarPoreGeometryFiller.h
     RejectionVirtualParticleFiller.h
+    RequiredDouble.h
     ReverseNonequilibriumShearFlow.h
     ReverseNonequilibriumShearFlowUtilities.h
     Sorter.h

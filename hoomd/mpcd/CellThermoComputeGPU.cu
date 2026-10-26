@@ -50,7 +50,7 @@ namespace kernel
  * global memory.
  */
 template<bool need_energy, unsigned int tpp>
-__global__ void begin_cell_thermo(double4* d_cell_vel,
+__global__ void begin_cell_thermo(RequiredDouble4* d_cell_vel,
                                   double3* d_cell_energy,
                                   const unsigned int* d_cells,
                                   const unsigned int* d_cell_np,
@@ -70,7 +70,7 @@ __global__ void begin_cell_thermo(double4* d_cell_vel,
 
     const unsigned int cell_id = d_cells[idx / tpp];
     const unsigned int np = d_cell_np[cell_id];
-    double4 momentum = make_double4(0.0, 0.0, 0.0, 0.0);
+    RequiredDouble4 momentum = make_RequiredDouble4(0.0, 0.0, 0.0, 0.0);
     double ke(0.0);
 
     for (unsigned int offset = (idx % tpp); offset < np; offset += tpp)
@@ -119,7 +119,7 @@ __global__ void begin_cell_thermo(double4* d_cell_vel,
     // 0-th lane in each warp writes the result
     if (idx % tpp == 0)
         {
-        d_cell_vel[cell_id] = make_double4(momentum.x, momentum.y, momentum.z, momentum.w);
+        d_cell_vel[cell_id] = make_RequiredDouble4(momentum.x, momentum.y, momentum.z, momentum.w);
         if (need_energy)
             d_cell_energy[cell_id] = make_double3(ke, 0.0, __int_as_double(np));
         }
@@ -140,7 +140,7 @@ __global__ void begin_cell_thermo(double4* d_cell_vel,
  * etc. The temperature is computed from the cell kinetic energy.
  */
 template<bool need_energy>
-__global__ void end_cell_thermo(double4* d_cell_vel,
+__global__ void end_cell_thermo(RequiredDouble4* d_cell_vel,
                                 double3* d_cell_energy,
                                 const unsigned int* d_cells,
                                 const unsigned int Ncell,
@@ -154,7 +154,7 @@ __global__ void end_cell_thermo(double4* d_cell_vel,
     const unsigned int cell_id = d_cells[idx];
 
     // average cell properties if the cell has mass
-    const double4 cell_vel = d_cell_vel[cell_id];
+    const RequiredDouble4 cell_vel = d_cell_vel[cell_id];
     double3 vel_cm = make_double3(cell_vel.x, cell_vel.y, cell_vel.z);
     const double mass = cell_vel.w;
 
@@ -165,7 +165,7 @@ __global__ void end_cell_thermo(double4* d_cell_vel,
         vel_cm.y /= mass;
         vel_cm.z /= mass;
         }
-    d_cell_vel[cell_id] = make_double4(vel_cm.x, vel_cm.y, vel_cm.z, mass);
+    d_cell_vel[cell_id] = make_RequiredDouble4(vel_cm.x, vel_cm.y, vel_cm.z, mass);
 
     if (need_energy)
         {
@@ -214,7 +214,7 @@ __global__ void end_cell_thermo(double4* d_cell_vel,
  * without the normalization at the end, which is used for the outer cells.
  */
 template<bool need_energy, unsigned int tpp>
-__global__ void inner_cell_thermo(double4* d_cell_vel,
+__global__ void inner_cell_thermo(RequiredDouble4* d_cell_vel,
                                   double3* d_cell_energy,
                                   const Index3D ci,
                                   const Index3D inner_ci,
@@ -243,7 +243,7 @@ __global__ void inner_cell_thermo(double4* d_cell_vel,
     const unsigned int cell_id = ci(cell.x, cell.y, cell.z);
 
     const unsigned int np = d_cell_np[cell_id];
-    double4 momentum = make_double4(0.0, 0.0, 0.0, 0.0);
+    RequiredDouble4 momentum = make_RequiredDouble4(0.0, 0.0, 0.0, 0.0);
     double ke(0.0);
 
     for (unsigned int offset = (idx % tpp); offset < np; offset += tpp)
@@ -299,7 +299,7 @@ __global__ void inner_cell_thermo(double4* d_cell_vel,
             vel_cm.y = momentum.y / mass;
             vel_cm.z = momentum.z / mass;
             }
-        d_cell_vel[cell_id] = make_double4(vel_cm.x, vel_cm.y, vel_cm.z, mass);
+        d_cell_vel[cell_id] = make_RequiredDouble4(vel_cm.x, vel_cm.y, vel_cm.z, mass);
 
         if (need_energy)
             {
@@ -334,7 +334,7 @@ __global__ void inner_cell_thermo(double4* d_cell_vel,
  */
 template<bool need_energy>
 __global__ void stage_net_cell_thermo(mpcd::detail::cell_thermo_element* d_tmp_thermo,
-                                      const double4* d_cell_vel,
+                                      const RequiredDouble4* d_cell_vel,
                                       const double3* d_cell_energy,
                                       const Index3D tmp_ci,
                                       const Index3D ci)
@@ -349,7 +349,7 @@ __global__ void stage_net_cell_thermo(mpcd::detail::cell_thermo_element* d_tmp_t
     uint3 cell = tmp_ci.getTriple(tmp_idx);
     const unsigned int idx = ci(cell.x, cell.y, cell.z);
 
-    const double4 vel_mass = d_cell_vel[idx];
+    const RequiredDouble4 vel_mass = d_cell_vel[idx];
     const double3 vel = make_double3(vel_mass.x, vel_mass.y, vel_mass.z);
     const double mass = vel_mass.w;
 
@@ -511,7 +511,7 @@ cudaError_t begin_cell_thermo(const mpcd::detail::thermo_args_t& args,
  *
  * \sa mpcd::gpu::kernel::end_cell_thermo
  */
-cudaError_t end_cell_thermo(double4* d_cell_vel,
+cudaError_t end_cell_thermo(RequiredDouble4* d_cell_vel,
                             double3* d_cell_energy,
                             const unsigned int* d_cells,
                             const unsigned int Ncell,
@@ -701,7 +701,7 @@ cudaError_t inner_cell_thermo(const mpcd::detail::thermo_args_t& args,
  * \sa mpcd::gpu::kernel::stage_net_cell_thermo
  */
 cudaError_t stage_net_cell_thermo(mpcd::detail::cell_thermo_element* d_tmp_thermo,
-                                  const double4* d_cell_vel,
+                                  const RequiredDouble4* d_cell_vel,
                                   const double3* d_cell_energy,
                                   const Index3D& tmp_ci,
                                   const Index3D& ci,
@@ -764,7 +764,7 @@ cudaError_t reduce_net_cell_thermo(mpcd::detail::cell_thermo_element* d_reduced,
 //! Explicit template instantiation of pack for cell velocity
 template cudaError_t __attribute__((visibility("default")))
 pack_cell_buffer(typename mpcd::detail::CellVelocityPackOp::element* d_send_buf,
-                 const double4* d_props,
+                 const RequiredDouble4* d_props,
                  const unsigned int* d_send_idx,
                  const mpcd::detail::CellVelocityPackOp op,
                  const unsigned int num_send,
@@ -781,7 +781,7 @@ pack_cell_buffer(typename mpcd::detail::CellEnergyPackOp::element* d_send_buf,
 
 //! Explicit template instantiation of unpack for cell velocity
 template cudaError_t __attribute__((visibility("default")))
-unpack_cell_buffer(double4* d_props,
+unpack_cell_buffer(RequiredDouble4* d_props,
                    const unsigned int* d_cells,
                    const unsigned int* d_recv,
                    const unsigned int* d_recv_begin,

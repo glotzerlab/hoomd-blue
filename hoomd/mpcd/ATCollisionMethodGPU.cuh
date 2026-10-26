@@ -12,6 +12,7 @@
 #include <cuda_runtime.h>
 #include <stdint.h>
 
+#include "RequiredDouble.h"
 #include "hoomd/HOOMDMath.h"
 #include "hoomd/Index1D.h"
 
@@ -43,8 +44,8 @@ cudaError_t at_apply_velocity(Scalar4* d_vel,
                               const unsigned int* d_embed_idx,
                               const Scalar4* d_vel_alt_embed,
                               const unsigned int* d_embed_cell_ids,
-                              const double4* d_cell_vel,
-                              const double4* d_rand_vel,
+                              const RequiredDouble4* d_cell_vel,
+                              const RequiredDouble4* d_rand_vel,
                               const unsigned int N_mpcd,
                               const unsigned int N_tot,
                               const unsigned int block_size);

@@ -9,6 +9,7 @@
 #ifndef MPCD_CELL_THERMO_TYPES_H_
 #define MPCD_CELL_THERMO_TYPES_H_
 
+#include "RequiredDouble.h"
 #include "hoomd/HOOMDMath.h"
 
 #ifdef __NVCC__
@@ -56,16 +57,16 @@ struct thermo_options
 
 struct CellVelocityPackOp
     {
-    typedef double4 element;
+    typedef RequiredDouble4 element;
 
-    DEVICE element pack(const double4& val) const
+    DEVICE element pack(const RequiredDouble4& val) const
         {
         return val;
         }
 
-    DEVICE double4 unpack(const element& e, const double4& val) const
+    DEVICE RequiredDouble4 unpack(const element& e, const RequiredDouble4& val) const
         {
-        return make_double4(e.x + val.x, e.y + val.y, e.z + val.z, e.w + val.w);
+        return make_RequiredDouble4(e.x + val.x, e.y + val.y, e.z + val.z, e.w + val.w);
         }
     };
 

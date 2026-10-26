@@ -114,12 +114,12 @@ void mpcd::ATCollisionMethodGPU::applyVelocities()
     unsigned int N_tot = N_mpcd;
 
     // cell data
-    ArrayHandle<double4> d_cell_vel(m_thermo->getCellVelocities(),
-                                    access_location::device,
-                                    access_mode::read);
-    ArrayHandle<double4> d_rand_vel(m_rand_thermo->getCellVelocities(),
-                                    access_location::device,
-                                    access_mode::read);
+    ArrayHandle<RequiredDouble4> d_cell_vel(m_thermo->getCellVelocities(),
+                                            access_location::device,
+                                            access_mode::read);
+    ArrayHandle<RequiredDouble4> d_rand_vel(m_rand_thermo->getCellVelocities(),
+                                            access_location::device,
+                                            access_mode::read);
 
     if (m_embed_group)
         {

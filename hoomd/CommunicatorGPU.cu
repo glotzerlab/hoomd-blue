@@ -13,7 +13,7 @@
 #pragma GCC diagnostic ignored "-Wconversion"
 #include <cub/cub.cuh>
 
-#if CUDART_VERSION >= 13400
+#if CUDART_VERSION >= 13040
 #include <cuda/iterator>
 #else
 #include <thrust/iterator/constant_iterator.h>
@@ -279,7 +279,7 @@ void gpu_reset_rtags(unsigned int n_delete_ptls, unsigned int* d_delete_tags, un
     thrust::device_ptr<unsigned int> delete_tags_ptr(d_delete_tags);
     thrust::device_ptr<unsigned int> rtag_ptr(d_rtag);
 
-#if CUDART_VERSION >= 13400
+#if CUDART_VERSION >= 13040
     cuda::constant_iterator<unsigned int> not_local(NOT_LOCAL);
 #else
     thrust::constant_iterator<unsigned int> not_local(NOT_LOCAL);

@@ -7,6 +7,7 @@
 #include "hoomd/mpcd/CellThermoTypes.h"
 #include "hoomd/mpcd/CommunicatorUtilities.h"
 #include "hoomd/mpcd/ReductionOperators.h"
+#include "hoomd/mpcd/RequiredDouble.h"
 
 #include "hoomd/SnapshotSystemData.h"
 #include "hoomd/test/upp11_config.h"
@@ -161,10 +162,12 @@ void cell_communicator_overdecompose_test(std::shared_ptr<ExecutionConfiguration
     // Don't really care what's in this array, just want to make sure errors get thrown
     // appropriately
     const Index3D& ci = cl->getCellIndexer();
-    GPUArray<double4> props(ci.getNumElements(), exec_conf);
+    GPUArray<mpcd::RequiredDouble4> props(ci.getNumElements(), exec_conf);
         {
-        ArrayHandle<double4> h_props(props, access_location::host, access_mode::overwrite);
-        memset(h_props.data, 0, ci.getNumElements() * sizeof(double4));
+        ArrayHandle<mpcd::RequiredDouble4> h_props(props,
+                                                   access_location::host,
+                                                   access_mode::overwrite);
+        memset(h_props.data, 0, ci.getNumElements() * sizeof(mpcd::RequiredDouble4));
         }
 
     mpcd::CellCommunicator comm(sysdef, cl);

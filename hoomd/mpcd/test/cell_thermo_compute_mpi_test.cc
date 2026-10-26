@@ -7,6 +7,7 @@
 #ifdef ENABLE_GPU
 #include "hoomd/mpcd/CellThermoComputeGPU.h"
 #endif // ENABLE_GPU
+#include "hoomd/mpcd/RequiredDouble.h"
 
 #include "hoomd/Communicator.h"
 #include "hoomd/SnapshotSystemData.h"
@@ -64,9 +65,9 @@ template<class CT> void cell_thermo_basic_test(std::shared_ptr<ExecutionConfigur
         {
         // check per-cell stats
         const Index3D& ci = cl->getCellIndexer();
-        ArrayHandle<double4> h_cell_vel(thermo->getCellVelocities(),
-                                        access_location::host,
-                                        access_mode::read);
+        ArrayHandle<mpcd::RequiredDouble4> h_cell_vel(thermo->getCellVelocities(),
+                                                      access_location::host,
+                                                      access_mode::read);
         ArrayHandle<double3> h_cell_energy(thermo->getCellEnergies(),
                                            access_location::host,
                                            access_mode::read);
@@ -180,9 +181,9 @@ template<class CT> void cell_thermo_basic_test(std::shared_ptr<ExecutionConfigur
         const Index3D& ci = cl->getCellIndexer();
         const unsigned int local_idx = ci(local_cell.x, local_cell.y, local_cell.z);
 
-        ArrayHandle<double4> h_cell_vel(thermo->getCellVelocities(),
-                                        access_location::host,
-                                        access_mode::read);
+        ArrayHandle<mpcd::RequiredDouble4> h_cell_vel(thermo->getCellVelocities(),
+                                                      access_location::host,
+                                                      access_mode::read);
         ArrayHandle<double3> h_cell_energy(thermo->getCellEnergies(),
                                            access_location::host,
                                            access_mode::read);

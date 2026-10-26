@@ -12,11 +12,7 @@
 #ifdef ENABLE_GPU
 #include <cuda_runtime.h>
 #else
-
-// for builds on systems where CUDA is not available, include copies of the CUDA header
-// files which define the vector types (float4, etc...)
-#include "hoomd/extern/cudacpu_vector_functions.h"
-#include "hoomd/extern/cudacpu_vector_types.h"
+#include "VectorTypes.h"
 #endif
 
 #ifndef __NVCC__
@@ -52,32 +48,35 @@ typedef double2 cufftDoubleComplex;
 #if HOOMD_LONGREAL_SIZE == 32
 //! Floating point type (single precision)
 typedef float Scalar;
+typedef float LongReal;
 //! Floating point type with x,y elements (single precision)
 typedef float2 Scalar2;
+typedef float2 LongReal2;
 //! Floating point type with x,y elements (single precision)
 typedef float3 Scalar3;
+typedef float3 LongReal3;
 //! Floating point type with x,y,z,w elements (single precision)
 typedef float4 Scalar4;
-
-typedef float LongReal;
-typedef float2 LongReal2;
-typedef float3 LongReal3;
 typedef float4 LongReal4;
 
 #elif HOOMD_LONGREAL_SIZE == 64
 //! Floating point type (double precision)
 typedef double Scalar;
+typedef double LongReal;
 //! Floating point type with x,y elements (double precision)
 typedef double2 Scalar2;
+typedef double2 LongReal2;
 //! Floating point type with x,y,z elements (double precision)
 typedef double3 Scalar3;
-//! Floating point type with x,y,z,w elements (double precision)
-typedef double4 Scalar4;
-
-typedef double LongReal;
-typedef double2 LongReal2;
 typedef double3 LongReal3;
+//! Floating point type with x,y,z,w elements (double precision)
+#if !defined(ENABLE_GPU) || (defined(ENABLE_GPU) && CUDART_VERSION >= 13000)
+typedef double4_16a Scalar4;
+typedef double4_16a LongReal4;
+#else
+typedef double4 Scalar4;
 typedef double4 LongReal4;
+#endif
 
 #else
 #error HOOMD_LONGREAL_SIZE must be 32 or 64.
@@ -92,7 +91,11 @@ typedef float4 ShortReal4;
 typedef double ShortReal;
 typedef double2 ShortReal2;
 typedef double3 ShortReal3;
+#if !defined(ENABLE_GPU) || (defined(ENABLE_GPU) && CUDART_VERSION >= 13000)
+typedef double4_16a ShortReal4;
+#else
 typedef double4 ShortReal4;
+#endif
 #else
 #error HOOMD_SHORTREAL_SIZE must be 32 or 64.
 #endif

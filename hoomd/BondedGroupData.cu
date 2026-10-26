@@ -6,7 +6,7 @@
 
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wconversion"
-#if CUDART_VERSION >= 13400
+#if CUDART_VERSION >= 13040
 #include <cuda/iterator>
 #else
 #include <thrust/iterator/constant_iterator.h>
@@ -179,7 +179,7 @@ void gpu_update_group_table(const unsigned int n_groups,
 
         // perform a segmented scan of d_scratch_idx
         thrust::device_ptr<unsigned int> offsets(d_offsets);
-#if CUDART_VERSION >= 13400
+#if CUDART_VERSION >= 13040
         cuda::constant_iterator<unsigned int> const_it(1);
 #else
         thrust::constant_iterator<unsigned int> const_it(1);
