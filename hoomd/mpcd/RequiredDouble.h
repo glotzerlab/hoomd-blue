@@ -20,15 +20,11 @@
 #define HOSTDEVICE inline
 #endif
 
-#if !defined(ENABLE_GPU) || (defined(ENABLE_GPU) && CUDART_VERSION >= 13000)
-#define MPCD_USE_NEW_DOUBLE4
-#endif
-
 namespace hoomd
     {
 namespace mpcd
     {
-#ifdef MPCD_USE_NEW_DOUBLE4
+#if !defined(ENABLE_GPU) || (defined(ENABLE_GPU) && CUDART_VERSION >= 13000)
 typedef double4_16a RequiredDouble4;
 #else
 typedef double4 RequiredDouble4;
@@ -36,17 +32,12 @@ typedef double4 RequiredDouble4;
 
 HOSTDEVICE RequiredDouble4 make_RequiredDouble4(double x, double y, double z, double w)
     {
-#ifdef MPCD_USE_NEW_DOUBLE4
-    return make_double4_16a(x, y, z, w);
-#else
-    return make_double4(x, y, z, w);
-#endif
+    return RequiredDouble4 {x, y, z, w};
     }
 
     } // end namespace mpcd
     } // end namespace hoomd
 
-#undef MPCD_USE_NEW_DOUBLE4
 #undef HOSTDEVICE
 
 #endif // MPCD_REQUIRED_DOUBLE_H_
