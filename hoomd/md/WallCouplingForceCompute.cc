@@ -47,7 +47,7 @@ void WallCouplingForceCompute::setForces()
 
 	Scalar norm = fast::sqrt(pi.x*pi.x+pi.y*pi.y);
 
-	Scalar dist = m_R - norm;
+	Scalar dist = 2*(m_R - norm);
 
 	dist = 1/(dist*dist*norm);
 
