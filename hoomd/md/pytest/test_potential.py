@@ -1165,40 +1165,45 @@ def test_setting_nlist(simulation_factory, two_particle_snapshot_factory):
 # Test logging
 @pytest.mark.parametrize(
     "cls, expected_namespace, expected_loggables",
-    zip(
-        (
-            md.pair.Pair,
-            md.pair.aniso.AnisotropicPair,
-            md.many_body.Triplet,
-            md.many_body.Tersoff,
-            md.many_body.RevCross,
-            md.many_body.SquareDensity,
-        ),
-        (
-            ("md", "pair"),
-            ("md", "pair", "aniso"),
-            ("md", "many_body"),
-            ("md", "many_body"),
-            ("md", "many_body"),
-            ("md", "many_body"),
-        ),
-        itertools.repeat(
-            {
-                "energy": {"category": LoggerCategories.scalar, "default": True},
-                "energies": {"category": LoggerCategories.particle, "default": True},
-                "forces": {"category": LoggerCategories.particle, "default": True},
-                "torques": {"category": LoggerCategories.particle, "default": True},
-                "virials": {"category": LoggerCategories.particle, "default": True},
-                "additional_energy": {
-                    "category": LoggerCategories.scalar,
-                    "default": True,
-                },
-                "additional_virial": {
-                    "category": LoggerCategories.sequence,
-                    "default": True,
-                },
-            }
-        ),
+    list(
+        zip(
+            (
+                md.pair.Pair,
+                md.pair.aniso.AnisotropicPair,
+                md.many_body.Triplet,
+                md.many_body.Tersoff,
+                md.many_body.RevCross,
+                md.many_body.SquareDensity,
+            ),
+            (
+                ("md", "pair"),
+                ("md", "pair", "aniso"),
+                ("md", "many_body"),
+                ("md", "many_body"),
+                ("md", "many_body"),
+                ("md", "many_body"),
+            ),
+            itertools.repeat(
+                {
+                    "energy": {"category": LoggerCategories.scalar, "default": True},
+                    "energies": {
+                        "category": LoggerCategories.particle,
+                        "default": True,
+                    },
+                    "forces": {"category": LoggerCategories.particle, "default": True},
+                    "torques": {"category": LoggerCategories.particle, "default": True},
+                    "virials": {"category": LoggerCategories.particle, "default": True},
+                    "additional_energy": {
+                        "category": LoggerCategories.scalar,
+                        "default": True,
+                    },
+                    "additional_virial": {
+                        "category": LoggerCategories.sequence,
+                        "default": True,
+                    },
+                }
+            ),
+        )
     ),
 )
 def test_logging(cls, expected_namespace, expected_loggables):

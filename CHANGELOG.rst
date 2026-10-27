@@ -26,6 +26,7 @@ supported, but it may be possible to compile for AMD GPUs using
 
 *Fixed*
 
+* Fixed bug in calculating Helfrich forces (#2376).
 
 7.2.0 (2026-09-22)
 ^^^^^^^^^^^^^^^^^^^^
