@@ -127,6 +127,12 @@ void CommunicatorGPU::allocateBuffers()
     GPUVector<Scalar4> netforce_ghost_recvbuf(m_exec_conf);
     m_netforce_ghost_recvbuf.swap(netforce_ghost_recvbuf);
 
+    GPUVector<Scalar4> array_ghost_sendbuf(m_exec_conf);
+    m_array_ghost_sendbuf.swap(array_ghost_sendbuf);
+
+    GPUVector<Scalar4> array_ghost_recvbuf(m_exec_conf);
+    m_array_ghost_recvbuf.swap(array_ghost_recvbuf);
+
     GPUVector<Scalar4> nettorque_ghost_sendbuf(m_exec_conf);
     m_nettorque_ghost_sendbuf.swap(nettorque_ghost_sendbuf);
 
@@ -3499,11 +3505,151 @@ void CommunicatorGPU::finishUpdateGhosts(uint64_t timestep)
         }
     }
 
-//! Perform ghosts update
+//! Forward a per-particle array from the owned particles to their ghost copies
 void CommunicatorGPU::updateGhostArray(GPUArray<Scalar4>& data)
     {
-    throw std::runtime_error("updateGhostArray() is not yet implemented for GPU domain "
-                             "decomposition.");
+    m_exec_conf->msg->notice(7) << "CommunicatorGPU: update ghost array" << std::endl;
+
+    if (data.getNumElements() < m_pdata->getN() + m_pdata->getNGhosts())
+        {
+        throw std::runtime_error("Array passed to updateGhostArray() is too small for the "
+                                 "local particles and ghosts.");
+        }
+
+    // main communication loop
+    for (unsigned int stage = 0; stage < m_num_stages; ++stage)
+        {
+        // compute maximum send buf size
+        unsigned int n_max = 0;
+        for (unsigned int istage = 0; istage <= stage; ++istage)
+            if (m_n_send_ghosts_tot[istage] > n_max)
+                n_max = m_n_send_ghosts_tot[istage];
+
+        m_array_ghost_sendbuf.resize(n_max);
+
+            {
+            // access the array, ghosts received in previous stages can be forwarded
+            ArrayHandle<Scalar4> d_data(data, access_location::device, access_mode::read);
+
+            // access ghost send indices
+            ArrayHandle<uint2> d_ghost_idx_adj(m_ghost_idx_adj,
+                                               access_location::device,
+                                               access_mode::read);
+
+            // access output buffer
+            ArrayHandle<Scalar4> d_array_ghost_sendbuf(m_array_ghost_sendbuf,
+                                                       access_location::device,
+                                                       access_mode::overwrite);
+
+            // Pack ghosts into send buffer
+            gpu_exchange_ghosts_pack_netforce(m_n_send_ghosts_tot[stage],
+                                              d_ghost_idx_adj.data + m_idx_offs[stage],
+                                              d_data.data,
+                                              d_array_ghost_sendbuf.data);
+
+            if (m_exec_conf->isCUDAErrorCheckingEnabled())
+                CHECK_CUDA_ERROR();
+            }
+
+        /*
+         * Ghost particle communication
+         */
+
+        n_max = 0;
+        // compute maximum number of received ghosts
+        for (unsigned int istage = 0; istage <= stage; ++istage)
+            if (m_n_recv_ghosts_tot[istage] > n_max)
+                n_max = m_n_recv_ghosts_tot[istage];
+
+        m_array_ghost_recvbuf.resize(n_max);
+
+        // first ghost ptl index
+        unsigned int first_idx = m_pdata->getN();
+
+        // total up ghosts received thus far
+        for (unsigned int istage = 0; istage < stage; ++istage)
+            {
+            first_idx += m_n_recv_ghosts_tot[istage];
+            }
+
+            {
+            unsigned int offs = 0;
+
+            // recv buffer
+            ArrayHandle<Scalar4> h_array_ghost_recvbuf(m_array_ghost_recvbuf,
+                                                       access_location::host,
+                                                       access_mode::overwrite);
+
+            // send buffer
+            ArrayHandle<Scalar4> h_array_ghost_sendbuf(m_array_ghost_sendbuf,
+                                                       access_location::host,
+                                                       access_mode::read);
+
+            ArrayHandleAsync<unsigned int> h_unique_neighbors(m_unique_neighbors,
+                                                              access_location::host,
+                                                              access_mode::read);
+            ArrayHandleAsync<unsigned int> h_ghost_begin(m_ghost_begin,
+                                                         access_location::host,
+                                                         access_mode::read);
+
+            m_reqs.clear();
+            MPI_Request req;
+
+            // loop over neighbors
+            for (unsigned int ineigh = 0; ineigh < m_n_unique_neigh; ineigh++)
+                {
+                // rank of neighbor processor
+                unsigned int neighbor = h_unique_neighbors.data[ineigh];
+
+                if (m_n_send_ghosts[stage][ineigh])
+                    {
+                    MPI_Isend(h_array_ghost_sendbuf.data
+                                  + h_ghost_begin.data[ineigh + stage * m_n_unique_neigh],
+                              int(m_n_send_ghosts[stage][ineigh] * sizeof(Scalar4)),
+                              MPI_BYTE,
+                              neighbor,
+                              5,
+                              m_mpi_comm,
+                              &req);
+                    m_reqs.push_back(req);
+                    }
+
+                if (m_n_recv_ghosts[stage][ineigh])
+                    {
+                    MPI_Irecv(h_array_ghost_recvbuf.data + m_ghost_offs[stage][ineigh] + offs,
+                              int(m_n_recv_ghosts[stage][ineigh] * sizeof(Scalar4)),
+                              MPI_BYTE,
+                              neighbor,
+                              5,
+                              m_mpi_comm,
+                              &req);
+                    m_reqs.push_back(req);
+                    }
+                }
+
+            // complete communication
+            std::vector<MPI_Status> stats(m_reqs.size());
+            MPI_Waitall((unsigned int)m_reqs.size(), &m_reqs.front(), &stats.front());
+            } // end ArrayHandle scope
+
+            {
+            // access receive buffer
+            ArrayHandle<Scalar4> d_array_ghost_recvbuf(m_array_ghost_recvbuf,
+                                                       access_location::device,
+                                                       access_mode::read);
+
+            // access the array
+            ArrayHandle<Scalar4> d_data(data, access_location::device, access_mode::readwrite);
+
+            // copy recv buf into the ghost entries of the array
+            gpu_exchange_ghosts_copy_netforce_buf(m_n_recv_ghosts_tot[stage],
+                                                  d_array_ghost_recvbuf.data,
+                                                  d_data.data + first_idx);
+
+            if (m_exec_conf->isCUDAErrorCheckingEnabled())
+                CHECK_CUDA_ERROR();
+            }
+        } // end main communication loop
     }
 
 void CommunicatorGPU::updateNetForce(uint64_t timestep)

@@ -238,6 +238,8 @@ class PYBIND11_EXPORT CommunicatorGPU : public Communicator
 
     GPUVector<Scalar4> m_netforce_ghost_sendbuf; //!< Send buffer for netforce
     GPUVector<Scalar4> m_netforce_ghost_recvbuf; //!< Recv buffer for netforce
+    GPUVector<Scalar4> m_array_ghost_sendbuf;    //!< Send buffer for updateGhostArray()
+    GPUVector<Scalar4> m_array_ghost_recvbuf;    //!< Recv buffer for updateGhostArray()
 
     GPUVector<Scalar4> m_nettorque_ghost_sendbuf; //!< Send buffer for nettorque
     GPUVector<Scalar4> m_nettorque_ghost_recvbuf; //!< Recv buffer for nettorque
