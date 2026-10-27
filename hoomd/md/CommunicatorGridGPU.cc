@@ -162,7 +162,7 @@ template<typename T> void CommunicatorGridGPU<T>::communicate(const GPUArray<T>&
             }
 
         std::vector<MPI_Status> stat(reqs.size());
-        MPI_Waitall((unsigned int)reqs.size(), &reqs.front(), &stat.front());
+        MPI_Waitall((unsigned int)reqs.size(), reqs.data(), stat.data());
         }
 
         {

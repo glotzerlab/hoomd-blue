@@ -358,7 +358,7 @@ void ForceDistanceConstraintGPU::solveConstraints(uint64_t timestep)
                                  m_cusparse_mat_descr,
                                  h_csr_rowptr.data,
                                  h_csr_colind.data,
-                                 &m_Qreorder.front());
+                                 m_Qreorder.data());
 
         // get size of scratch space for permutation B=Q*A*Q^T
         size_t size_perm = 0;
@@ -369,8 +369,8 @@ void ForceDistanceConstraintGPU::solveConstraints(uint64_t timestep)
                                           m_cusparse_mat_descr,
                                           h_csr_rowptr.data,
                                           h_csr_colind.data,
-                                          &m_Qreorder.front(),
-                                          &m_Qreorder.front(),
+                                          m_Qreorder.data(),
+                                          m_Qreorder.data(),
                                           &size_perm);
 
         // identity mapping
@@ -389,8 +389,8 @@ void ForceDistanceConstraintGPU::solveConstraints(uint64_t timestep)
         m_csr_val_B.resize(m_nnz_tot);
 
         // copy over A values
-        memcpy(&m_csr_rowptr_B.front(), h_csr_rowptr.data, sizeof(int) * (n_constraint + 1));
-        memcpy(&m_csr_colind_B.front(), h_csr_colind.data, sizeof(int) * m_nnz_tot);
+        memcpy(m_csr_rowptr_B.data(), h_csr_rowptr.data, sizeof(int) * (n_constraint + 1));
+        memcpy(m_csr_colind_B.data(), h_csr_colind.data, sizeof(int) * m_nnz_tot);
 
         // apply permutation
         cusolverSpXcsrpermHost(m_cusolver_sp_handle,
@@ -398,12 +398,12 @@ void ForceDistanceConstraintGPU::solveConstraints(uint64_t timestep)
                                n_constraint,
                                m_nnz_tot,
                                m_cusparse_mat_descr,
-                               &m_csr_rowptr_B.front(),
-                               &m_csr_colind_B.front(),
-                               &m_Qreorder.front(),
-                               &m_Qreorder.front(),
-                               &m_mapBfromA.front(),
-                               &m_reorder_work.front());
+                               m_csr_rowptr_B.data(),
+                               m_csr_colind_B.data(),
+                               m_Qreorder.data(),
+                               m_Qreorder.data(),
+                               m_mapBfromA.data(),
+                               m_reorder_work.data());
 
         // B = A(mapBfromA)
         for (int i = 0; i < m_nnz_tot; ++i)
@@ -423,8 +423,8 @@ void ForceDistanceConstraintGPU::solveConstraints(uint64_t timestep)
                                      n_constraint,
                                      m_nnz_tot,
                                      m_cusparse_mat_descr,
-                                     &m_csr_rowptr_B.front(),
-                                     &m_csr_colind_B.front(),
+                                     m_csr_rowptr_B.data(),
+                                     m_csr_colind_B.data(),
                                      m_cusolver_csrlu_info);
 
         size_t size_internal = 0;
@@ -435,9 +435,9 @@ void ForceDistanceConstraintGPU::solveConstraints(uint64_t timestep)
                                        n_constraint,
                                        m_nnz_tot,
                                        m_cusparse_mat_descr,
-                                       &m_csr_val_B.front(),
-                                       &m_csr_rowptr_B.front(),
-                                       &m_csr_colind_B.front(),
+                                       m_csr_val_B.data(),
+                                       m_csr_rowptr_B.data(),
+                                       m_csr_colind_B.data(),
                                        m_cusolver_csrlu_info,
                                        &size_internal,
                                        &size_lu);
@@ -452,12 +452,12 @@ void ForceDistanceConstraintGPU::solveConstraints(uint64_t timestep)
                                    n_constraint,
                                    m_nnz_tot,
                                    m_cusparse_mat_descr,
-                                   &m_csr_val_B.front(),
-                                   &m_csr_rowptr_B.front(),
-                                   &m_csr_colind_B.front(),
+                                   m_csr_val_B.data(),
+                                   m_csr_rowptr_B.data(),
+                                   m_csr_colind_B.data(),
                                    m_cusolver_csrlu_info,
                                    pivot_thresh,
-                                   &m_lu_work.front());
+                                   m_lu_work.data());
 
         // check for singularity
         const double tol(1e-14);
@@ -513,8 +513,8 @@ void ForceDistanceConstraintGPU::solveConstraints(uint64_t timestep)
 
         // extract
         cusolverSpDcsrluExtractHost(m_cusolver_sp_handle,
-                                    &m_Plu.front(),
-                                    &m_Qlu.front(),
+                                    m_Plu.data(),
+                                    m_Qlu.data(),
                                     m_cusparse_mat_descr_L,
                                     h_csr_val_L.data,
                                     h_csr_rowptr_L.data,
@@ -524,7 +524,7 @@ void ForceDistanceConstraintGPU::solveConstraints(uint64_t timestep)
                                     h_csr_rowptr_U.data,
                                     h_csr_colind_U.data,
                                     m_cusolver_csrlu_info,
-                                    &m_lu_work.front());
+                                    m_lu_work.data());
 
         // clean up cusolverSp
         cusolverSpDestroyCsrluInfoHost(m_cusolver_csrlu_info);
