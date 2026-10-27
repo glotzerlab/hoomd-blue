@@ -3240,8 +3240,8 @@ void Communicator::updateNetForce(uint64_t timestep)
 
         if (flags[comm_flag::net_force])
             {
-            m_reqs.clear();
-            m_stats.clear();
+            m_reqs.resize(2);
+            m_stats.resize(2);
 
             ArrayHandle<Scalar4> h_netforce(m_pdata->getNetForce(),
                                             access_location::host,
