@@ -254,15 +254,6 @@ def get_mesh_potential_args_forces_and_energies():
         + Volume_args_and_vals
     )
 
-
-def _skip_if_helfrich_mpi(sim, pair_potential):
-    """Determines if the simulation is able to run this pair potential."""
-    if sim.device.communicator.num_ranks > 1 and issubclass(
-        pair_potential, hoomd.md.mesh.bending.Helfrich
-    ):
-        pytest.skip("Cannot run Helfrich with MPI")
-
-
 @pytest.fixture(scope="session")
 def tetrahedron_snapshot_factory(device):
     def make_snapshot(d=1.0, particle_types=["A"], L=20):
@@ -329,8 +320,6 @@ def test_after_attaching(
     mesh_potential = mesh_potential_cls(mesh)
     mesh_potential.params["mesh"] = potential_kwargs
 
-    _skip_if_helfrich_mpi(sim, mesh_potential_cls)
-
     integrator = hoomd.md.Integrator(dt=0.005)
 
     integrator.forces.append(mesh_potential)
@@ -373,8 +362,6 @@ def test_multiple_types(
 
     mesh_potential = mesh_potential_cls(mesh)
     mesh_potential.params.default = potential_kwargs
-
-    _skip_if_helfrich_mpi(sim, mesh_potential_cls)
 
     integrator = hoomd.md.Integrator(dt=0.005)
 
@@ -513,8 +500,6 @@ def test_forces_and_energies(
     mesh_potential.params["mesh"] = potential_kwargs
     mesh_potential.params["patch"] = potential_kwargs
 
-    _skip_if_helfrich_mpi(sim, mesh_potential_cls)
-
     integrator = hoomd.md.Integrator(dt=0.005)
 
     integrator.forces.append(mesh_potential)
@@ -615,91 +600,3 @@ def test_auto_detach_simulation(simulation_factory, tetrahedron_snapshot_factory
     del integrator.forces[0]
     assert not mesh._attached
     assert mesh._cpp_obj is None
-
-
-def test_helfrich_mpi_error(simulation_factory, tetrahedron_snapshot_factory):
-    sim = simulation_factory(tetrahedron_snapshot_factory(d=0.969, L=5))
-    mesh = hoomd.mesh.Mesh()
-    mesh.triangulation = dict(type_ids=[0, 0], triangles=[[0, 1, 2], [0, 2, 3]])
-
-    helfrich = hoomd.md.mesh.bending.Helfrich(mesh)
-    helfrich.params["mesh"] = dict(k=1)
-
-    integrator = hoomd.md.Integrator(dt=0.005, forces=[helfrich])
-
-    integrator.methods.append(
-        hoomd.md.methods.Langevin(kT=1, filter=hoomd.filter.All())
-    )
-    sim.operations.integrator = integrator
-
-    if sim.device.communicator.num_ranks > 1:
-        with pytest.raises(NotImplementedError):
-            sim.run(0)
-
-
-def _helfrich_energy(x, triangles, k):
-    """Reference Helfrich energy k/2 sum_i |sigma'_i|^2 / sigma_i (cotangent weights)."""
-    cot = {}
-    for tri in triangles:
-        for i in range(3):
-            c, a, b = tri[i], tri[(i + 1) % 3], tri[(i + 2) % 3]
-            u, w = x[a] - x[c], x[b] - x[c]
-            key = tuple(sorted((a, b)))
-            cot[key] = cot.get(key, 0.0) + u @ w / np.linalg.norm(np.cross(u, w))
-    sigma = np.zeros(len(x))
-    sigma_dash = np.zeros((len(x), 3))
-    for (a, b), c in cot.items():
-        weight = c / 2
-        dab = x[a] - x[b]
-        sigma[a] += weight * dab @ dab / 4
-        sigma[b] += weight * dab @ dab / 4
-        sigma_dash[a] += weight * dab
-        sigma_dash[b] -= weight * dab
-    return 0.5 * k * np.sum(np.einsum("ij,ij->i", sigma_dash, sigma_dash) / sigma)
-
-
-def test_helfrich_forces_finite_difference(
-    tetrahedron_snapshot_factory, simulation_factory
-):
-    """Forces of a distorted tetrahedron are minus the gradient of the energy."""
-    k = 7.0
-    triangles = [[2, 1, 0], [0, 1, 3], [2, 0, 3], [1, 2, 3]]
-    snap = tetrahedron_snapshot_factory(d=0.969, L=5)
-    rng = np.random.default_rng(42)
-    if snap.communicator.rank == 0:
-        snap.particles.position[:] += rng.normal(scale=0.05, size=(4, 3))
-        positions = np.array(snap.particles.position)
-    sim = simulation_factory(snap)
-
-    mesh = hoomd.mesh.Mesh()
-    mesh.triangulation = dict(type_ids=[0] * 4, triangles=triangles)
-    helfrich = hoomd.md.mesh.bending.Helfrich(mesh)
-    helfrich.params["mesh"] = dict(k=k)
-    _skip_if_helfrich_mpi(sim, hoomd.md.mesh.bending.Helfrich)
-
-    integrator = hoomd.md.Integrator(dt=0.005)
-    integrator.forces.append(helfrich)
-    langevin = hoomd.md.methods.Langevin(
-        kT=1, filter=hoomd.filter.All(), default_gamma=0.1
-    )
-    integrator.methods.append(langevin)
-    sim.operations.integrator = integrator
-    sim.run(0)
-
-    if sim.device.communicator.rank == 0:
-        assert helfrich.energy == pytest.approx(
-            _helfrich_energy(positions, triangles, k), rel=1e-6
-        )
-        eps = 1e-6
-        expected = np.zeros((4, 3))
-        for i in range(4):
-            for j in range(3):
-                plus, minus = positions.copy(), positions.copy()
-                plus[i, j] += eps
-                minus[i, j] -= eps
-                expected[i, j] = -(
-                    _helfrich_energy(plus, triangles, k)
-                    - _helfrich_energy(minus, triangles, k)
-                ) / (2 * eps)
-        assert np.linalg.norm(expected) > 1.0
-        np.testing.assert_allclose(helfrich.forces, expected, rtol=1e-4, atol=1e-5)
