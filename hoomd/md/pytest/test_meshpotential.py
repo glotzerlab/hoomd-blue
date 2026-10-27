@@ -258,6 +258,7 @@ def get_mesh_potential_args_forces_and_energies():
         + Volume_args_and_vals
     )
 
+
 @pytest.fixture(scope="session")
 def tetrahedron_snapshot_factory(device):
     def make_snapshot(d=1.0, particle_types=["A"], L=20):

@@ -3060,7 +3060,6 @@ void Communicator::updateGhostArray(GPUArray<Scalar4>& data)
         unsigned int start_idx = m_pdata->getN() + num_tot_recv_ghosts;
         num_tot_recv_ghosts += m_num_recv_ghosts[dir];
 
-
         m_reqs.resize(2);
         m_stats.resize(2);
 
