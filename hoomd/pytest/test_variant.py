@@ -67,11 +67,11 @@ def _test_id(value):
 
 @pytest.mark.parametrize(
     "cls, kwargs",
-    (
+    [
         (cls, kwarg)
         for cls, kwargs in zip(_classes, _test_kwargs)
         for kwarg in _to_kwargs(kwargs)
-    ),
+    ],
     ids=_test_id,
 )
 def test_construction(cls, kwargs):
@@ -95,7 +95,7 @@ def variants():
 
 
 @pytest.mark.parametrize(
-    "variant, expected_min_max", zip(variants(), _expected_min_max), ids=_test_id
+    "variant, expected_min_max", list(zip(variants(), _expected_min_max)), ids=_test_id
 )
 def test_min_max(variant, expected_min_max):
     assert np.isclose(variant.min, expected_min_max[0])
@@ -105,11 +105,11 @@ def test_min_max(variant, expected_min_max):
 
 @pytest.mark.parametrize(
     "variant, attrs",
-    (
+    [
         (variant, kwarg)
         for variant, kwargs in zip(variants(), _test_kwargs)
         for kwarg in _to_kwargs(kwargs)
-    ),
+    ],
     ids=_test_id,
 )
 def test_setattr(variant, attrs):
@@ -176,13 +176,13 @@ _eval_constructors = [constant_eval, ramp_eval, cycle_eval, power_eval]
 
 @pytest.mark.parametrize(
     "variant, evaluator, kwargs",
-    (
+    [
         (variant, evaluator, kwarg)
         for variant, evaluator, kwargs in zip(
             variants(), _eval_constructors, _test_kwargs
         )
         for kwarg in _to_kwargs(kwargs)
-    ),
+    ],
     ids=_test_id,
 )
 def test_evaulation(variant, evaluator, kwargs):
@@ -215,7 +215,7 @@ class CustomVariant(hoomd.variant.Variant):
 
 @pytest.mark.parametrize(
     "variant",
-    (variant for variant in itertools.chain(variants(), (CustomVariant(),))),
+    [variant for variant in itertools.chain(variants(), (CustomVariant(),))],
     ids=_test_id,
 )
 def test_pickling(variant):

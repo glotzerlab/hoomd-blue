@@ -382,7 +382,7 @@ def test_rigid_body_restart(simulation_factory, valid_body_definition):
 
 
 @pytest.mark.parametrize(
-    "reload_snapshot, n_free", itertools.product([False, True], [0, 10])
+    "reload_snapshot, n_free", list(itertools.product([False, True], [0, 10]))
 )
 def test_rigid_dof(
     lattice_snapshot_factory,

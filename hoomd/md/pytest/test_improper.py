@@ -347,10 +347,12 @@ def test_kernel_parameters(
 # Test Logging
 @pytest.mark.parametrize(
     "cls, expected_namespace, expected_loggables",
-    zip(
-        (hoomd.md.improper.Improper, hoomd.md.improper.Harmonic),
-        itertools.repeat(("md", "improper")),
-        itertools.repeat(expected_loggable_params),
+    list(
+        zip(
+            (hoomd.md.improper.Improper, hoomd.md.improper.Harmonic),
+            itertools.repeat(("md", "improper")),
+            itertools.repeat(expected_loggable_params),
+        )
     ),
 )
 def test_logging(cls, expected_namespace, expected_loggables):
