@@ -157,34 +157,35 @@ class Helfrich(MeshPotential):
         else:
             raise MPINotAvailableError("Helfrich is not implemented for MPI")
 
+
 class GeneralHelfrich(MeshPotential):
-    r"""Helfrich bending potential.
+    r"""Helfrich bending potential with spontaneous curvature.
 
     Args:
         mesh (:py:mod:`hoomd.mesh.Mesh`): Mesh data structure constraint.
 
-    `Helfrich` specifies a Helfrich bending energy applied to
-    all particles within the mesh.
+    `GeneralHelfrich` specifies a Helfrich bending energy with a spontaneous
+    mean curvature :math:`H_0` applied to all particles within the mesh.
 
     .. math::
 
-        U(i) = \frac{1}{2} k \frac{1}{\sigma_i}\left( \sum_{j \in
-        \mathrm{Neigh}(i)} \frac{\sigma_{ij}}{l_{ij}} (\mathbf{r}_j
-        - \mathbf{r}_k) \right)^2
+        U(i) = \frac{1}{2} k \, \sigma_i \left( 2 H_i - 2 H_0 \right)^2
+        = \frac{k}{2 \sigma_i} \left( \left| \boldsymbol{\sigma}'_i \right|
+        - 2 H_0 \sigma_i \right)^2
 
-    with the area of the dual cell of vertex i
-    :math:`\sigma_i=(\sum_{j \in \mathrm{Neigh}(i)}\sigma_{ij})/4`, the
-    length of the bond in the dual lattice  :math:`\sigma_{ij}=
-    l_{ij}(\text{cot}\theta_1+\text{cot}\theta_2)/2` and the angles
-    :math:`\theta_1` and :math:`\theta_2` opposite to the shared bond of
-    vertex :math:`i` and :math:`j`.
-
-    See Also:
-        * `Gompper and Kroll 1996 <https://doi.org/10.1051/jp1:1996246>`__
-        * `Helfrich 1973 <https://doi.org/10.1515/znc-1973-11-1209>`__
+    with the mean curvature :math:`H_i = \left| \boldsymbol{\sigma}'_i
+    \right| / (2 \sigma_i)`, the vector :math:`\boldsymbol{\sigma}'_i 
+    = \sum_{j \in \mathrm{Neigh}(i)} \hat{\sigma}_{ij} (\mathbf{r}_i - 
+    \mathbf{r}_j)`, the area of the dual cell of vertex i 
+    :math:`\sigma_i = \frac{1}{4} \sum_{j \in \mathrm{Neigh}(i)} 
+    \hat{\sigma}_{ij} r_{ij}^2` and the weights :math:`\hat{\sigma}_{ij} 
+    = (\cot\theta_1 + \cot\theta_2)/2` with the angles :math:`\theta_1` 
+    and :math:`\theta_2` opposite to the shared bond of vertex :math:`i` 
+    and :math:`j`. The sign of :math:`H_i` is defined with respect to 
+    the vertex normal.
 
     Attention:
-        `Helfrich` is NOT implemented for MPI parallel execution!
+        `GeneralHelfrich` is NOT implemented for MPI parallel execution!
 
     .. rubric:: Example:
 
@@ -192,23 +193,24 @@ class GeneralHelfrich(MeshPotential):
 
     .. code-block:: python
 
-        helfrich_potential = hoomd.md.mesh.bending.Helfrich(mesh)
-        helfrich_potential.params["mesh"] = dict(k=10.0)
+        helfrich_potential = hoomd.md.mesh.bending.GeneralHelfrich(mesh)
+        helfrich_potential.params["A"] = dict(k=10.0, H0=0.5)
 
     {inherited}
 
     ----------
 
-    **Members defined in** `Helfrich`:
+    **Members defined in** `GeneralHelfrich`:
 
     Attributes:
-        params (TypeParameter[dict]):
-            The parameter of the Helfrich energy for the defined mesh.
-            As the mesh can only have one type a type name does not have
-            to be stated. The dictionary has the following keys:
+        params (TypeParameter[``particle type``, dict]):
+            The parameters of the Helfrich energy for each particle type.
+            The dictionary has the following keys:
 
             * ``k`` (`float`, **required**) - bending stiffness
               :math:`[\mathrm{energy}]`
+            * ``H0`` (`float`, **required**) - spontaneous mean curvature
+              :math:`[\mathrm{length}^{-1}]`
 
     """
 
@@ -304,7 +306,6 @@ class CurvatureHelfrich(MeshPotential):
 
     """
 
-
     _cpp_class_name = "CurvatureHelfrichMeshForceCompute"
     __doc__ = inspect.cleandoc(__doc__).replace(
         "{inherited}", inspect.cleandoc(MeshPotential._doc_inherited)
@@ -312,7 +313,9 @@ class CurvatureHelfrich(MeshPotential):
 
     def __init__(self, mesh):
         params = TypeParameter(
-            "params", "types", TypeParameterDict(k=float, C0=float, eps_kT=float,tag_max=int, len_keys=1)
+            "params",
+            "types",
+            TypeParameterDict(k=float, C0=float, eps_kT=float, tag_max=int, len_keys=1),
         )
         self._add_typeparam(params)
 
@@ -323,6 +326,7 @@ class CurvatureHelfrich(MeshPotential):
             super()._attach_hook()
         else:
             raise MPINotAvailableError("Helfrich is not implemented for MPI")
+
 
 __all__ = [
     "BendingRigidity",

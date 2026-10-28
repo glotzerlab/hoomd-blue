@@ -134,7 +134,7 @@ pybind11::object HelfrichGeneralMeshForceCompute::getCurvaturesPython()
 	Scalar sigma_dash2 = dot(sigma_dash,sigma_dash);
 
 	Scalar factor =  h_normal.data[idx].w;
-        local_curvature.push_back(factor*sqrt(sigma_dash2)/sigma);
+        local_curvature.push_back(factor * sqrt(sigma_dash2) / (2 * sigma));
         }
 
     if (m_sysdef->isDomainDecomposed())
