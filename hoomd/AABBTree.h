@@ -298,7 +298,7 @@ inline unsigned int AABBTree::query(std::vector<unsigned int>& hits, const AABB&
     unsigned int box_overlap_counts = 0;
 
     // avoid pointer indirection overhead of std::vector
-    AABBNode* nodes = &m_nodes[0];
+    AABBNode* nodes = m_nodes;
 
     // stackless search
     for (unsigned int current_node_idx = 0; current_node_idx < m_num_nodes; current_node_idx++)

@@ -199,7 +199,7 @@ std::vector<std::string> GSDReader::readTypes(uint64_t frame, const char* name)
         {
         size_t actual_size = entry->N * entry->M * gsd_sizeof_type((enum gsd_type)entry->type);
         std::vector<char> data(actual_size);
-        int retval = gsd_read_chunk(&m_handle, &data[0], entry);
+        int retval = gsd_read_chunk(&m_handle, data.data(), entry);
         GSDUtils::checkError(retval, m_name);
 
         type_mapping.clear();
@@ -414,7 +414,7 @@ void GSDReader::readTopology()
         {
         m_snapshot->constraint_data.resize(N);
         std::vector<double> data(N);
-        readChunk(&data[0], m_frame, "constraints/value", N, 1, GSD_TYPE_FLOAT);
+        readChunk(data.data(), m_frame, "constraints/value", N, 1, GSD_TYPE_FLOAT);
         for (unsigned int i = 0; i < N; i++)
             m_snapshot->constraint_data.val[i] = Scalar(data[i]);
         readChunk(m_snapshot->constraint_data.groups.data(),

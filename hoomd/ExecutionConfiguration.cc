@@ -262,7 +262,7 @@ void ExecutionConfiguration::initializeGPU(int gpu_id)
     else
         {
         // initialize the default CUDA context from one of the capable GPUs
-        cudaSetValidDevices(&s_capable_gpu_ids[0], (int)s_capable_gpu_ids.size());
+        cudaSetValidDevices(s_capable_gpu_ids.data(), (int)s_capable_gpu_ids.size());
         cudaSetDeviceFlags(cudaDeviceMapHost);
         cudaFree(0);
         }
