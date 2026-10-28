@@ -10,9 +10,6 @@
 [submodule "hoomd/extern/neighbor"]
 	path = hoomd/extern/neighbor
 	url = https://github.com/mphowardlab/neighbor.git
-[submodule "hoomd/extern/hipper"]
-	path = hoomd/extern/hipper
-	url = https://github.com/glotzerlab/hipper.git
 [submodule "sphinx-doc/tutorial"]
 	path = sphinx-doc/tutorial
 	url = https://github.com/glotzerlab/hoomd-examples
