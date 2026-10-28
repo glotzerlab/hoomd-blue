@@ -283,7 +283,7 @@ void TriangleAreaConservationMeshForceCompute::computeForces(uint64_t timestep)
     if (m_pdata->getDomainDecomposition())
         {
         MPI_Allreduce(MPI_IN_PLACE,
-                      &global_area[0],
+                      global_area.data(),
                       n_types,
                       MPI_HOOMD_SCALAR,
                       MPI_SUM,

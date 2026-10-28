@@ -235,7 +235,7 @@ bool LoadBalancer::reduce(std::vector<unsigned int>& N_i,
     // get the number of particles the current rank owns (the quantity to be reduced)
     unsigned int N_own = getNOwn();
 
-    MPI_Gather(&N_own, 1, MPI_UNSIGNED, &N_per_rank[0], 1, MPI_UNSIGNED, reduce_root, m_mpi_comm);
+    MPI_Gather(&N_own, 1, MPI_UNSIGNED, N_per_rank.data(), 1, MPI_UNSIGNED, reduce_root, m_mpi_comm);
 
     // only the root rank performs the reduction
     if (m_exec_conf->getRank() != reduce_root)

@@ -461,7 +461,7 @@ void GSDDumpWriter::writeTypeMapping(std::string chunk, std::vector<std::string>
                                      type_mapping.size(),
                                      max_len,
                                      0,
-                                     (void*)&types[0]);
+                                     (void*)types.data());
         GSDUtils::checkError(retval, m_fname);
         }
     }
