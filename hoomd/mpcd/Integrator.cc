@@ -67,6 +67,12 @@ mpcd::Integrator::~Integrator()
  */
 void mpcd::Integrator::update(uint64_t timestep)
     {
+    // MPCD does not currently support box deformers
+    if (m_box_deformer)
+        {
+        throw std::runtime_error("MPCDIntegrator does not yet support box deformers.");
+        }
+
     // remove leftover virtual particles, communicate MPCD particles, and refill
     if (checkCollide(timestep))
         {

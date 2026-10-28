@@ -127,7 +127,7 @@ __global__ void nve_bounce_step_one(Scalar4* d_pos,
 
     // wrap final position
     int3 img = d_image[pid];
-    box.wrap(pos, img);
+    box.wrap(pos, vel, img);
 
     // write position and velocity back out
     d_pos[pid] = make_scalar4(pos.x, pos.y, pos.z, type);

@@ -689,9 +689,9 @@ void ParticleGroup::thermalizeParticleMomenta(Scalar kT, uint64_t timestep)
 
         if (h_tag.data[j] == h_body.data[j] || h_body.data[j] >= MIN_FLOPPY)
             {
-            if (I.x > 0)
+            if (I.x > 0 && n_dimensions > 2)
                 p_vec.x = hoomd::NormalDistribution<Scalar>(slow::sqrt(kT * I.x))(rng);
-            if (I.y > 0)
+            if (I.y > 0 && n_dimensions > 2)
                 p_vec.y = hoomd::NormalDistribution<Scalar>(slow::sqrt(kT * I.y))(rng);
             if (I.z > 0)
                 p_vec.z = hoomd::NormalDistribution<Scalar>(slow::sqrt(kT * I.z))(rng);

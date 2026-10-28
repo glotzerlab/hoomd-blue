@@ -1224,6 +1224,9 @@ void GSDDumpWriter::populateLocalFrame(GSDDumpWriter::GSDFrame& frame, uint64_t 
         ArrayHandle<Scalar4> h_postype(m_pdata->getPositions(),
                                        access_location::host,
                                        access_mode::read);
+        ArrayHandle<Scalar4> h_veltype(m_pdata->getVelocities(),
+                                       access_location::host,
+                                       access_mode::read);
         ArrayHandle<int3> h_image(m_pdata->getImages(), access_location::host, access_mode::read);
 
         if (m_dynamic[gsd_flag::particles_position] || m_nframes == 0)
@@ -1243,6 +1246,7 @@ void GSDDumpWriter::populateLocalFrame(GSDDumpWriter::GSDFrame& frame, uint64_t 
             {
             vec3<Scalar> position
                 = vec3<Scalar>(h_postype.data[index]) - vec3<Scalar>(m_pdata->getOrigin());
+            vec3<Scalar> velocity = vec3<Scalar>(h_veltype.data[index]);
             unsigned int type = __scalar_as_int(h_postype.data[index].w);
             int3 image = make_int3(0, 0, 0);
 
@@ -1251,7 +1255,7 @@ void GSDDumpWriter::populateLocalFrame(GSDDumpWriter::GSDFrame& frame, uint64_t 
                 image = h_image.data[index];
                 }
 
-            frame.global_box.wrap(position, image);
+            frame.global_box.wrap(position, velocity, image);
 
             if (m_dynamic[gsd_flag::particles_position] || m_nframes == 0)
                 {
