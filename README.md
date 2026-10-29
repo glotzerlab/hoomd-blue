@@ -38,6 +38,16 @@ types of particle simulations.
   Analyze HOOMD-blue simulation results with the **freud** Python library.
 - [signac](https://signac.readthedocs.io/):
   Manage your workflow with **signac**.
+- [Molecular Simulation Design Framework (MoSDeF)] tools:
+
+  - [`mbuild`]: Assemble reusable components into complex molecular systems.
+  - [`foyer`]: Perform atom-typing and define classical molecular modeling force fields.
+  - [`gmso`]: A flexible and mutable data structure for chemical topologies that writes HOOMD-blue formats.
+
+[Molecular Simulation Design Framework (MoSDeF)]: https://mosdef.org/
+[`mbuild`]: https://mbuild.mosdef.org/
+[`foyer`]: https://foyer.mosdef.org/
+[`gmso`]: https://gmso.mosdef.org/
 
 ## Example scripts
 
