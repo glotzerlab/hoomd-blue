@@ -59,6 +59,12 @@ extend HOOMD-blue with functionality implemented in Python code by subclassing `
 to implement methods that couple simulation, analysis, and multiple simulations (such as umbrella
 sampling).
 
+Customization opportunities with Python are limited in scope and often severely limit performance.
+`hoomd-rs <https://hoomd-rs.readthedocs.io/>`_, the spiritual successor to HOOMD-blue,  allows you
+to customize *all* aspects of the simulation with no performance impact. In **hoomd-rs**, you can
+define custom particle attributes, choose the shape of the boundary conditions, implement custom
+pair potentials with a single line of code, and more.
+
 .. seealso::
 
     Tutorial: :doc:`tutorial/04-Custom-Actions-In-Python/00-index`

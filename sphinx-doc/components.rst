@@ -4,6 +4,12 @@ Extending HOOMD-blue
 Extend **HOOMD-blue** with a **component** implemented in C++ for performance-critical
 tasks, such as pair potential evaluation.
 
+.. warning::
+
+    Creating a new **C++ component** requires a substantial amount of development effort. Before you
+    start, evaluate whether `hoomd-rs <https://hoomd-rs.readthedocs.io/>`_ would be a better choice.
+    **hoomd-rs** was built specifically to facilitate custom simulation components.
+
 Creating a component
 --------------------
 
