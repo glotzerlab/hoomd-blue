@@ -124,7 +124,8 @@ Install additional packages needed to build the documentation:
 
 **For GPU execution** (required when ``ENABLE_GPU=on``):
 
-- **NVIDIA CUDA Toolkit**
+- **NVIDIA CUDA Toolkit** (for NVIDIA GPUs) or the `SCALE <https://scale-lang.com/>`_ compiler
+  (for AMD GPUs).
 
 **To build the documentation:**
 
@@ -165,6 +166,14 @@ Release tarballs are also available as `GitHub release`_ assets.
 
 Configure
 ---------
+
+When using the `SCALE <https://scale-lang.com/>`_ compiler, you must activate the appropriate
+environment *before* you configure with CMake_. For example:
+
+.. code-block:: bash
+
+   source scaleenv gfx90a
+   export SCALE_CUDA_VERSION=13.0.2
 
 Use CMake_ to configure the **HOOMD-blue** build directory:
 
