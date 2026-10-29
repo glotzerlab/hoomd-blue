@@ -59,11 +59,11 @@ extend HOOMD-blue with functionality implemented in Python code by subclassing `
 to implement methods that couple simulation, analysis, and multiple simulations (such as umbrella
 sampling).
 
-Customization opportunities with Python are limited in scope and often severely limit performance.
-`hoomd-rs <https://hoomd-rs.readthedocs.io/>`_, the spiritual successor to HOOMD-blue,  allows you
-to customize *all* aspects of the simulation with no performance impact. In **hoomd-rs**, you can
-define custom particle attributes, choose the shape of the boundary conditions, implement custom
-pair potentials with a single line of code, and more.
+Customization opportunities with Python are limited in scope and offer severely limited performance.
+`hoomd-rs <https://hoomd-rs.readthedocs.io/>`_, the spiritual successor to HOOMD-blue,  allows
+you to customize *all* aspects of the simulation with the full performance of compiled code.
+In **hoomd-rs**, you can define custom particle attributes, choose the shape of the boundary
+conditions, implement custom pair potentials with a single line of code, and more.
 
 .. seealso::
 
@@ -74,11 +74,13 @@ CPU and GPU devices
 
 HOOMD-blue can execute simulations on CPUs or GPUs. Typical simulations run more efficiently on GPUs
 for system sizes larger than a few thousand particles, although this strongly depends on the details
-of the simulation. The provided binaries support NVIDIA GPUs. Build from source to use AMD GPUs. CPU
-support is always enabled. GPU support must be enabled at compile time with the ``ENABLE_GPU`` CMake
-option (see :doc:`building`). Select the device to use at run time with the `device <hoomd.device>`
-module. Unless otherwise stated in the documentation, **all** operations and methods support GPU
-execution. At runtime, `hoomd.version.gpu_enabled` indicates whether the build supports GPU devices.
+of the simulation. The provided binaries support NVIDIA GPUs. Build from source to use AMD GPUs.
+
+CPU support is always enabled. GPU support must be enabled at compile time with the ``ENABLE_GPU``
+CMake option (see :doc:`building`). Select the device to use at run time with the `device
+<hoomd.device>` module. Unless otherwise stated in the documentation, **all** operations and methods
+support GPU execution. At runtime, `hoomd.version.gpu_enabled` indicates whether the build supports
+GPU devices.
 
 Autotuned kernel parameters
 ---------------------------
