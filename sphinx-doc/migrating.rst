@@ -1,6 +1,14 @@
 Migrating to the latest version
 ===============================
 
+Migrating to HOOMD-blue 8
+-------------------------
+
+HOOMD-blue 8 now uses CUDA and not HIP for GPU code paths. This change was
+required to support CUDA >=13. Users can configure CUDA build options using CMake.
+Developers should note that preprocessor defines and API calls may need to be
+updated as in #2350. Users to compile for AMD GPUs using `SCALE <https://scale-lang.com>`_.
+
 Migrating to HOOMD-blue 7
 -------------------------
 
