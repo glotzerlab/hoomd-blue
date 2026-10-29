@@ -80,7 +80,6 @@ if(ENABLE_GPU)
         CommunicatorGPU.cu
         ParallelPlateGeometryFillerGPU.cc
         ParallelPlateGeometryFillerGPU.cu
-        ParticleData.cu
         PlanarPoreGeometryFillerGPU.cc
         PlanarPoreGeometryFillerGPU.cu
         RejectionVirtualParticleFillerGPU.cu
