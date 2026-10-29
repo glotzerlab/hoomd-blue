@@ -66,14 +66,13 @@ sampling).
 CPU and GPU devices
 -------------------
 
-HOOMD-blue can execute simulations on CPUs or GPUs. Typical simulations run more efficiently on
-GPUs for system sizes larger than a few thousand particles, although this strongly depends on the
-details of the simulation. The provided binaries support NVIDIA GPUs. Build from source to enable
-preliminary support for AMD GPUs. CPU support is always enabled. GPU support must be enabled at
-compile time with the ``ENABLE_GPU`` CMake option (see :doc:`building`). Select the device to use at
-run time with the `device <hoomd.device>` module. Unless otherwise stated in the documentation,
-**all** operations and methods support GPU execution. At runtime, `hoomd.version.gpu_enabled` indicates
-whether the build supports GPU devices.
+HOOMD-blue can execute simulations on CPUs or GPUs. Typical simulations run more efficiently on GPUs
+for system sizes larger than a few thousand particles, although this strongly depends on the details
+of the simulation. The provided binaries support NVIDIA GPUs. Build from source to use AMD GPUs. CPU
+support is always enabled. GPU support must be enabled at compile time with the ``ENABLE_GPU`` CMake
+option (see :doc:`building`). Select the device to use at run time with the `device <hoomd.device>`
+module. Unless otherwise stated in the documentation, **all** operations and methods support GPU
+execution. At runtime, `hoomd.version.gpu_enabled` indicates whether the build supports GPU devices.
 
 Autotuned kernel parameters
 ---------------------------
