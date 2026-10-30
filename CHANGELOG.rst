@@ -4,6 +4,19 @@ Change Log
 7.x
 ---
 
+Next release
+^^^^^^^^^^^^^^^^^^^^
+
+*Added*
+
+*Changed*
+
+*Deprecated*
+
+*Removed*
+
+*Fixed*
+
 7.2.1 (2026-10-30)
 ^^^^^^^^^^^^^^^^^^^^
 
