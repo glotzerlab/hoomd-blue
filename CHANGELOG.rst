@@ -1,7 +1,7 @@
 Change Log
 ==========
 
-7.x
+8.x
 ---
 
 Next release
@@ -12,11 +12,22 @@ Next release
 *Changed*
 
 * Convert all GPU kernels from HIP to CUDA (#2350).
-* Support 2D systems with ``hoomd.md.external.field.Periodic`` (#2349).
 
 *Deprecated*
 
 *Removed*
+
+*Fixed*
+
+7.x
+---
+
+7.2.1 (2026-10-30)
+^^^^^^^^^^^^^^^^^^^^
+
+*Changed*
+
+* Support 2D systems with ``hoomd.md.external.field.Periodic`` (#2349).
 
 *Fixed*
 
