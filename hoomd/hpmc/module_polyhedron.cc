@@ -13,7 +13,7 @@
 #include "UpdaterGCA.h"
 #include "UpdaterMuVT.h"
 
-#ifdef ENABLE_HIP
+#ifdef ENABLE_GPU
 #include "ComputeFreeVolumeGPU.h"
 #include "IntegratorHPMCMonoGPU.h"
 #include "UpdaterGCAGPU.h"
@@ -36,7 +36,7 @@ void export_polyhedron(pybind11::module& m)
 
     export_ExternalFieldWall<ShapePolyhedron>(m, "WallPolyhedron");
 
-#ifdef ENABLE_HIP
+#ifdef ENABLE_GPU
     export_IntegratorHPMCMonoGPU<ShapePolyhedron>(m, "IntegratorHPMCMonoPolyhedronGPU");
     export_ComputeFreeVolumeGPU<ShapePolyhedron>(m, "ComputeFreeVolumePolyhedronGPU");
     export_UpdaterGCAGPU<ShapePolyhedron>(m, "UpdaterGCAPolyhedronGPU");

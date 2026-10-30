@@ -2,9 +2,9 @@
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #include "hoomd/mpcd/Sorter.h"
-#ifdef ENABLE_HIP
+#ifdef ENABLE_GPU
 #include "hoomd/mpcd/SorterGPU.h"
-#endif // ENABLE_HIP
+#endif // ENABLE_GPU
 
 #include "hoomd/SnapshotSystemData.h"
 #include "hoomd/filter/ParticleFilterAll.h"
@@ -414,7 +414,7 @@ UP_TEST(mpcd_sorter_virtual_test)
     sorter_virtual_test<mpcd::Sorter>(std::shared_ptr<ExecutionConfiguration>(
         new ExecutionConfiguration(ExecutionConfiguration::CPU)));
     }
-#ifdef ENABLE_HIP
+#ifdef ENABLE_GPU
 UP_TEST(mpcd_sorter_test_gpu)
     {
     sorter_test<mpcd::SorterGPU>(std::shared_ptr<ExecutionConfiguration>(
@@ -425,4 +425,4 @@ UP_TEST(mpcd_sorter_virtual_test_gpu)
     sorter_virtual_test<mpcd::SorterGPU>(std::shared_ptr<ExecutionConfiguration>(
         new ExecutionConfiguration(ExecutionConfiguration::GPU)));
     }
-#endif // ENABLE_HIP
+#endif // ENABLE_GPU

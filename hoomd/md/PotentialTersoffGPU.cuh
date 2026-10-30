@@ -1,7 +1,7 @@
 // Copyright (c) 2009-2026 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
-#include "hip/hip_runtime.h"
+#include <cuda_runtime.h>
 // Copyright (c) 2009-2021 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
@@ -9,9 +9,9 @@
 #include "hoomd/Index1D.h"
 #include "hoomd/ParticleData.cuh"
 #include "hoomd/TextureTools.h"
-#ifdef __HIPCC__
+#ifdef __NVCC__
 #include "hoomd/WarpTools.cuh"
-#endif // __HIPCC__
+#endif // __NVCC__
 #include <assert.h>
 
 /*! \file PotentialTersoffGPU.cuh
@@ -29,11 +29,7 @@ namespace kernel
     {
 //! Maximum number of threads (width of a warp)
 // currently this is hardcoded, we should set it to the max of platforms
-#if defined(__HIP_PLATFORM_NVCC__)
 const int gpu_tersoff_max_tpp = 32;
-#elif defined(__HIP_PLATFORM_HCC__)
-const int gpu_tersoff_max_tpp = 64;
-#endif
 
 //! Wraps arguments to gpu_cgpf
 struct tersoff_args_t
@@ -55,7 +51,7 @@ struct tersoff_args_t
                    const unsigned int _ntypes,
                    const unsigned int _block_size,
                    const unsigned int _tpp,
-                   const hipDeviceProp_t& _devprop)
+                   const cudaDeviceProp& _devprop)
         : d_force(_d_force), N(_N), Nghosts(_Nghosts), d_virial(_d_virial),
           virial_pitch(_virial_pitch), compute_virial(_compute_virial), d_pos(_d_pos), box(_box),
           d_n_neigh(_d_n_neigh), d_nlist(_d_nlist), d_head_list(_d_head_list), d_rcutsq(_d_rcutsq),
@@ -77,66 +73,12 @@ struct tersoff_args_t
     const Scalar* d_rcutsq;      //!< Device array listing r_cut squared per particle type pair
     const size_t size_nlist;     //!< Number of elements in the neighborlist
     const unsigned int ntypes;   //!< Number of particle types in the simulation
-    const unsigned int block_size;  //!< Block size to execute
-    const unsigned int tpp;         //!< Threads per particle
-    const hipDeviceProp_t& devprop; //!< CUDA device properties
+    const unsigned int block_size; //!< Block size to execute
+    const unsigned int tpp;        //!< Threads per particle
+    const cudaDeviceProp& devprop; //!< CUDA device properties
     };
 
-#ifdef __HIPCC__
-
-#if HOOMD_LONGREAL_SIZE == 64
-
-#if (__CUDA_ARCH__ < 600)
-//! atomicAdd function for double-precision floating point numbers
-/*! This function is only used when hoomd is compiled for double precision on the GPU.
-
-    \param address Address to write the double to
-    \param val Value to add to address
-*/
-__device__ inline double myAtomicAdd(double* address, double val)
-    {
-    unsigned long long int* address_as_ull = (unsigned long long int*)address;
-    unsigned long long int old = *address_as_ull, assumed;
-
-    do
-        {
-        assumed = old;
-        old = atomicCAS(address_as_ull,
-                        assumed,
-                        __double_as_longlong(val + __longlong_as_double(assumed)));
-        } while (assumed != old);
-
-    return __longlong_as_double(old);
-    }
-#else // CUDA_ARCH > 600)
-__device__ inline double myAtomicAdd(double* address, double val)
-    {
-    return atomicAdd(address, val);
-    }
-#endif
-#endif
-
-// workaround for HIP bug
-#ifdef __HIP_PLATFORM_HCC__
-__device__ inline float myAtomicAdd(float* address, float val)
-    {
-    unsigned int* address_as_uint = (unsigned int*)address;
-    unsigned int old = *address_as_uint, assumed;
-
-    do
-        {
-        assumed = old;
-        old = atomicCAS(address_as_uint, assumed, __float_as_uint(val + __uint_as_float(assumed)));
-        } while (assumed != old);
-
-    return __uint_as_float(old);
-    }
-#else
-inline __device__ float myAtomicAdd(float* address, float val)
-    {
-    return atomicAdd(address, val);
-    }
-#endif
+#ifdef __NVCC__
 
 //! Kernel for calculating the Tersoff forces
 /*! This kernel is called to calculate the forces on all N particles. Actual evaluation of the
@@ -186,7 +128,7 @@ __global__ void gpu_compute_triplet_forces_kernel(Scalar4* d_force,
     const unsigned int num_typ_parameters = typpair_idx.getNumElements();
 
     // shared arrays for per type pair parameters
-    HIP_DYNAMIC_SHARED(char, s_data)
+    extern __shared__ char s_data[];
     typename evaluator::param_type* s_params = (typename evaluator::param_type*)(&s_data[0]);
     Scalar* s_rcutsq
         = (Scalar*)(&s_data[num_typ_parameters * sizeof(typename evaluator::param_type)]);
@@ -396,9 +338,9 @@ __global__ void gpu_compute_triplet_forces_kernel(Scalar4* d_force,
                                 forcek.y -= force_divr_ik * dxik.y;
                                 forcek.z -= force_divr_ik * dxik.z;
 
-                                myAtomicAdd(&d_force[cur_k].x, forcek.x);
-                                myAtomicAdd(&d_force[cur_k].y, forcek.y);
-                                myAtomicAdd(&d_force[cur_k].z, forcek.z);
+                                atomicAdd(&d_force[cur_k].x, forcek.x);
+                                atomicAdd(&d_force[cur_k].y, forcek.y);
+                                atomicAdd(&d_force[cur_k].z, forcek.z);
 
                                 // evaluate the virial contribute of this 3 body interaction
                                 if (compute_virial)
@@ -428,27 +370,27 @@ __global__ void gpu_compute_triplet_forces_kernel(Scalar4* d_force,
 
                 // potential energy of j must be halved
                 // write out the result for particle j
-                myAtomicAdd(&d_force[cur_j].x, forcej.x);
-                myAtomicAdd(&d_force[cur_j].y, forcej.y);
-                myAtomicAdd(&d_force[cur_j].z, forcej.z);
-                myAtomicAdd(&d_force[cur_j].w, forcej.w);
+                atomicAdd(&d_force[cur_j].x, forcej.x);
+                atomicAdd(&d_force[cur_j].y, forcej.y);
+                atomicAdd(&d_force[cur_j].z, forcej.z);
+                atomicAdd(&d_force[cur_j].w, forcej.w);
                 }
             }
         // potential energy per particle must be halved
         // now that the force calculation is complete, write out the result (MEM TRANSFER: 20 bytes)
-        myAtomicAdd(&d_force[idx].x, forcei.x);
-        myAtomicAdd(&d_force[idx].y, forcei.y);
-        myAtomicAdd(&d_force[idx].z, forcei.z);
-        myAtomicAdd(&d_force[idx].w, forcei.w);
+        atomicAdd(&d_force[idx].x, forcei.x);
+        atomicAdd(&d_force[idx].y, forcei.y);
+        atomicAdd(&d_force[idx].z, forcei.z);
+        atomicAdd(&d_force[idx].w, forcei.w);
 
         if (compute_virial)
             {
-            myAtomicAdd(&d_virial[0 * virial_pitch + idx], viriali_xx);
-            myAtomicAdd(&d_virial[1 * virial_pitch + idx], viriali_xy);
-            myAtomicAdd(&d_virial[2 * virial_pitch + idx], viriali_xz);
-            myAtomicAdd(&d_virial[3 * virial_pitch + idx], viriali_yy);
-            myAtomicAdd(&d_virial[4 * virial_pitch + idx], viriali_yz);
-            myAtomicAdd(&d_virial[5 * virial_pitch + idx], viriali_zz);
+            atomicAdd(&d_virial[0 * virial_pitch + idx], viriali_xx);
+            atomicAdd(&d_virial[1 * virial_pitch + idx], viriali_xy);
+            atomicAdd(&d_virial[2 * virial_pitch + idx], viriali_xz);
+            atomicAdd(&d_virial[3 * virial_pitch + idx], viriali_yy);
+            atomicAdd(&d_virial[4 * virial_pitch + idx], viriali_yz);
+            atomicAdd(&d_virial[5 * virial_pitch + idx], viriali_zz);
             }
         }
     else
@@ -801,32 +743,32 @@ __global__ void gpu_compute_triplet_forces_kernel(Scalar4* d_force,
                                 forcek.y += force_divr_ij.z * dxij.y + force_divr_ik.z * dxik.y;
                                 forcek.z += force_divr_ij.z * dxij.z + force_divr_ik.z * dxik.z;
 
-                                myAtomicAdd(&d_force[cur_k].x, forcek.x);
-                                myAtomicAdd(&d_force[cur_k].y, forcek.y);
-                                myAtomicAdd(&d_force[cur_k].z, forcek.z);
+                                atomicAdd(&d_force[cur_k].x, forcek.x);
+                                atomicAdd(&d_force[cur_k].y, forcek.y);
+                                atomicAdd(&d_force[cur_k].z, forcek.z);
 
                                 if (compute_virial)
                                     {
                                     Scalar force_div2r_ij = Scalar(0.5) * force_divr_ij.z;
                                     Scalar force_div2r_ik = Scalar(0.5) * force_divr_ik.z;
-                                    myAtomicAdd(&d_virial[0 * virial_pitch + cur_k],
-                                                force_div2r_ij * dxij.x * dxij.x
-                                                    + force_div2r_ik * dxik.x * dxik.x);
-                                    myAtomicAdd(&d_virial[1 * virial_pitch + cur_k],
-                                                force_div2r_ij * dxij.x * dxij.y
-                                                    + force_div2r_ik * dxik.x * dxik.y);
-                                    myAtomicAdd(&d_virial[2 * virial_pitch + cur_k],
-                                                force_div2r_ij * dxij.x * dxij.z
-                                                    + force_div2r_ik * dxik.x * dxik.z);
-                                    myAtomicAdd(&d_virial[3 * virial_pitch + cur_k],
-                                                force_div2r_ij * dxij.y * dxij.y
-                                                    + force_div2r_ik * dxik.y * dxik.y);
-                                    myAtomicAdd(&d_virial[4 * virial_pitch + cur_k],
-                                                force_div2r_ij * dxij.y * dxij.z
-                                                    + force_div2r_ik * dxik.y * dxik.z);
-                                    myAtomicAdd(&d_virial[5 * virial_pitch + cur_k],
-                                                force_div2r_ij * dxij.z * dxij.z
-                                                    + force_div2r_ik * dxik.z * dxik.z);
+                                    atomicAdd(&d_virial[0 * virial_pitch + cur_k],
+                                              force_div2r_ij * dxij.x * dxij.x
+                                                  + force_div2r_ik * dxik.x * dxik.x);
+                                    atomicAdd(&d_virial[1 * virial_pitch + cur_k],
+                                              force_div2r_ij * dxij.x * dxij.y
+                                                  + force_div2r_ik * dxik.x * dxik.y);
+                                    atomicAdd(&d_virial[2 * virial_pitch + cur_k],
+                                              force_div2r_ij * dxij.x * dxij.z
+                                                  + force_div2r_ik * dxik.x * dxik.z);
+                                    atomicAdd(&d_virial[3 * virial_pitch + cur_k],
+                                              force_div2r_ij * dxij.y * dxij.y
+                                                  + force_div2r_ik * dxik.y * dxik.y);
+                                    atomicAdd(&d_virial[4 * virial_pitch + cur_k],
+                                              force_div2r_ij * dxij.y * dxij.z
+                                                  + force_div2r_ik * dxik.y * dxik.z);
+                                    atomicAdd(&d_virial[5 * virial_pitch + cur_k],
+                                              force_div2r_ij * dxij.z * dxij.z
+                                                  + force_div2r_ik * dxik.z * dxik.z);
                                     }
                                 }
                             }
@@ -834,36 +776,36 @@ __global__ void gpu_compute_triplet_forces_kernel(Scalar4* d_force,
                     }
 
                 // write out the result for particle j
-                myAtomicAdd(&d_force[cur_j].x, forcej.x);
-                myAtomicAdd(&d_force[cur_j].y, forcej.y);
-                myAtomicAdd(&d_force[cur_j].z, forcej.z);
-                myAtomicAdd(&d_force[cur_j].w, forcej.w);
+                atomicAdd(&d_force[cur_j].x, forcej.x);
+                atomicAdd(&d_force[cur_j].y, forcej.y);
+                atomicAdd(&d_force[cur_j].z, forcej.z);
+                atomicAdd(&d_force[cur_j].w, forcej.w);
 
                 if (compute_virial)
                     {
-                    myAtomicAdd(&d_virial[0 * virial_pitch + cur_j], virialj_xx);
-                    myAtomicAdd(&d_virial[1 * virial_pitch + cur_j], virialj_xy);
-                    myAtomicAdd(&d_virial[2 * virial_pitch + cur_j], virialj_xz);
-                    myAtomicAdd(&d_virial[3 * virial_pitch + cur_j], virialj_yy);
-                    myAtomicAdd(&d_virial[4 * virial_pitch + cur_j], virialj_yz);
-                    myAtomicAdd(&d_virial[5 * virial_pitch + cur_j], virialj_zz);
+                    atomicAdd(&d_virial[0 * virial_pitch + cur_j], virialj_xx);
+                    atomicAdd(&d_virial[1 * virial_pitch + cur_j], virialj_xy);
+                    atomicAdd(&d_virial[2 * virial_pitch + cur_j], virialj_xz);
+                    atomicAdd(&d_virial[3 * virial_pitch + cur_j], virialj_yy);
+                    atomicAdd(&d_virial[4 * virial_pitch + cur_j], virialj_yz);
+                    atomicAdd(&d_virial[5 * virial_pitch + cur_j], virialj_zz);
                     }
                 }
             }
         // now that the force calculation is complete, write out the result (MEM TRANSFER: 20 bytes)
-        myAtomicAdd(&d_force[idx].x, forcei.x);
-        myAtomicAdd(&d_force[idx].y, forcei.y);
-        myAtomicAdd(&d_force[idx].z, forcei.z);
-        myAtomicAdd(&d_force[idx].w, forcei.w);
+        atomicAdd(&d_force[idx].x, forcei.x);
+        atomicAdd(&d_force[idx].y, forcei.y);
+        atomicAdd(&d_force[idx].z, forcei.z);
+        atomicAdd(&d_force[idx].w, forcei.w);
 
         if (compute_virial)
             {
-            myAtomicAdd(&d_virial[0 * virial_pitch + idx], viriali_xx);
-            myAtomicAdd(&d_virial[1 * virial_pitch + idx], viriali_xy);
-            myAtomicAdd(&d_virial[2 * virial_pitch + idx], viriali_xz);
-            myAtomicAdd(&d_virial[3 * virial_pitch + idx], viriali_yy);
-            myAtomicAdd(&d_virial[4 * virial_pitch + idx], viriali_yz);
-            myAtomicAdd(&d_virial[5 * virial_pitch + idx], viriali_zz);
+            atomicAdd(&d_virial[0 * virial_pitch + idx], viriali_xx);
+            atomicAdd(&d_virial[1 * virial_pitch + idx], viriali_xy);
+            atomicAdd(&d_virial[2 * virial_pitch + idx], viriali_xz);
+            atomicAdd(&d_virial[3 * virial_pitch + idx], viriali_yy);
+            atomicAdd(&d_virial[4 * virial_pitch + idx], viriali_yz);
+            atomicAdd(&d_virial[5 * virial_pitch + idx], viriali_zz);
             }
         }
     }
@@ -874,8 +816,8 @@ void get_max_block_size(T func,
                         unsigned int& max_block_size,
                         unsigned int& kernel_shared_bytes)
     {
-    hipFuncAttributes attr;
-    hipFuncGetAttributes(&attr, (const void*)func);
+    cudaFuncAttributes attr;
+    cudaFuncGetAttributes(&attr, (const void*)func);
 
     max_block_size = attr.maxThreadsPerBlock;
     max_block_size &= ~(pair_args.devprop.warpSize - 1);
@@ -936,30 +878,24 @@ template<class evaluator, unsigned int compute_virial, int tpp> struct TersoffCo
                 }
 
             // zero the forces
-            hipMemset(pair_args.d_force, 0, sizeof(Scalar4) * (pair_args.N + pair_args.Nghosts));
-            hipMemset(pair_args.d_virial, 0, sizeof(Scalar) * pair_args.virial_pitch * 6);
+            cudaMemset(pair_args.d_force, 0, sizeof(Scalar4) * (pair_args.N + pair_args.Nghosts));
+            cudaMemset(pair_args.d_virial, 0, sizeof(Scalar) * pair_args.virial_pitch * 6);
 
-            // setup the grid to run the kernel
-            dim3 grid(pair_args.N / (run_block_size / pair_args.tpp) + 1, 1, 1);
-            dim3 threads(run_block_size, 1, 1);
-
-            hipLaunchKernelGGL((gpu_compute_triplet_forces_kernel<evaluator, compute_virial, tpp>),
-                               dim3(grid),
-                               dim3(threads),
-                               shared_bytes,
-                               0,
-                               pair_args.d_force,
-                               pair_args.N,
-                               pair_args.d_virial,
-                               pair_args.virial_pitch,
-                               pair_args.d_pos,
-                               pair_args.box,
-                               pair_args.d_n_neigh,
-                               pair_args.d_nlist,
-                               pair_args.d_head_list,
-                               d_params,
-                               pair_args.d_rcutsq,
-                               pair_args.ntypes);
+            gpu_compute_triplet_forces_kernel<evaluator, compute_virial, tpp>
+                <<<pair_args.N / (run_block_size / pair_args.tpp) + 1,
+                   run_block_size,
+                   shared_bytes>>>(pair_args.d_force,
+                                   pair_args.N,
+                                   pair_args.d_virial,
+                                   pair_args.virial_pitch,
+                                   pair_args.d_pos,
+                                   pair_args.box,
+                                   pair_args.d_n_neigh,
+                                   pair_args.d_nlist,
+                                   pair_args.d_head_list,
+                                   d_params,
+                                   pair_args.d_rcutsq,
+                                   pair_args.ntypes);
             }
         else
             {
@@ -986,7 +922,7 @@ struct TersoffComputeKernel<evaluator, compute_virial, 0>
     This is just a driver function for gpu_compute_triplet_forces_kernel(), see it for details.
 */
 template<class evaluator>
-__attribute__((visibility("default"))) hipError_t
+__attribute__((visibility("default"))) cudaError_t
 gpu_compute_triplet_forces(const tersoff_args_t& pair_args,
                            const typename evaluator::param_type* d_params)
     {
@@ -1003,13 +939,13 @@ gpu_compute_triplet_forces(const tersoff_args_t& pair_args,
         {
         TersoffComputeKernel<evaluator, 1, gpu_tersoff_max_tpp>::launch(pair_args, d_params);
         }
-    return hipSuccess;
+    return cudaSuccess;
     }
 #else
 template<class evaluator>
 __attribute__((visibility("default")))
-hipError_t gpu_compute_triplet_forces(const tersoff_args_t& pair_args,
-                                      const typename evaluator::param_type* d_params);
+cudaError_t gpu_compute_triplet_forces(const tersoff_args_t& pair_args,
+                                       const typename evaluator::param_type* d_params);
 #endif
 
     } // end namespace kernel

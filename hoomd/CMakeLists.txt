@@ -40,56 +40,58 @@ install(FILES ${HOOMD_BINARY_DIR}/hoomd/version_config.py
 ##############################
 ## Source setup
 
-set(_hoomd_sources Action.cc
-                   Autotuned.cc
-                   Analyzer.cc
-                   BondedGroupData.cc
-                   BoxResizeUpdater.cc
-                   CellList.cc
-                   CellListStencil.cc
-                   ClockSource.cc
-                   Communicator.cc
-                   CommunicatorGPU.cc
-                   Compute.cc
-                   DCDDumpWriter.cc
-                   DomainDecomposition.cc
-                   ExecutionConfiguration.cc
-                   ForceCompute.cc
-                   ForceConstraint.cc
-                   GSDDequeWriter.cc
-                   GSDDumpWriter.cc
-                   GSDReader.cc
-                   HOOMDMath.cc
-                   HOOMDVersion.cc
-                   Initializers.cc
-                   Integrator.cc
-                   LoadBalancer.cc
-                   MeshGroupData.cc
-                   MeshDefinition.cc
-                   Messenger.cc
-                   MPIConfiguration.cc
-                   ParticleData.cc
-                   ParticleGroup.cc
-                   ParticleFilterUpdater.cc
-                   PythonLocalDataAccess.cc
-                   PythonAnalyzer.cc
-                   PythonTuner.cc
-                   PythonUpdater.cc
-                   SFCPackTuner.cc
-                   SnapshotSystemData.cc
-                   System.cc
-                   SystemDefinition.cc
-                   Trigger.cc
-                   Tuner.cc
-                   Updater.cc
-                   Variant.cc
-                   VectorVariant.cc
-                   extern/BVLSSolver.cc
-                   extern/gsd.c
-                   extern/kiss_fft.cc
-                   extern/kiss_fftnd.cc
-                   filter/export_filters.cc
-                   )
+set(_hoomd_sources
+    module.cc
+    Action.cc
+    Autotuned.cc
+    Analyzer.cc
+    BondedGroupData.cc
+    BoxResizeUpdater.cc
+    CellList.cc
+    CellListStencil.cc
+    ClockSource.cc
+    Communicator.cc
+    CommunicatorGPU.cc
+    Compute.cc
+    DCDDumpWriter.cc
+    DomainDecomposition.cc
+    ExecutionConfiguration.cc
+    ForceCompute.cc
+    ForceConstraint.cc
+    GSDDequeWriter.cc
+    GSDDumpWriter.cc
+    GSDReader.cc
+    HOOMDMath.cc
+    HOOMDVersion.cc
+    Initializers.cc
+    Integrator.cc
+    LoadBalancer.cc
+    MeshGroupData.cc
+    MeshDefinition.cc
+    Messenger.cc
+    MPIConfiguration.cc
+    ParticleData.cc
+    ParticleGroup.cc
+    ParticleFilterUpdater.cc
+    PythonLocalDataAccess.cc
+    PythonAnalyzer.cc
+    PythonTuner.cc
+    PythonUpdater.cc
+    SFCPackTuner.cc
+    SnapshotSystemData.cc
+    System.cc
+    SystemDefinition.cc
+    Trigger.cc
+    Tuner.cc
+    Updater.cc
+    Variant.cc
+    VectorVariant.cc
+    extern/BVLSSolver.cc
+    extern/gsd.c
+    extern/kiss_fft.cc
+    extern/kiss_fftnd.cc
+    filter/export_filters.cc
+    )
 
 # ignore conversion warnings in external files
 if(CMAKE_COMPILER_IS_GNUCXX OR CMAKE_CXX_COMPILER_ID MATCHES "Clang")
@@ -108,17 +110,11 @@ set(_hoomd_headers
     BondedGroupData.h
     BoxDim.h
     BoxResizeUpdater.h
-    BoxResizeUpdaterGPU.cuh
-    BoxResizeUpdaterGPU.h
     UpdaterRemoveDrift.h
     CachedAllocator.h
-    CellListGPU.cuh
-    CellListGPU.h
     CellList.h
     CellListStencil.h
     ClockSource.h
-    CommunicatorGPU.cuh
-    CommunicatorGPU.h
     Communicator.h
     Compute.h
     DCDDumpWriter.h
@@ -141,8 +137,6 @@ set(_hoomd_headers
     Initializers.h
     Integrator.cuh
     Integrator.h
-    LoadBalancerGPU.cuh
-    LoadBalancerGPU.h
     LoadBalancer.h
     managed_allocator.h
     ManagedArray.h
@@ -160,8 +154,6 @@ set(_hoomd_headers
     PythonAnalyzer.h
     RandomNumbers.h
     RNGIdentifiers.h
-    SFCPackTunerGPU.cuh
-    SFCPackTunerGPU.h
     SFCPackTuner.h
     SharedSignal.h
     SnapshotSystemData.h
@@ -169,32 +161,45 @@ set(_hoomd_headers
     System.h
     Trigger.h
     Tuner.h
-    TextureTools.h
     Updater.h
     Variant.h
-    VectorVariant.h
     VectorMath.h
-    WarpTools.cuh
+    VectorTypes.h
+    VectorVariant.h
     )
 
-if (ENABLE_HIP)
-list(APPEND _hoomd_sources BoxResizeUpdaterGPU.cc
-                           CellListGPU.cc
-                           CommunicatorGPU.cc
-                           LoadBalancerGPU.cc
-                           SFCPackTunerGPU.cc
-                           )
+if (ENABLE_GPU)
+    list(APPEND _hoomd_sources
+        BondedGroupData.cu
+        BoxResizeUpdaterGPU.cc
+        BoxResizeUpdaterGPU.cu
+        CellListGPU.cc
+        CellListGPU.cu
+        CommunicatorGPU.cc
+        CommunicatorGPU.cu
+        Integrator.cu
+        LoadBalancerGPU.cc
+        LoadBalancerGPU.cu
+        ParticleData.cu
+        ParticleGroup.cu
+        SFCPackTunerGPU.cc
+        SFCPackTunerGPU.cu
+        )
+    list(APPEND _hoomd_headers
+        BoxResizeUpdaterGPU.cuh
+        BoxResizeUpdaterGPU.h
+        CellListGPU.cuh
+        CellListGPU.h
+        CommunicatorGPU.cuh
+        CommunicatorGPU.h
+        LoadBalancerGPU.cuh
+        LoadBalancerGPU.h
+        SFCPackTunerGPU.cuh
+        SFCPackTunerGPU.h
+        TextureTools.h
+        WarpTools.cuh
+        )
 endif()
-
-set(_hoomd_cu_sources BondedGroupData.cu
-                      BoxResizeUpdaterGPU.cu
-                      CellListGPU.cu
-                      CommunicatorGPU.cu
-                      Integrator.cu
-                      LoadBalancerGPU.cu
-                      ParticleData.cu
-                      ParticleGroup.cu
-                      SFCPackTunerGPU.cu)
 
 # add the MPCD base parts that should go into _hoomd (i.e., core particle data)
 if (BUILD_MPCD)
@@ -202,20 +207,17 @@ if (BUILD_MPCD)
         mpcd/ParticleData.cc
         mpcd/ParticleDataSnapshot.cc
         )
-    list(APPEND _hoomd_cu_sources
-        mpcd/ParticleData.cu
-    )
+    if (ENABLE_GPU)
+        list(APPEND _hoomd_sources
+            mpcd/ParticleData.cu
+        )
+    endif()
     # headers will be installed by MPCD itself so they go in the right subdirectory
 endif()
 
-if (ENABLE_HIP)
-set(_cuda_sources ${_hoomd_cu_sources})
-set_source_files_properties(${_hoomd_cu_sources} PROPERTIES LANGUAGE ${HOOMD_DEVICE_LANGUAGE})
-endif (ENABLE_HIP)
-
 #########################
 ## Build the module
-hoomd_add_module(_hoomd SHARED module.cc ${_hoomd_sources} ${_cuda_sources} ${_hoomd_headers} NO_EXTRAS)
+hoomd_add_module(_hoomd SHARED ${_hoomd_sources} ${_hoomd_headers} NO_EXTRAS)
 
 # alias into the HOOMD namespace so that plugins and symlinked components both work
 add_library(HOOMD::_hoomd ALIAS _hoomd)
@@ -223,7 +225,7 @@ add_library(HOOMD::_hoomd ALIAS _hoomd)
 # Work around support for the delete operator with pybind11 and older versions of clang
 # https://github.com/pybind/pybind11/issues/1604
 if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang")
-    target_compile_options(_hoomd PUBLIC $<$<AND:$<COMPILE_LANGUAGE:CUDA>,$<STREQUAL:${HIP_PLATFORM},nvcc>>:-Xcompiler=>;-fsized-deallocation)
+    target_compile_options(_hoomd PUBLIC $<$<COMPILE_LANGUAGE:CUDA>:-Xcompiler=>;-fsized-deallocation)
 endif()
 
 # add quick hull as its own library so that it's symbols can be public
@@ -264,26 +266,16 @@ target_compile_definitions(_hoomd PUBLIC HOOMD_SHORTREAL_SIZE=${HOOMD_SHORTREAL_
 target_compile_definitions(_hoomd PUBLIC HOOMD_LONGREAL_SIZE=${HOOMD_LONGREAL_SIZE})
 
 # Libraries and compile definitions for CUDA enabled builds
-if (ENABLE_HIP)
-    if (HIP_PLATFORM STREQUAL "amd")
-        target_link_libraries(_hoomd PUBLIC hip::hipfft)
-    elseif(HIP_PLATFORM STREQUAL "nvcc")
-        target_link_libraries(_hoomd PUBLIC CUDA::cudart CUDA::cufft)
-    endif()
-    target_compile_definitions(_hoomd PUBLIC ENABLE_HIP CUDA_ARCH=${_cuda_min_arch})
+if (ENABLE_GPU)
+    target_link_libraries(_hoomd PUBLIC CUDA::cudart CUDA::cufft)
+    target_compile_definitions(_hoomd PUBLIC ENABLE_GPU)
 
-    if (CUSOLVER_AVAILABLE)
-        target_compile_definitions(_hoomd PUBLIC CUSOLVER_AVAILABLE)
-    endif()
-
-    target_link_libraries(_hoomd PUBLIC hip::host)
-
-    if (ENABLE_ROCTRACER)
-        target_link_libraries(_hoomd PUBLIC HIP::roctracer)
-        target_compile_definitions(_hoomd PUBLIC ENABLE_ROCTRACER)
-    endif()
+    string(REPLACE "." ";" _cuda_version_list ${CMAKE_CUDA_COMPILER_VERSION})
+    list(GET _cuda_version_list 0 _cuda_version_major)
+    list(GET _cuda_version_list 1 _cuda_version_minor)
+    target_compile_definitions(_hoomd PUBLIC __SCALE_CUDA_VER_MAJOR__=${_cuda_version_major})
+    target_compile_definitions(_hoomd PUBLIC __SCALE_CUDA_VER_MINOR__=${_cuda_version_minor})
 endif()
-
 
 # Libraries and compile definitions for MPI enabled builds
 if (ENABLE_MPI)

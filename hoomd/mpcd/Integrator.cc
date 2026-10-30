@@ -10,7 +10,7 @@
 
 #ifdef ENABLE_MPI
 #include "Communicator.h"
-#ifdef ENABLE_HIP
+#ifdef ENABLE_GPU
 #include "CommunicatorGPU.h"
 #endif
 #endif
@@ -34,13 +34,13 @@ mpcd::Integrator::Integrator(std::shared_ptr<SystemDefinition> sysdef, Scalar de
     if (m_pdata->getDomainDecomposition())
         {
         std::shared_ptr<mpcd::Communicator> mpcd_comm;
-#ifdef ENABLE_HIP
+#ifdef ENABLE_GPU
         if (m_exec_conf->isCUDAEnabled())
             {
             mpcd_comm = std::make_shared<mpcd::CommunicatorGPU>(sysdef);
             }
         else
-#endif // ENABLE_HIP
+#endif // ENABLE_GPU
             {
             mpcd_comm = std::make_shared<mpcd::Communicator>(sysdef);
             }

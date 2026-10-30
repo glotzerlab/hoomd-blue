@@ -9,7 +9,7 @@
 #ifndef MPCD_CELL_THERMO_COMPUTE_H_
 #define MPCD_CELL_THERMO_COMPUTE_H_
 
-#ifdef __HIPCC__
+#ifdef __NVCC__
 #error This header cannot be compiled by nvcc
 #endif
 
@@ -18,6 +18,7 @@
 #ifdef ENABLE_MPI
 #include "CellCommunicator.h"
 #endif // ENABLE_MPI
+#include "RequiredDouble.h"
 
 #include "hoomd/Compute.h"
 #include "hoomd/SystemDefinition.h"
@@ -54,7 +55,7 @@ class PYBIND11_EXPORT CellThermoCompute : public Compute
         }
 
     //! Get the cell velocities from the last call to compute
-    const GPUArray<double4>& getCellVelocities() const
+    const GPUArray<RequiredDouble4>& getCellVelocities() const
         {
         return m_cell_vel;
         }
@@ -171,7 +172,7 @@ class PYBIND11_EXPORT CellThermoCompute : public Compute
     bool m_needs_net_reduce;           //!< Flag if a net reduction is necessary
     GPUArray<double> m_net_properties; //!< Scalar properties of the system
 
-    GPUVector<double4> m_cell_vel;    //!< Average velocity of a cell + cell mass
+    GPUVector<RequiredDouble4> m_cell_vel; //!< Average velocity of a cell + cell mass
     GPUVector<double3> m_cell_energy; //!< Kinetic energy, unscaled temperature, dof in each cell
     unsigned int m_ncells_alloc;      //!< Number of cells allocated for
 

@@ -184,7 +184,7 @@ void export_PotentialPairAlchemicalLJGauss(pybind11::module& m);
 void export_BoxDeformer(pybind11::module& m);
 void export_LeesEdwardsBoxDeformer(pybind11::module& m);
 
-#ifdef ENABLE_HIP
+#ifdef ENABLE_GPU
 
 void export_ActiveForceConstraintComputeCylinderGPU(pybind11::module& m);
 void export_ActiveForceConstraintComputeDiamondGPU(pybind11::module& m);
@@ -460,7 +460,7 @@ PYBIND11_MODULE(_md, m)
     export_PotentialExternalWallGauss(m);
     export_PotentialExternalWallMorse(m);
 
-#ifdef ENABLE_HIP
+#ifdef ENABLE_GPU
     export_NeighborListGPU(m);
     export_NeighborListGPUBinned(m);
     export_NeighborListGPUStencil(m);
@@ -617,7 +617,7 @@ PYBIND11_MODULE(_md, m)
     export_TwoStepRATTLENVEPrimitive(m);
     export_TwoStepRATTLENVESphere(m);
 
-#ifdef ENABLE_HIP
+#ifdef ENABLE_GPU
     export_TwoStepConstantVolumeGPU(m);
     export_TwoStepLangevinGPU(m);
     export_TwoStepBDGPU(m);

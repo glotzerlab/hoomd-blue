@@ -78,8 +78,8 @@ __global__ void at_apply_velocity(Scalar4* d_vel,
                                   const unsigned int* d_embed_idx,
                                   const Scalar4* d_vel_alt_embed,
                                   const unsigned int* d_embed_cell_ids,
-                                  const double4* d_cell_vel,
-                                  const double4* d_rand_vel,
+                                  const RequiredDouble4* d_cell_vel,
+                                  const RequiredDouble4* d_rand_vel,
                                   const unsigned int N_mpcd,
                                   const unsigned int N_tot)
     {
@@ -105,8 +105,8 @@ __global__ void at_apply_velocity(Scalar4* d_vel,
         }
 
     // load cell data
-    const double4 v_c = d_cell_vel[cell];
-    const double4 vrand_c = d_rand_vel[cell];
+    const RequiredDouble4 v_c = d_cell_vel[cell];
+    const RequiredDouble4 vrand_c = d_rand_vel[cell];
 
     // compute new velocity using the cell + the random draw
     const Scalar3 vnew = make_scalar3(v_c.x - vrand_c.x + vel_rand.x,
@@ -169,8 +169,8 @@ cudaError_t at_apply_velocity(Scalar4* d_vel,
                               const unsigned int* d_embed_idx,
                               const Scalar4* d_vel_alt_embed,
                               const unsigned int* d_embed_cell_ids,
-                              const double4* d_cell_vel,
-                              const double4* d_rand_vel,
+                              const RequiredDouble4* d_cell_vel,
+                              const RequiredDouble4* d_rand_vel,
                               const unsigned int N_mpcd,
                               const unsigned int N_tot,
                               const unsigned int block_size)

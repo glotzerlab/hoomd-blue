@@ -5,7 +5,7 @@
     \brief Declares an updater that resizes the simulation box of the system
 */
 
-#ifdef __HIPCC__
+#ifdef __NVCC__
 #error This header cannot be compiled by nvcc
 #endif
 

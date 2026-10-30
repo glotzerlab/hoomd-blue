@@ -22,19 +22,19 @@ namespace md
 namespace kernel
     {
 //! Kernel driver that computes the forces for TriangleAreaConservationMeshForceComputeGPU
-hipError_t gpu_compute_TriangleAreaConservation_force(Scalar4* d_force,
-                                                      Scalar* d_virial,
-                                                      const size_t virial_pitch,
-                                                      const unsigned int N,
-                                                      const Scalar4* d_pos,
-                                                      const BoxDim& box,
-                                                      const group_storage<3>* tlist,
-                                                      const unsigned int* tpos_list,
-                                                      const Index2D tlist_idx,
-                                                      const unsigned int* n_triangles_list,
-                                                      triangle_area_conservation_param_t* d_params,
-                                                      const unsigned int n_triangle_type,
-                                                      int block_size);
+cudaError_t gpu_compute_TriangleAreaConservation_force(Scalar4* d_force,
+                                                       Scalar* d_virial,
+                                                       const size_t virial_pitch,
+                                                       const unsigned int N,
+                                                       const Scalar4* d_pos,
+                                                       const BoxDim& box,
+                                                       const group_storage<3>* tlist,
+                                                       const unsigned int* tpos_list,
+                                                       const Index2D tlist_idx,
+                                                       const unsigned int* n_triangles_list,
+                                                       triangle_area_conservation_param_t* d_params,
+                                                       const unsigned int n_triangle_type,
+                                                       int block_size);
     } // end namespace kernel
     } // end namespace md
     } // end namespace hoomd

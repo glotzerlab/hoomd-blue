@@ -50,7 +50,7 @@ void export_SineForce(pybind11::module&);
 void export_SRDCollisionMethod(pybind11::module&);
 void export_StreamingMethod(pybind11::module&);
 void export_VirtualParticleFiller(pybind11::module&);
-#ifdef ENABLE_HIP
+#ifdef ENABLE_GPU
 void export_ATCollisionMethodGPU(pybind11::module&);
 void export_CellListGPU(pybind11::module&);
 void export_CellThermoComputeGPU(pybind11::module&);
@@ -66,18 +66,18 @@ void export_ReverseNonequilibriumShearFlowGPU(pybind11::module&);
 void export_SorterGPU(pybind11::module&);
 void export_SphereGeometryFillerGPU(pybind11::module&);
 void export_SRDCollisionMethodGPU(pybind11::module&);
-#endif // ENABLE_HIP
+#endif // ENABLE_GPU
 
 void export_BulkStreamingMethodBlockForce(pybind11::module&);
 void export_BulkStreamingMethodConstantForce(pybind11::module&);
 void export_BulkStreamingMethodNoForce(pybind11::module&);
 void export_BulkStreamingMethodSineForce(pybind11::module&);
-#ifdef ENABLE_HIP
+#ifdef ENABLE_GPU
 void export_BulkStreamingMethodBlockForceGPU(pybind11::module&);
 void export_BulkStreamingMethodConstantForceGPU(pybind11::module&);
 void export_BulkStreamingMethodNoForceGPU(pybind11::module&);
 void export_BulkStreamingMethodSineForceGPU(pybind11::module&);
-#endif // ENABLE_HIP
+#endif // ENABLE_GPU
 
 // concentric cylinders
 void export_BounceBackStreamingMethodConcentricCylindersGeometryBlockForce(pybind11::module&);
@@ -111,7 +111,7 @@ void export_BounceBackStreamingMethodSphereGeometryBlockForce(pybind11::module&)
 void export_BounceBackStreamingMethodSphereGeometryConstantForce(pybind11::module&);
 void export_BounceBackStreamingMethodSphereGeometryNoForce(pybind11::module&);
 void export_BounceBackStreamingMethodSphereGeometrySineForce(pybind11::module&);
-#ifdef ENABLE_HIP
+#ifdef ENABLE_GPU
 // concentric cylinders
 void export_BounceBackStreamingMethodConcentricCylindersGeometryBlockForceGPU(pybind11::module&);
 void export_BounceBackStreamingMethodConcentricCylindersGeometryConstantForceGPU(pybind11::module&);
@@ -146,7 +146,7 @@ void export_BounceBackStreamingMethodSphereGeometryBlockForceGPU(pybind11::modul
 void export_BounceBackStreamingMethodSphereGeometryConstantForceGPU(pybind11::module&);
 void export_BounceBackStreamingMethodSphereGeometryNoForceGPU(pybind11::module&);
 void export_BounceBackStreamingMethodSphereGeometrySineForceGPU(pybind11::module&);
-#endif // ENABLE_HIP
+#endif // ENABLE_GPU
 
 void export_BounceBackNVEConcentricCylindersGeometry(pybind11::module&);
 void export_BounceBackNVECosineChannelGeometry(pybind11::module&);
@@ -154,14 +154,14 @@ void export_BounceBackNVECosineExpansionContractionGeometry(pybind11::module&);
 void export_BounceBackNVEParallelPlateGeometry(pybind11::module&);
 void export_BounceBackNVEPlanarPoreGeometry(pybind11::module&);
 void export_BounceBackNVESphereGeometry(pybind11::module&);
-#ifdef ENABLE_HIP
+#ifdef ENABLE_GPU
 void export_BounceBackNVEConcentricCylindersGeometryGPU(pybind11::module&);
 void export_BounceBackNVECosineChannelGeometryGPU(pybind11::module&);
 void export_BounceBackNVECosineExpansionContractionGeometryGPU(pybind11::module&);
 void export_BounceBackNVEParallelPlateGeometryGPU(pybind11::module&);
 void export_BounceBackNVEPlanarPoreGeometryGPU(pybind11::module&);
 void export_BounceBackNVESphereGeometryGPU(pybind11::module&);
-#endif // ENABLE_HIP
+#endif // ENABLE_GPU
 
     } // end namespace detail
 
@@ -226,7 +226,7 @@ PYBIND11_MODULE(_mpcd, m)
     export_SphereGeometryFiller(m);
     export_SineForce(m);
     export_SRDCollisionMethod(m);
-#ifdef ENABLE_HIP
+#ifdef ENABLE_GPU
     export_ATCollisionMethodGPU(m);
     export_CellListGPU(m);
     export_CellThermoComputeGPU(m);
@@ -242,18 +242,18 @@ PYBIND11_MODULE(_mpcd, m)
     export_SorterGPU(m);
     export_SphereGeometryFillerGPU(m);
     export_SRDCollisionMethodGPU(m);
-#endif // ENABLE_HIP
+#endif // ENABLE_GPU
 
     export_BulkStreamingMethodBlockForce(m);
     export_BulkStreamingMethodConstantForce(m);
     export_BulkStreamingMethodNoForce(m);
     export_BulkStreamingMethodSineForce(m);
-#ifdef ENABLE_HIP
+#ifdef ENABLE_GPU
     export_BulkStreamingMethodBlockForceGPU(m);
     export_BulkStreamingMethodConstantForceGPU(m);
     export_BulkStreamingMethodNoForceGPU(m);
     export_BulkStreamingMethodSineForceGPU(m);
-#endif // ENABLE_HIP
+#endif // ENABLE_GPU
 
     // concentric cylinders
     export_BounceBackStreamingMethodConcentricCylindersGeometryBlockForce(m);
@@ -285,7 +285,7 @@ PYBIND11_MODULE(_mpcd, m)
     export_BounceBackStreamingMethodSphereGeometryConstantForce(m);
     export_BounceBackStreamingMethodSphereGeometryNoForce(m);
     export_BounceBackStreamingMethodSphereGeometrySineForce(m);
-#ifdef ENABLE_HIP
+#ifdef ENABLE_GPU
     // concentric cylinders
     export_BounceBackStreamingMethodConcentricCylindersGeometryBlockForceGPU(m);
     export_BounceBackStreamingMethodConcentricCylindersGeometryConstantForceGPU(m);
@@ -316,7 +316,7 @@ PYBIND11_MODULE(_mpcd, m)
     export_BounceBackStreamingMethodSphereGeometryConstantForceGPU(m);
     export_BounceBackStreamingMethodSphereGeometryNoForceGPU(m);
     export_BounceBackStreamingMethodSphereGeometrySineForceGPU(m);
-#endif // ENABLE_HIP
+#endif // ENABLE_GPU
 
     export_BounceBackNVEConcentricCylindersGeometry(m);
     export_BounceBackNVECosineChannelGeometry(m);
@@ -324,12 +324,12 @@ PYBIND11_MODULE(_mpcd, m)
     export_BounceBackNVEParallelPlateGeometry(m);
     export_BounceBackNVEPlanarPoreGeometry(m);
     export_BounceBackNVESphereGeometry(m);
-#ifdef ENABLE_HIP
+#ifdef ENABLE_GPU
     export_BounceBackNVEConcentricCylindersGeometryGPU(m);
     export_BounceBackNVECosineChannelGeometryGPU(m);
     export_BounceBackNVECosineExpansionContractionGeometryGPU(m);
     export_BounceBackNVEParallelPlateGeometryGPU(m);
     export_BounceBackNVEPlanarPoreGeometryGPU(m);
     export_BounceBackNVESphereGeometryGPU(m);
-#endif // ENABLE_HIP
+#endif // ENABLE_GPU
     }

@@ -98,7 +98,7 @@ struct HOOMDHostBuffer : public HOOMDBuffer
         }
     };
 
-#if ENABLE_HIP
+#if ENABLE_GPU
 /// Represents the data required to implement the __cuda_array_interface__.
 /** Creates the Python dictionary to represent a GPU array through the
  *  __cuda_array_interface__. Currently supports version 2 of the protocol.
@@ -464,7 +464,7 @@ void export_HOOMDHostBuffer(pybind11::module& m);
 
 void export_GhostDataFlag(pybind11::module& m);
 
-#if ENABLE_HIP
+#if ENABLE_GPU
 void export_HOOMDDeviceBuffer(pybind11::module& m);
 #endif
 

@@ -27,7 +27,7 @@ mpcd::CellCommunicator::CellCommunicator(std::shared_ptr<SystemDefinition> sysde
       m_send_buf(m_exec_conf), m_recv_buf(m_exec_conf), m_needs_init(true)
     {
     m_exec_conf->msg->notice(5) << "Constructing MPCD CellCommunicator" << std::endl;
-#ifdef ENABLE_HIP
+#ifdef ENABLE_GPU
     if (m_exec_conf->isCUDAEnabled())
         {
         m_tuner_pack.reset(new Autotuner<1>({AutotunerBase::makeBlockSizeRange(m_exec_conf)},
@@ -38,7 +38,7 @@ mpcd::CellCommunicator::CellCommunicator(std::shared_ptr<SystemDefinition> sysde
                                               "mpcd_cell_comm_unpack_" + std::to_string(m_id)));
         m_autotuners.insert(m_autotuners.end(), {m_tuner_pack, m_tuner_unpack});
         }
-#endif // ENABLE_HIP
+#endif // ENABLE_GPU
 
     m_cl->getSizeChangeSignal().connect<mpcd::CellCommunicator, &mpcd::CellCommunicator::slotInit>(
         this);

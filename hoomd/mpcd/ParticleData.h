@@ -9,19 +9,19 @@
  * \brief Declaration of mpcd::ParticleData
  */
 
-#ifdef __HIPCC__
+#ifdef __NVCC__
 #error This header cannot be compiled by nvcc
 #endif
 
 #include "ParticleDataSnapshot.h"
 #include "ParticleDataUtilities.h"
 
-#ifdef ENABLE_HIP
+#ifdef ENABLE_GPU
 #include "ParticleData.cuh"
 #ifdef ENABLE_MPI
 #include "hoomd/Autotuner.h"
 #endif // ENABLE_MPI
-#endif // ENABLE_HIP
+#endif // ENABLE_GPU
 
 #include "hoomd/Autotuned.h"
 #include "hoomd/BoxDim.h"
@@ -373,7 +373,7 @@ class PYBIND11_EXPORT ParticleData : public Autotuned
                       unsigned int mask,
                       uint64_t timestep);
 
-#ifdef ENABLE_HIP
+#ifdef ENABLE_GPU
     //! Pack particle data into a buffer (GPU version)
     void removeParticlesGPU(GPUVector<mpcd::detail::pdata_element>& out,
                             unsigned int mask,
@@ -383,7 +383,7 @@ class PYBIND11_EXPORT ParticleData : public Autotuned
     void addParticlesGPU(const GPUVector<mpcd::detail::pdata_element>& in,
                          unsigned int mask,
                          uint64_t timestep);
-#endif // ENABLE_HIP
+#endif // ENABLE_GPU
 
     //! Get the MPCD particle communication flags
     const GPUArray<unsigned int>& getCommFlags() const
@@ -431,14 +431,14 @@ class PYBIND11_EXPORT ParticleData : public Autotuned
 #ifdef ENABLE_MPI
     GPUArray<unsigned int> m_comm_flags_alt; //!< Alternate communication flags
     GPUArray<unsigned int> m_remove_ids;     //!< Partitioned indexes of particles to keep
-#ifdef ENABLE_HIP
+#ifdef ENABLE_GPU
     GPUArray<unsigned char> m_remove_flags; //!< Temporary flag to mark keeping particle
     GPUFlags<unsigned int> m_num_remove;    //!< Number of particles to remove
 
     std::shared_ptr<Autotuner<1>> m_mark_tuner;   //!< Tuner for marking particles
     std::shared_ptr<Autotuner<1>> m_remove_tuner; //!< Tuner for removing particles
     std::shared_ptr<Autotuner<1>> m_add_tuner;    //!< Tuner for adding particles
-#endif                                            // ENABLE_HIP
+#endif                                            // ENABLE_GPU
 #endif                                            // ENABLE_MPI
 
     bool m_valid_cell_cache;               //!< Flag for validity of cell cache

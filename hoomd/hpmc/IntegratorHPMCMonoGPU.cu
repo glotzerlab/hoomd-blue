@@ -162,29 +162,21 @@ void __attribute__((visibility("default"))) hpmc_excell(unsigned int* d_excell_i
 
     // determine the maximum block size and clamp the input block size down
     int max_block_size;
-    hipFuncAttributes attr;
-    hipFuncGetAttributes(&attr, reinterpret_cast<const void*>(kernel::hpmc_excell));
+    cudaFuncAttributes attr;
+    cudaFuncGetAttributes(&attr, reinterpret_cast<const void*>(kernel::hpmc_excell));
     max_block_size = attr.maxThreadsPerBlock;
 
-    // setup the grid to run the kernel
     unsigned int run_block_size = min(block_size, (unsigned int)max_block_size);
-    dim3 threads(run_block_size, 1, 1);
-    dim3 grid(ci.getNumElements() / run_block_size + 1, 1, 1);
 
-    hipLaunchKernelGGL(kernel::hpmc_excell,
-                       dim3(grid),
-                       dim3(threads),
-                       0,
-                       0,
-                       d_excell_idx,
-                       d_excell_size,
-                       excli,
-                       d_cell_idx,
-                       d_cell_size,
-                       d_cell_adj,
-                       ci,
-                       cli,
-                       cadji);
+    kernel::hpmc_excell<<<ci.getNumElements() / run_block_size + 1, run_block_size>>>(d_excell_idx,
+                                                                                      d_excell_size,
+                                                                                      excli,
+                                                                                      d_cell_idx,
+                                                                                      d_cell_size,
+                                                                                      d_cell_adj,
+                                                                                      ci,
+                                                                                      cli,
+                                                                                      cadji);
     }
 
 //! Kernel driver for kernel::hpmc_shift()
@@ -198,23 +190,10 @@ void __attribute__((visibility("default"))) hpmc_shift(Scalar4* d_postype,
     assert(d_postype);
     assert(d_image);
 
-    // setup the grid to run the kernel
-    dim3 threads_shift(block_size, 1, 1);
-    dim3 grid_shift(N / block_size + 1, 1, 1);
-
-    hipLaunchKernelGGL(kernel::hpmc_shift,
-                       dim3(grid_shift),
-                       dim3(threads_shift),
-                       0,
-                       0,
-                       d_postype,
-                       d_image,
-                       N,
-                       box,
-                       shift);
+    kernel::hpmc_shift<<<N / block_size + 1, block_size>>>(d_postype, d_image, N, box, shift);
 
     // after this kernel we return control of cuda managed memory to the host
-    hipDeviceSynchronize();
+    cudaDeviceSynchronize();
     }
 
 void __attribute__((visibility("default")))
@@ -228,30 +207,22 @@ hpmc_check_convergence(const unsigned int* d_trial_move_type,
     {
     // determine the maximum block size and clamp the input block size down
     int max_block_size;
-    hipFuncAttributes attr;
-    hipFuncGetAttributes(&attr, reinterpret_cast<const void*>(kernel::hpmc_check_convergence));
+    cudaFuncAttributes attr;
+    cudaFuncGetAttributes(&attr, reinterpret_cast<const void*>(kernel::hpmc_check_convergence));
     max_block_size = attr.maxThreadsPerBlock;
 
     // setup the grid to run the kernel
     unsigned int run_block_size = min(block_size, (unsigned int)max_block_size);
 
-    dim3 threads(run_block_size, 1, 1);
-
     unsigned int nwork = N;
     const unsigned int num_blocks = nwork / run_block_size + 1;
-    dim3 grid(num_blocks, 1, 1);
 
-    hipLaunchKernelGGL(kernel::hpmc_check_convergence,
-                       grid,
-                       threads,
-                       0,
-                       0,
-                       d_trial_move_type,
-                       d_reject_out_of_cell,
-                       d_reject_in,
-                       d_reject_out,
-                       d_condition,
-                       nwork);
+    kernel::hpmc_check_convergence<<<num_blocks, run_block_size>>>(d_trial_move_type,
+                                                                   d_reject_out_of_cell,
+                                                                   d_reject_in,
+                                                                   d_reject_out,
+                                                                   d_condition,
+                                                                   nwork);
     }
 
     } // end namespace gpu

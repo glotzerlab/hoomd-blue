@@ -18,12 +18,12 @@ namespace md
 namespace kernel
     {
 //! Kernel driver for box flipping and particle remapping
-hipError_t gpu_lees_edwards_remap(const unsigned int N,
-                                  Scalar4* d_pos,
-                                  int3* d_image,
-                                  const BoxDim& flipped_box,
-                                  const Scalar xy,
-                                  unsigned int block_size);
+cudaError_t gpu_lees_edwards_remap(const unsigned int N,
+                                   Scalar4* d_pos,
+                                   int3* d_image,
+                                   const BoxDim& flipped_box,
+                                   const Scalar xy,
+                                   unsigned int block_size);
 
     } // namespace kernel
     } // namespace md

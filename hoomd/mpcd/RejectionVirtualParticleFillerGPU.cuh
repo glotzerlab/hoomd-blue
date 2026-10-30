@@ -89,7 +89,7 @@ copy_virtual_particles(unsigned int* d_keep_indices,
                        const unsigned int n_virtual,
                        const unsigned int block_size);
 
-#ifdef __HIPCC__
+#ifdef __NVCC__
 namespace kernel
     {
 
@@ -196,7 +196,7 @@ cudaError_t draw_virtual_particles(const draw_virtual_particles_args_t& args, co
     return cudaSuccess;
     }
 
-#endif // __HIPCC__
+#endif // __NVCC__
 
     } // end namespace gpu
     } // end namespace mpcd

@@ -26,7 +26,7 @@
 
 #include "GPUTree.h"
 
-#ifdef ENABLE_HIP
+#ifdef ENABLE_GPU
 #include "IntegratorHPMCMonoGPU.h"
 #endif
 

@@ -11,7 +11,7 @@
 #include "HOOMDMPI.h"
 #endif
 
-#ifdef ENABLE_HIP
+#ifdef ENABLE_GPU
 #include "CachedAllocator.h"
 #endif
 
@@ -2954,7 +2954,7 @@ void ParticleData::addParticles(const std::vector<detail::pdata_element>& in)
     notifyParticleSort();
     }
 
-#ifdef ENABLE_HIP
+#ifdef ENABLE_GPU
 //! Pack particle data into a buffer (GPU version)
 /*! \note This method may only be used during communication or when
  *        no ghost particles are present, because ghost particle values
@@ -3237,7 +3237,7 @@ void ParticleData::addParticlesGPU(const GPUVector<detail::pdata_element>& in)
     notifyParticleSort();
     }
 
-#endif // ENABLE_HIP
+#endif // ENABLE_GPU
 #endif // ENABLE_MPI
 
 template<class Real>

@@ -6,11 +6,11 @@
 #include "hoomd/RNGIdentifiers.h"
 #include "hoomd/RandomNumbers.h"
 
-#ifdef ENABLE_HIP
+#ifdef ENABLE_GPU
 #include "CachedAllocator.h"
 #include "ParticleGroup.cuh"
 
-#include <hip/hip_runtime.h>
+#include <cuda_runtime.h>
 #endif
 
 #include <algorithm>
@@ -513,7 +513,7 @@ void ParticleGroup::rebuildIndexList()
     // notice message
     m_pdata->getExecConf()->msg->notice(10) << "ParticleGroup: rebuilding index" << std::endl;
 
-#ifdef ENABLE_HIP
+#ifdef ENABLE_GPU
     if (m_pdata->getExecConf()->isCUDAEnabled())
         {
         rebuildIndexListGPU();
@@ -556,7 +556,7 @@ void ParticleGroup::rebuildIndexList()
     m_particles_sorted = false;
     }
 
-#ifdef ENABLE_HIP
+#ifdef ENABLE_GPU
 //! rebuild index list on the GPU
 void ParticleGroup::rebuildIndexListGPU()
     {

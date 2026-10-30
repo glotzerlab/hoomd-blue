@@ -9,7 +9,7 @@
 #include <functional>
 
 #include "hoomd/md/HarmonicDihedralForceCompute.h"
-#ifdef ENABLE_HIP
+#ifdef ENABLE_GPU
 #include "hoomd/md/HarmonicDihedralForceComputeGPU.h"
 #endif
 
@@ -615,7 +615,7 @@ base_class_tf_creator(std::shared_ptr<SystemDefinition> sysdef)
     return std::shared_ptr<HarmonicDihedralForceCompute>(new HarmonicDihedralForceCompute(sysdef));
     }
 
-#ifdef ENABLE_HIP
+#ifdef ENABLE_GPU
 //! DihedralForceCompute creator for bond_force_basic_tests()
 std::shared_ptr<HarmonicDihedralForceCompute>
 gpu_tf_creator(std::shared_ptr<SystemDefinition> sysdef)
@@ -638,7 +638,7 @@ UP_TEST(HarmonicDihedralForceCompute_basic)
                                    new ExecutionConfiguration(ExecutionConfiguration::CPU)));
     }
 
-#ifdef ENABLE_HIP
+#ifdef ENABLE_GPU
 //! test case for dihedral forces on the GPU
 UP_TEST(HarmonicDihedralForceComputeGPU_basic)
     {

@@ -1,7 +1,7 @@
 // Copyright (c) 2009-2026 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
-#ifdef __HIPCC__
+#ifdef __NVCC__
 #error This header cannot be compiled by nvcc
 #endif
 
@@ -16,8 +16,8 @@
 #include <string>
 #include <vector>
 
-#ifdef ENABLE_HIP
-#include <hip/hip_runtime.h>
+#ifdef ENABLE_GPU
+#include <cuda_runtime.h>
 #endif
 
 namespace hoomd
@@ -195,7 +195,7 @@ class PYBIND11_EXPORT Integrator : public Updater
     /// helper function to compute net force/virial
     virtual void computeNetForce(uint64_t timestep);
 
-#ifdef ENABLE_HIP
+#ifdef ENABLE_GPU
     /// helper function to compute net force/virial on the GPU
     virtual void computeNetForceGPU(uint64_t timestep);
 #endif

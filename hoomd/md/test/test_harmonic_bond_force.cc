@@ -12,7 +12,7 @@
 #include "hoomd/md/EvaluatorBondHarmonic.h"
 #include "hoomd/md/PotentialBond.h"
 
-#ifdef ENABLE_HIP
+#ifdef ENABLE_GPU
 #include "hoomd/md/PotentialBondGPU.h"
 #endif
 
@@ -31,7 +31,7 @@ using namespace hoomd::md;
 
 typedef class PotentialBond<EvaluatorBondHarmonic, BondData> PotentialBondHarmonic;
 
-#ifdef ENABLE_HIP
+#ifdef ENABLE_GPU
 typedef class PotentialBondGPU<EvaluatorBondHarmonic, BondData> PotentialBondHarmonicGPU;
 #endif
 
@@ -458,7 +458,7 @@ base_class_bf_creator(std::shared_ptr<SystemDefinition> sysdef)
     return std::shared_ptr<PotentialBondHarmonic>(new PotentialBondHarmonic(sysdef));
     }
 
-#ifdef ENABLE_HIP
+#ifdef ENABLE_GPU
 //! PotentialBondHarmonic creator for bond_force_basic_tests()
 std::shared_ptr<PotentialBondHarmonic> gpu_bf_creator(std::shared_ptr<SystemDefinition> sysdef)
     {
@@ -475,7 +475,7 @@ UP_TEST(PotentialBondHarmonic_basic)
                                new ExecutionConfiguration(ExecutionConfiguration::CPU)));
     }
 
-#ifdef ENABLE_HIP
+#ifdef ENABLE_GPU
 //! test case for bond forces on the GPU
 UP_TEST(PotentialBondHarmonicGPU_basic)
     {

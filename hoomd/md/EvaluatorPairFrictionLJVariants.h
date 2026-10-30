@@ -12,7 +12,7 @@
 // in nvcc.  HOSTDEVICE is __host__ __device__ when included in nvcc and blank
 // when included into the host compiler
 
-#ifdef __HIPCC__
+#ifdef __NVCC__
 #define HOSTDEVICE __host__ __device__
 #define DEVICE __device__
 #else
@@ -39,7 +39,7 @@ class EvaluatorPairFrictionLJLinear
         factor_r = fast::sqrt(factor_f);
         }
 
-#ifndef __HIPCC__
+#ifndef __NVCC__
     static std::string getName()
         {
         return "FrictionLJLinear";
@@ -66,7 +66,7 @@ class EvaluatorPairFrictionLJCoulomb
         factor_r = fast::sqrt(w * D);
         }
 
-#ifndef __HIPCC__
+#ifndef __NVCC__
     static std::string getName()
         {
         return "FrictionLJCoulomb";
@@ -111,7 +111,7 @@ class EvaluatorPairFrictionLJCoulombNewton
         factor_r = fast::sqrt(D);
         }
 
-#ifndef __HIPCC__
+#ifndef __NVCC__
     static std::string getName()
         {
         return "FrictionLJCoulombNewton";

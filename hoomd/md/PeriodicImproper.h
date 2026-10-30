@@ -16,7 +16,7 @@ struct periodic_improper_params
     int n;
     Scalar chi_0;
 
-#ifndef __HIPCC__
+#ifndef __NVCC__
     periodic_improper_params() : k(0.), d(0.), n(0), chi_0(0.) { }
 
     periodic_improper_params(pybind11::dict v)

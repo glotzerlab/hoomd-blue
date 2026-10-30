@@ -5,7 +5,7 @@
     \brief Declares BondedGroupData
  */
 
-#ifdef __HIPCC__
+#ifdef __NVCC__
 #error This header cannot be compiled by nvcc
 #endif
 
@@ -22,7 +22,7 @@ const unsigned int GROUP_NOT_LOCAL((unsigned int)0xffffffff);
 #include "Index1D.h"
 #include "ParticleData.h"
 
-#ifdef ENABLE_HIP
+#ifdef ENABLE_GPU
 #include "BondedGroupData.cuh"
 #include "CachedAllocator.h"
 #endif
@@ -30,7 +30,7 @@ const unsigned int GROUP_NOT_LOCAL((unsigned int)0xffffffff);
 #include <hoomd/extern/nano-signal-slot/nano_signal_slot.hpp>
 #include <memory>
 #include <type_traits>
-#ifndef __HIPCC__
+#ifndef __NVCC__
 #include <pybind11/pybind11.h>
 #endif
 
@@ -683,7 +683,7 @@ class BondedGroupData
     Nano::Signal<void()> m_group_num_change_signal; //!< Signal that is triggered when groups are
                                                     //!< added or deleted (globally)
                                                     //
-#ifdef ENABLE_HIP
+#ifdef ENABLE_GPU
     GPUArray<unsigned int> m_condition; //!< Condition variable for rebuilding GPU table on the GPU
     unsigned int m_next_flag;           //!< Next flag value for GPU table rebuild
 #endif
@@ -715,7 +715,7 @@ class BondedGroupData
 #endif
         }
 
-#ifdef ENABLE_HIP
+#ifdef ENABLE_GPU
     //! Helper function to rebuild lookup by index table on the GPU
     virtual void rebuildGPUTableGPU();
 #endif

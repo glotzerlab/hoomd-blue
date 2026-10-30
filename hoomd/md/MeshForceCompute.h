@@ -10,7 +10,7 @@
     \brief Declares the ForceCompute class
 */
 
-#ifdef __HIPCC__
+#ifdef __NVCC__
 #error This header cannot be compiled by nvcc
 #endif
 
@@ -75,7 +75,7 @@ class PYBIND11_EXPORT MeshForceCompute : public ForceCompute
 namespace detail
     {
 //! Exports the MeshForceCompute class to python
-#ifndef __HIPCC__
+#ifndef __NVCC__
 void export_MeshForceCompute(pybind11::module& m);
 #endif
 

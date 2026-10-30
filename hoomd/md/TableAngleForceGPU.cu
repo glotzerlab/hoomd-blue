@@ -1,7 +1,7 @@
 // Copyright (c) 2009-2026 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
-#include "hip/hip_runtime.h"
+#include <cuda_runtime.h>
 // Copyright (c) 2009-2021 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
@@ -242,60 +242,51 @@ __global__ void gpu_compute_table_angle_forces_kernel(Scalar4* d_force,
     \note This is just a kernel driver. See gpu_compute_table_angle_forces_kernel for full
    documentation.
 */
-hipError_t gpu_compute_table_angle_forces(Scalar4* d_force,
-                                          Scalar* d_virial,
-                                          const size_t virial_pitch,
-                                          const unsigned int N,
-                                          const Scalar4* d_pos,
-                                          const BoxDim& box,
-                                          const group_storage<3>* alist,
-                                          const unsigned int* apos_list,
-                                          const unsigned int pitch,
-                                          const unsigned int* n_angles_list,
-                                          const Scalar2* d_tables,
-                                          const unsigned int table_width,
-                                          const Index2D& table_value,
-                                          const unsigned int block_size)
+cudaError_t gpu_compute_table_angle_forces(Scalar4* d_force,
+                                           Scalar* d_virial,
+                                           const size_t virial_pitch,
+                                           const unsigned int N,
+                                           const Scalar4* d_pos,
+                                           const BoxDim& box,
+                                           const group_storage<3>* alist,
+                                           const unsigned int* apos_list,
+                                           const unsigned int pitch,
+                                           const unsigned int* n_angles_list,
+                                           const Scalar2* d_tables,
+                                           const unsigned int table_width,
+                                           const Index2D& table_value,
+                                           const unsigned int block_size)
     {
     assert(d_tables);
     assert(table_width > 1);
 
     if (N == 0)
-        return hipSuccess;
+        return cudaSuccess;
 
     unsigned int max_block_size;
-    hipFuncAttributes attr;
-    hipFuncGetAttributes(&attr, (const void*)gpu_compute_table_angle_forces_kernel);
+    cudaFuncAttributes attr;
+    cudaFuncGetAttributes(&attr, (const void*)gpu_compute_table_angle_forces_kernel);
     max_block_size = attr.maxThreadsPerBlock;
 
     unsigned int run_block_size = min(block_size, max_block_size);
 
-    // setup the grid to run the kernel
-    dim3 grid(N / run_block_size + 1, 1, 1);
-    dim3 threads(run_block_size, 1, 1);
-
     Scalar delta_th = Scalar(M_PI) / (Scalar)(table_width - 1);
 
-    hipLaunchKernelGGL((gpu_compute_table_angle_forces_kernel),
-                       dim3(grid),
-                       dim3(threads),
-                       0,
-                       0,
-                       d_force,
-                       d_virial,
-                       virial_pitch,
-                       N,
-                       d_pos,
-                       box,
-                       alist,
-                       apos_list,
-                       pitch,
-                       n_angles_list,
-                       d_tables,
-                       table_value,
-                       delta_th);
+    gpu_compute_table_angle_forces_kernel<<<N / run_block_size + 1, run_block_size>>>(d_force,
+                                                                                      d_virial,
+                                                                                      virial_pitch,
+                                                                                      N,
+                                                                                      d_pos,
+                                                                                      box,
+                                                                                      alist,
+                                                                                      apos_list,
+                                                                                      pitch,
+                                                                                      n_angles_list,
+                                                                                      d_tables,
+                                                                                      table_value,
+                                                                                      delta_th);
 
-    return hipSuccess;
+    return cudaSuccess;
     }
 
     } // end namespace kernel

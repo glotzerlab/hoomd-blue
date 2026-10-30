@@ -8,13 +8,17 @@
 
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wconversion"
+#if CUDART_VERSION >= 13040
+#include <cuda/iterator>
+#else
+#include <thrust/iterator/constant_iterator.h>
+#endif
 #include <thrust/binary_search.h>
 #include <thrust/copy.h>
 #include <thrust/device_ptr.h>
 #include <thrust/execution_policy.h>
 #include <thrust/functional.h>
 #include <thrust/iterator/constant_iterator.h>
-#include <thrust/iterator/counting_iterator.h>
 #include <thrust/iterator/discard_iterator.h>
 #include <thrust/iterator/transform_iterator.h>
 #include <thrust/reduce.h>
@@ -23,9 +27,7 @@
 #include <thrust/unique.h>
 #pragma GCC diagnostic pop
 
-#ifdef __HIP_PLATFORM_NVCC__
 #include <cusparse.h>
-#endif
 
 #include "hoomd/extern/ECL.cuh"
 
@@ -39,7 +41,6 @@ namespace hpmc
     {
 namespace gpu
     {
-#ifdef __HIP_PLATFORM_NVCC__
 #define check_cusparse(a)                                                                 \
         {                                                                                 \
         cusparseStatus_t status = (a);                                                    \
@@ -49,7 +50,6 @@ namespace gpu
             throw std::runtime_error("Error during clusters update");                     \
             }                                                                             \
         }
-#endif
 
 struct get_source
     {
@@ -87,21 +87,9 @@ void __attribute__((visibility("default"))) get_num_neighbors(const unsigned int
 
     nneigh_total = 0;
 
-#ifdef __HIP_PLATFORM_HCC__
-    thrust::exclusive_scan(thrust::hip::par(alloc),
-#else
-    thrust::exclusive_scan(thrust::cuda::par(alloc),
-#endif
-                           nneigh,
-                           nneigh + N,
-                           nneigh_scan,
-                           nneigh_total);
+    thrust::exclusive_scan(thrust::cuda::par(alloc), nneigh, nneigh + N, nneigh_scan, nneigh_total);
 
-#ifdef __HIP_PLATFORM_HCC__
-    nneigh_total += thrust::reduce(thrust::hip::par(alloc),
-#else
     nneigh_total += thrust::reduce(thrust::cuda::par(alloc),
-#endif
                                    nneigh,
                                    nneigh + N,
                                    0,
@@ -191,8 +179,8 @@ concatenate_adjacency_list(const unsigned int* d_adjacency,
     {
     // determine the maximum block size and clamp the input block size down
     int max_block_size;
-    hipFuncAttributes attr;
-    hipFuncGetAttributes(&attr, reinterpret_cast<const void*>(kernel::concatenate_adjacency_list));
+    cudaFuncAttributes attr;
+    cudaFuncGetAttributes(&attr, reinterpret_cast<const void*>(kernel::concatenate_adjacency_list));
     max_block_size = attr.maxThreadsPerBlock;
 
     // setup the grid to run the kernel
@@ -210,17 +198,12 @@ concatenate_adjacency_list(const unsigned int* d_adjacency,
     const unsigned int num_blocks = nwork / n_groups + 1;
     dim3 grid(num_blocks, 1, 1);
 
-    hipLaunchKernelGGL(kernel::concatenate_adjacency_list,
-                       grid,
-                       threads,
-                       0,
-                       0,
-                       d_adjacency,
-                       d_nneigh,
-                       d_nneigh_scan,
-                       maxn,
-                       d_adjacency_out,
-                       nwork);
+    kernel::concatenate_adjacency_list<<<grid, threads>>>(d_adjacency,
+                                                          d_nneigh,
+                                                          d_nneigh_scan,
+                                                          maxn,
+                                                          d_adjacency_out,
+                                                          nwork);
     }
 
 void __attribute__((visibility("default"))) flip_clusters(Scalar4* d_postype,
@@ -238,35 +221,27 @@ void __attribute__((visibility("default"))) flip_clusters(Scalar4* d_postype,
     {
     // determine the maximum block size and clamp the input block size down
     int max_block_size;
-    hipFuncAttributes attr;
-    hipFuncGetAttributes(&attr, reinterpret_cast<const void*>(kernel::flip_clusters));
+    cudaFuncAttributes attr;
+    cudaFuncGetAttributes(&attr, reinterpret_cast<const void*>(kernel::flip_clusters));
     max_block_size = attr.maxThreadsPerBlock;
 
     // setup the grid to run the kernel
     unsigned int run_block_size = min(block_size, (unsigned int)max_block_size);
 
-    dim3 threads(run_block_size, 1);
-
     unsigned int nwork = N;
     const unsigned int num_blocks = nwork / run_block_size + 1;
-    dim3 grid(num_blocks, 1, 1);
 
-    hipLaunchKernelGGL(kernel::flip_clusters,
-                       grid,
-                       threads,
-                       0,
-                       0,
-                       d_postype,
-                       d_orientation,
-                       d_image,
-                       d_postype_backup,
-                       d_orientation_backup,
-                       d_image_backup,
-                       d_components,
-                       flip_probability,
-                       seed,
-                       timestep,
-                       nwork);
+    kernel::flip_clusters<<<num_blocks, run_block_size>>>(d_postype,
+                                                          d_orientation,
+                                                          d_image,
+                                                          d_postype_backup,
+                                                          d_orientation_backup,
+                                                          d_image_backup,
+                                                          d_components,
+                                                          flip_probability,
+                                                          seed,
+                                                          timestep,
+                                                          nwork);
     }
 
 void connected_components(uint2* d_adj,
@@ -274,10 +249,9 @@ void connected_components(uint2* d_adj,
                           const unsigned int n_elements,
                           int* d_components,
                           unsigned int& num_components,
-                          const hipDeviceProp_t& dev_prop,
+                          const cudaDeviceProp& dev_prop,
                           CachedAllocator& alloc)
     {
-#ifdef __HIP_PLATFORM_NVCC__
     thrust::device_ptr<uint2> adj(d_adj);
 
     // sort the list of pairs
@@ -325,10 +299,16 @@ void connected_components(uint2* d_adj,
     int* d_unique = alloc.getTemporaryBuffer<int>(nverts);
     thrust::device_ptr<int> unique(d_unique);
 
+#if CUDART_VERSION >= 13040
+    cuda::constant_iterator<unsigned int> const_one_it(1);
+#else
+    thrust::constant_iterator<unsigned int> const_one_it(1);
+#endif
+
     auto it = thrust::reduce_by_key(thrust::cuda::par(alloc),
                                     work,
                                     work + nverts,
-                                    thrust::constant_iterator<int>(1),
+                                    const_one_it,
                                     unique,
                                     thrust::discard_iterator<int>());
 
@@ -351,7 +331,6 @@ void connected_components(uint2* d_adj,
 
     // clean cusparse
     cusparseDestroy(handle);
-#endif
     }
 
     } // end namespace gpu

@@ -136,72 +136,54 @@ __global__ void gpu_compute_active_force_rotational_diffusion_kernel(const unsig
         }
     }
 
-hipError_t gpu_compute_active_force_set_forces(const unsigned int group_size,
-                                               unsigned int* d_index_array,
-                                               Scalar4* d_force,
-                                               Scalar4* d_torque,
-                                               const Scalar4* d_pos,
-                                               const Scalar4* d_orientation,
-                                               const Scalar4* d_f_act,
-                                               const Scalar4* d_t_act,
-                                               const unsigned int N,
-                                               unsigned int block_size)
+cudaError_t gpu_compute_active_force_set_forces(const unsigned int group_size,
+                                                unsigned int* d_index_array,
+                                                Scalar4* d_force,
+                                                Scalar4* d_torque,
+                                                const Scalar4* d_pos,
+                                                const Scalar4* d_orientation,
+                                                const Scalar4* d_f_act,
+                                                const Scalar4* d_t_act,
+                                                const unsigned int N,
+                                                unsigned int block_size)
     {
-    // setup the grid to run the kernel
-    dim3 grid(group_size / block_size + 1, 1, 1);
-    dim3 threads(block_size, 1, 1);
-
-    // run the kernel
-    hipLaunchKernelGGL((gpu_compute_active_force_set_forces_kernel),
-                       dim3(grid),
-                       dim3(threads),
-                       0,
-                       0,
-                       group_size,
-                       d_index_array,
-                       d_force,
-                       d_torque,
-                       d_pos,
-                       d_orientation,
-                       d_f_act,
-                       d_t_act,
-                       N);
-    return hipSuccess;
+    gpu_compute_active_force_set_forces_kernel<<<group_size / block_size + 1, block_size>>>(
+        group_size,
+        d_index_array,
+        d_force,
+        d_torque,
+        d_pos,
+        d_orientation,
+        d_f_act,
+        d_t_act,
+        N);
+    return cudaSuccess;
     }
 
-hipError_t gpu_compute_active_force_rotational_diffusion(const unsigned int group_size,
-                                                         unsigned int* d_tag,
-                                                         unsigned int* d_index_array,
-                                                         const Scalar4* d_pos,
-                                                         Scalar4* d_orientation,
-                                                         const Scalar4* d_f_act,
-                                                         bool is2D,
-                                                         const Scalar rotationConst,
-                                                         const uint64_t timestep,
-                                                         const uint16_t seed,
-                                                         unsigned int block_size)
+cudaError_t gpu_compute_active_force_rotational_diffusion(const unsigned int group_size,
+                                                          unsigned int* d_tag,
+                                                          unsigned int* d_index_array,
+                                                          const Scalar4* d_pos,
+                                                          Scalar4* d_orientation,
+                                                          const Scalar4* d_f_act,
+                                                          bool is2D,
+                                                          const Scalar rotationConst,
+                                                          const uint64_t timestep,
+                                                          const uint16_t seed,
+                                                          unsigned int block_size)
     {
-    // setup the grid to run the kernel
-    dim3 grid(group_size / block_size + 1, 1, 1);
-    dim3 threads(block_size, 1, 1);
-
-    // run the kernel
-    hipLaunchKernelGGL((gpu_compute_active_force_rotational_diffusion_kernel),
-                       dim3(grid),
-                       dim3(threads),
-                       0,
-                       0,
-                       group_size,
-                       d_tag,
-                       d_index_array,
-                       d_pos,
-                       d_orientation,
-                       d_f_act,
-                       is2D,
-                       rotationConst,
-                       timestep,
-                       seed);
-    return hipSuccess;
+    gpu_compute_active_force_rotational_diffusion_kernel<<<group_size / block_size + 1,
+                                                           block_size>>>(group_size,
+                                                                         d_tag,
+                                                                         d_index_array,
+                                                                         d_pos,
+                                                                         d_orientation,
+                                                                         d_f_act,
+                                                                         is2D,
+                                                                         rotationConst,
+                                                                         timestep,
+                                                                         seed);
+    return cudaSuccess;
     }
 
     } // end namespace kernel

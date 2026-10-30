@@ -9,7 +9,7 @@
 #include "ExternalPotential.h"
 #include "IntegratorHPMCMono.h"
 
-#ifndef __HIPCC__
+#ifndef __NVCC__
 #include <pybind11/pybind11.h>
 #include <pybind11/stl_bind.h>
 #endif
@@ -33,7 +33,7 @@ struct SphereWall
         verts->sweep_radius = ShortReal(r);
         verts->ignore = 0;
         }
-#ifndef __HIPCC__
+#ifndef __NVCC__
     SphereWall(Scalar r, pybind11::tuple origin, bool inside = true)
         : SphereWall(r,
                      vec3<Scalar>(origin[0].cast<Scalar>(),
@@ -96,7 +96,7 @@ struct CylinderWall
         verts->sweep_radius = ShortReal(r);
         verts->ignore = 0;
         }
-#ifndef __HIPCC__
+#ifndef __NVCC__
     CylinderWall(Scalar r, pybind11::tuple origin, pybind11::tuple axis, bool inside = true)
         : CylinderWall(
               r,
@@ -145,7 +145,7 @@ struct PlaneWall
         normal /= len;
         d = -dot(normal, origin);
         }
-#ifndef __HIPCC__
+#ifndef __NVCC__
     PlaneWall(pybind11::tuple origin, pybind11::tuple normal)
         : PlaneWall(vec3<Scalar>(origin[0].cast<Scalar>(),
                                  origin[1].cast<Scalar>(),
@@ -174,7 +174,7 @@ struct PlaneWall
     } // namespace hpmc
     } // namespace hoomd
 
-#ifndef __HIPCC__
+#ifndef __NVCC__
 // This is required to be here before any uses of these vectors to work
 // correctly.
 PYBIND11_MAKE_OPAQUE(std::vector<hoomd::hpmc::SphereWall>);
