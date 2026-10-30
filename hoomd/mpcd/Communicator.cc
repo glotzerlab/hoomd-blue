@@ -305,7 +305,13 @@ void mpcd::Communicator::migrateParticles(uint64_t timestep)
             {
             m_reqs.resize(4);
             MPI_Isend(&n_send_right, 1, MPI_UNSIGNED, right_neigh, 0, m_mpi_comm, m_reqs.data());
-            MPI_Irecv(&n_recv_right, 1, MPI_UNSIGNED, right_neigh, 0, m_mpi_comm, m_reqs.data() + 1);
+            MPI_Irecv(&n_recv_right,
+                      1,
+                      MPI_UNSIGNED,
+                      right_neigh,
+                      0,
+                      m_mpi_comm,
+                      m_reqs.data() + 1);
             MPI_Isend(&n_send_left, 1, MPI_UNSIGNED, left_neigh, 0, m_mpi_comm, m_reqs.data() + 2);
             MPI_Irecv(&n_recv_left, 1, MPI_UNSIGNED, left_neigh, 0, m_mpi_comm, m_reqs.data() + 3);
             MPI_Waitall(4, m_reqs.data(), MPI_STATUSES_IGNORE);
