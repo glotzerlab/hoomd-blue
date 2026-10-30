@@ -4,18 +4,12 @@ Change Log
 7.x
 ---
 
-Next release
+7.2.1 (2026-10-30)
 ^^^^^^^^^^^^^^^^^^^^
-
-*Added*
 
 *Changed*
 
 * Support 2D systems with ``hoomd.md.external.field.Periodic`` (#2349).
-
-*Deprecated*
-
-*Removed*
 
 *Fixed*
 
