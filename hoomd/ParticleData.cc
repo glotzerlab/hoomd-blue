@@ -1932,7 +1932,7 @@ void ParticleData::setPosition(unsigned int tag, const Scalar3& pos, bool move)
                 MPI_Status stat;
 
                 // send particle data to new domain
-                MPI_Isend(&buf.front(),
+                MPI_Isend(buf.data(),
                           sizeof(detail::pdata_element),
                           MPI_BYTE,
                           new_rank,
@@ -1949,7 +1949,7 @@ void ParticleData::setPosition(unsigned int tag, const Scalar3& pos, bool move)
                 MPI_Status stat;
 
                 // receive particle data
-                MPI_Irecv(&buf.front(),
+                MPI_Irecv(buf.data(),
                           sizeof(detail::pdata_element),
                           MPI_BYTE,
                           owner_rank,

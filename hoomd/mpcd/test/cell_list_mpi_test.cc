@@ -57,8 +57,8 @@ void checkDomainBoundaries(std::shared_ptr<SystemDefinition> sysdef,
             n_expect_recv = num_comm[dir - 1];
 
         unsigned int n_recv;
-        MPI_Isend(&n_send, 1, MPI_UNSIGNED, send_neighbor, 0, mpi_comm, &reqs[0]);
-        MPI_Irecv(&n_recv, 1, MPI_UNSIGNED, recv_neighbor, 0, mpi_comm, &reqs[1]);
+        MPI_Isend(&n_send, 1, MPI_UNSIGNED, send_neighbor, 0, mpi_comm, reqs);
+        MPI_Irecv(&n_recv, 1, MPI_UNSIGNED, recv_neighbor, 0, mpi_comm, reqs + 1);
         MPI_Waitall(2, reqs, status);
         UP_ASSERT_EQUAL(n_recv, n_expect_recv);
 
@@ -92,8 +92,8 @@ void checkDomainBoundaries(std::shared_ptr<SystemDefinition> sysdef,
                 }
             }
 
-        MPI_Isend(&send_cells[0], n_send, MPI_INT, send_neighbor, 1, mpi_comm, &reqs[0]);
-        MPI_Irecv(&recv_cells[0], n_recv, MPI_INT, recv_neighbor, 1, mpi_comm, &reqs[1]);
+        MPI_Isend(send_cells.data(), n_send, MPI_INT, send_neighbor, 1, mpi_comm, reqs);
+        MPI_Irecv(recv_cells.data(), n_recv, MPI_INT, recv_neighbor, 1, mpi_comm, reqs + 1);
         MPI_Waitall(2, reqs, status);
 
         for (unsigned int i = 0; i < n_recv; ++i)

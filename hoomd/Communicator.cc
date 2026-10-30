@@ -337,7 +337,7 @@ void Communicator::GroupCommunicator<group_data>::migrateGroups(bool incomplete,
                 // exchange particle data
                 if (n_send_groups[ineigh])
                     {
-                    MPI_Isend(&m_ranks_sendbuf.front() + h_begin.data[ineigh],
+                    MPI_Isend(m_ranks_sendbuf.data() + h_begin.data[ineigh],
                               int(n_send_groups[ineigh] * sizeof(rank_element_t)),
                               MPI_BYTE,
                               neighbor,
@@ -349,7 +349,7 @@ void Communicator::GroupCommunicator<group_data>::migrateGroups(bool incomplete,
 
                 if (n_recv_groups[ineigh])
                     {
-                    MPI_Irecv(&m_ranks_recvbuf.front() + offs[ineigh],
+                    MPI_Irecv(m_ranks_recvbuf.data() + offs[ineigh],
                               int(n_recv_groups[ineigh] * sizeof(rank_element_t)),
                               MPI_BYTE,
                               neighbor,
@@ -361,7 +361,7 @@ void Communicator::GroupCommunicator<group_data>::migrateGroups(bool incomplete,
                 }
 
             std::vector<MPI_Status> stats(reqs.size());
-            MPI_Waitall((unsigned int)reqs.size(), &reqs.front(), &stats.front());
+            MPI_Waitall((unsigned int)reqs.size(), reqs.data(), stats.data());
             }
 
             {
@@ -666,7 +666,7 @@ void Communicator::GroupCommunicator<group_data>::migrateGroups(bool incomplete,
                 // exchange particle data
                 if (n_send_groups[ineigh])
                     {
-                    MPI_Isend(&m_groups_sendbuf.front() + h_begin.data[ineigh],
+                    MPI_Isend(m_groups_sendbuf.data() + h_begin.data[ineigh],
                               int(n_send_groups[ineigh] * sizeof(group_element_t)),
                               MPI_BYTE,
                               neighbor,
@@ -678,7 +678,7 @@ void Communicator::GroupCommunicator<group_data>::migrateGroups(bool incomplete,
 
                 if (n_recv_groups[ineigh])
                     {
-                    MPI_Irecv(&m_groups_recvbuf.front() + offs[ineigh],
+                    MPI_Irecv(m_groups_recvbuf.data() + offs[ineigh],
                               int(n_recv_groups[ineigh] * sizeof(group_element_t)),
                               MPI_BYTE,
                               neighbor,
@@ -690,7 +690,7 @@ void Communicator::GroupCommunicator<group_data>::migrateGroups(bool incomplete,
                 }
 
             std::vector<MPI_Status> stats(reqs.size());
-            MPI_Waitall((unsigned int)reqs.size(), &reqs.front(), &stats.front());
+            MPI_Waitall((unsigned int)reqs.size(), reqs.data(), stats.data());
             }
 
         // use a std::map, i.e. single-key, to filter out duplicate groups in input buffer
@@ -1046,14 +1046,14 @@ void Communicator::GroupCommunicator<group_data>::exchangeGhostGroups(
                       send_neighbor,
                       0,
                       m_comm.m_mpi_comm,
-                      &reqs[0]);
+                      reqs);
             MPI_Irecv(&num_recv_ghosts,
                       sizeof(unsigned int),
                       MPI_BYTE,
                       recv_neighbor,
                       0,
                       m_comm.m_mpi_comm,
-                      &reqs[1]);
+                      reqs + 1);
             MPI_Waitall(2, reqs, status);
 
             // append ghosts at the end of particle data array
@@ -1067,35 +1067,35 @@ void Communicator::GroupCommunicator<group_data>::exchangeGhostGroups(
 
                 // exchange group data, write directly to the particle data arrays
                 {
-                MPI_Isend(&plan_copybuf.front(),
+                MPI_Isend(plan_copybuf.data(),
                           int(num_copy_ghosts * sizeof(unsigned int)),
                           MPI_BYTE,
                           send_neighbor,
                           1,
                           m_comm.m_mpi_comm,
-                          &reqs[0]);
-                MPI_Irecv(&group_plan.front() + start_idx,
+                          reqs);
+                MPI_Irecv(group_plan.data() + start_idx,
                           int(num_recv_ghosts * sizeof(unsigned int)),
                           MPI_BYTE,
                           recv_neighbor,
                           1,
                           m_comm.m_mpi_comm,
-                          &reqs[1]);
+                          reqs + 1);
 
-                MPI_Isend(&m_groups_sendbuf.front(),
+                MPI_Isend(m_groups_sendbuf.data(),
                           int(num_copy_ghosts * sizeof(typename group_data::packed_t)),
                           MPI_BYTE,
                           send_neighbor,
                           2,
                           m_comm.m_mpi_comm,
-                          &reqs[2]);
-                MPI_Irecv(&m_groups_recvbuf.front(),
+                          reqs + 2);
+                MPI_Irecv(m_groups_recvbuf.data(),
                           int(num_recv_ghosts * sizeof(typename group_data::packed_t)),
                           MPI_BYTE,
                           recv_neighbor,
                           2,
                           m_comm.m_mpi_comm,
-                          &reqs[3]);
+                          reqs + 3);
                 MPI_Waitall(4, reqs, status);
                 }
 
@@ -1687,9 +1687,9 @@ void Communicator::migrateParticles()
 
         unsigned int n_send_ptls = (unsigned int)m_sendbuf.size();
 
-        MPI_Isend(&n_send_ptls, 1, MPI_UNSIGNED, send_neighbor, 0, m_mpi_comm, &m_reqs[0]);
-        MPI_Irecv(&n_recv_ptls, 1, MPI_UNSIGNED, recv_neighbor, 0, m_mpi_comm, &m_reqs[1]);
-        MPI_Waitall(2, &m_reqs.front(), &m_stats.front());
+        MPI_Isend(&n_send_ptls, 1, MPI_UNSIGNED, send_neighbor, 0, m_mpi_comm, m_reqs.data());
+        MPI_Irecv(&n_recv_ptls, 1, MPI_UNSIGNED, recv_neighbor, 0, m_mpi_comm, m_reqs.data() + 1);
+        MPI_Waitall(2, m_reqs.data(), m_stats.data());
 
         // Resize receive buffer
         m_recvbuf.resize(n_recv_ptls);
@@ -1697,21 +1697,21 @@ void Communicator::migrateParticles()
         // exchange particle data
         m_reqs.resize(2);
         m_stats.resize(2);
-        MPI_Isend(&m_sendbuf.front(),
+        MPI_Isend(m_sendbuf.data(),
                   n_send_ptls,
                   m_mpi_pdata_element,
                   send_neighbor,
                   1,
                   m_mpi_comm,
-                  &m_reqs[0]);
-        MPI_Irecv(&m_recvbuf.front(),
+                  m_reqs.data());
+        MPI_Irecv(m_recvbuf.data(),
                   n_recv_ptls,
                   m_mpi_pdata_element,
                   recv_neighbor,
                   1,
                   m_mpi_comm,
-                  &m_reqs[1]);
-        MPI_Waitall(2, &m_reqs.front(), &m_stats.front());
+                  m_reqs.data() + 1);
+        MPI_Waitall(2, m_reqs.data(), m_stats.data());
 
         // wrap received particles across a global boundary back into global box
         const BoxDim shifted_box = getShiftedBox();
@@ -2090,7 +2090,7 @@ void Communicator::exchangeGhosts()
         m_reqs.push_back(req);
 
         m_stats.resize(2);
-        MPI_Waitall((unsigned int)m_reqs.size(), &m_reqs.front(), &m_stats.front());
+        MPI_Waitall((unsigned int)m_reqs.size(), m_reqs.data(), m_stats.data());
 
         // append ghosts at the end of particle data array
         unsigned int start_idx = m_pdata->getN() + m_pdata->getNGhosts();
@@ -2386,7 +2386,7 @@ void Communicator::exchangeGhosts()
                 }
 
             m_stats.resize(m_reqs.size());
-            MPI_Waitall((unsigned int)m_reqs.size(), &m_reqs.front(), &m_stats.front());
+            MPI_Waitall((unsigned int)m_reqs.size(), m_reqs.data(), m_stats.data());
             }
 
         // wrap particle positions
@@ -2632,7 +2632,7 @@ void Communicator::exchangeGhosts()
             m_reqs.push_back(req);
 
             m_stats.resize(m_reqs.size());
-            MPI_Waitall((unsigned int)m_reqs.size(), &m_reqs.front(), &m_stats.front());
+            MPI_Waitall((unsigned int)m_reqs.size(), m_reqs.data(), m_stats.data());
 
             // append ghosts at the end of particle data array
             unsigned int start_idx_plan = n_ghosts_init + n_reverse_ghosts_recv;
@@ -2703,7 +2703,7 @@ void Communicator::exchangeGhosts()
                 m_reqs.push_back(req);
 
                 m_stats.resize(m_reqs.size());
-                MPI_Waitall((unsigned int)m_reqs.size(), &m_reqs.front(), &m_stats.front());
+                MPI_Waitall((unsigned int)m_reqs.size(), m_reqs.data(), m_stats.data());
                 }
 
             } // end dir loop
@@ -2872,15 +2872,15 @@ void Communicator::beginUpdateGhosts(uint64_t timestep)
                       send_neighbor,
                       1,
                       m_mpi_comm,
-                      &m_reqs[0]);
+                      m_reqs.data());
             MPI_Irecv(h_pos.data + start_idx,
                       (unsigned int)(m_num_recv_ghosts[dir] * sizeof(Scalar4)),
                       MPI_BYTE,
                       recv_neighbor,
                       1,
                       m_mpi_comm,
-                      &m_reqs[1]);
-            MPI_Waitall(2, &m_reqs.front(), &m_stats.front());
+                      m_reqs.data() + 1);
+            MPI_Waitall(2, m_reqs.data(), m_stats.data());
             }
 
         if (flags[comm_flag::velocity])
@@ -2902,15 +2902,15 @@ void Communicator::beginUpdateGhosts(uint64_t timestep)
                       send_neighbor,
                       2,
                       m_mpi_comm,
-                      &m_reqs[0]);
+                      m_reqs.data());
             MPI_Irecv(h_vel.data + start_idx,
                       (unsigned int)(m_num_recv_ghosts[dir] * sizeof(Scalar4)),
                       MPI_BYTE,
                       recv_neighbor,
                       2,
                       m_mpi_comm,
-                      &m_reqs[1]);
-            MPI_Waitall(2, &m_reqs.front(), &m_stats.front());
+                      m_reqs.data() + 1);
+            MPI_Waitall(2, m_reqs.data(), m_stats.data());
             }
 
         if (flags[comm_flag::orientation])
@@ -2932,15 +2932,15 @@ void Communicator::beginUpdateGhosts(uint64_t timestep)
                       send_neighbor,
                       3,
                       m_mpi_comm,
-                      &m_reqs[0]);
+                      m_reqs.data());
             MPI_Irecv(h_orientation.data + start_idx,
                       (unsigned int)(m_num_recv_ghosts[dir] * sizeof(Scalar4)),
                       MPI_BYTE,
                       recv_neighbor,
                       3,
                       m_mpi_comm,
-                      &m_reqs[1]);
-            MPI_Waitall(2, &m_reqs.front(), &m_stats.front());
+                      m_reqs.data() + 1);
+            MPI_Waitall(2, m_reqs.data(), m_stats.data());
             }
 
         if (flags[comm_flag::angmom])
@@ -2962,15 +2962,15 @@ void Communicator::beginUpdateGhosts(uint64_t timestep)
                       send_neighbor,
                       4,
                       m_mpi_comm,
-                      &m_reqs[0]);
+                      m_reqs.data());
             MPI_Irecv(h_angmom.data + start_idx,
                       (unsigned int)(m_num_recv_ghosts[dir] * sizeof(Scalar4)),
                       MPI_BYTE,
                       recv_neighbor,
                       4,
                       m_mpi_comm,
-                      &m_reqs[1]);
-            MPI_Waitall(2, &m_reqs.front(), &m_stats.front());
+                      m_reqs.data() + 1);
+            MPI_Waitall(2, m_reqs.data(), m_stats.data());
             }
         // wrap particle positions (only if copying positions)
         if (flags[comm_flag::position] || flags[comm_flag::velocity])
@@ -3240,8 +3240,8 @@ void Communicator::updateNetForce(uint64_t timestep)
 
         if (flags[comm_flag::net_force])
             {
-            m_reqs.clear();
-            m_stats.clear();
+            m_reqs.resize(2);
+            m_stats.resize(2);
 
             ArrayHandle<Scalar4> h_netforce(m_pdata->getNetForce(),
                                             access_location::host,
@@ -3257,15 +3257,15 @@ void Communicator::updateNetForce(uint64_t timestep)
                       send_neighbor,
                       1,
                       m_mpi_comm,
-                      &m_reqs[0]);
+                      m_reqs.data());
             MPI_Irecv(h_netforce.data + start_idx,
                       (unsigned int)(m_num_recv_ghosts[dir] * sizeof(Scalar4)),
                       MPI_BYTE,
                       recv_neighbor,
                       1,
                       m_mpi_comm,
-                      &m_reqs[1]);
-            MPI_Waitall(2, &m_reqs.front(), &m_stats.front());
+                      m_reqs.data() + 1);
+            MPI_Waitall(2, m_reqs.data(), m_stats.data());
             }
 
         // We add new particle data for reverse ghosts after the particle data already received, so
@@ -3299,7 +3299,7 @@ void Communicator::updateNetForce(uint64_t timestep)
                           send_neighbor,
                           2,
                           m_mpi_comm,
-                          &m_reqs[0]);
+                          m_reqs.data());
                 MPI_Irecv(h_netforce_reverse_recvbuf.data + start_idx_reverse,
                           (unsigned int)((m_num_recv_local_ghosts_reverse[dir]
                                           + m_num_recv_forward_ghosts_reverse[dir])
@@ -3308,8 +3308,8 @@ void Communicator::updateNetForce(uint64_t timestep)
                           recv_neighbor,
                           2,
                           m_mpi_comm,
-                          &m_reqs[1]);
-                MPI_Waitall(2, &m_reqs.front(), &m_stats.front());
+                          m_reqs.data() + 1);
+                MPI_Waitall(2, m_reqs.data(), m_stats.data());
                 }
 
             // Add forces
@@ -3365,15 +3365,15 @@ void Communicator::updateNetForce(uint64_t timestep)
                       send_neighbor,
                       2,
                       m_mpi_comm,
-                      &m_reqs[0]);
+                      m_reqs.data());
             MPI_Irecv(h_nettorque.data + start_idx,
                       (unsigned int)(m_num_recv_ghosts[dir] * sizeof(Scalar4)),
                       MPI_BYTE,
                       recv_neighbor,
                       2,
                       m_mpi_comm,
-                      &m_reqs[1]);
-            MPI_Waitall(2, &m_reqs.front(), &m_stats.front());
+                      m_reqs.data() + 1);
+            MPI_Waitall(2, m_reqs.data(), m_stats.data());
             }
 
         if (flags[comm_flag::net_virial])
@@ -3395,15 +3395,15 @@ void Communicator::updateNetForce(uint64_t timestep)
                       send_neighbor,
                       3,
                       m_mpi_comm,
-                      &m_reqs[0]);
+                      m_reqs.data());
             MPI_Irecv(h_netvirial_recvbuf.data,
                       (unsigned int)(6 * m_num_recv_ghosts[dir] * sizeof(Scalar)),
                       MPI_BYTE,
                       recv_neighbor,
                       3,
                       m_mpi_comm,
-                      &m_reqs[1]);
-            MPI_Waitall(2, &m_reqs.front(), &m_stats.front());
+                      m_reqs.data() + 1);
+            MPI_Waitall(2, m_reqs.data(), m_stats.data());
             }
 
         if (flags[comm_flag::net_virial])
