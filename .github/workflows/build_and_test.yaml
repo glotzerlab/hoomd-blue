@@ -98,9 +98,9 @@ jobs:
         then
           case "${{ inputs.compiler_version }}" in
             130)
-              echo "image=spectralcompute/scale:13.0.2-devel-ubuntu24.04" >> "$GITHUB_OUTPUT";;
+              echo "image=spectralcompute/scale:13.0.2-devel-ubuntu24.04-1.7.5" >> "$GITHUB_OUTPUT";;
             121)
-              echo "image=spectralcompute/scale:12.1.0-devel-ubuntu24.04" >> "$GITHUB_OUTPUT";;
+              echo "image=spectralcompute/scale:12.1.0-devel-ubuntu24.04-1.7.5" >> "$GITHUB_OUTPUT";;
             *)
               echo "Unknown compiler" && exit 1;;
             esac
