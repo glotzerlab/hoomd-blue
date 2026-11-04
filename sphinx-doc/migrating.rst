@@ -4,10 +4,17 @@ Migrating to the latest version
 Migrating to HOOMD-blue 8
 -------------------------
 
-HOOMD-blue 8 now uses CUDA and not HIP for GPU code paths. This change was
-required to support CUDA >=13. Users can configure CUDA build options using CMake.
-Developers should note that preprocessor defines and API calls may need to be
-updated as in #2350. Users to compile for AMD GPUs using `SCALE <https://scale-lang.com>`_.
+HOOMD-blue 8 now uses CUDA and not HIP for GPU code paths. This change was required to
+support CUDA >=13. Users can configure CUDA build options using CMake. Developers should
+note that preprocessor defines and API calls may need to be updated as in `pull request #2350
+<https://github.com/glotzerlab/hoomd-blue/pull/2350>`_. Users to compile for AMD GPUs using `SCALE
+<https://scale-lang.com>`_. In testing, SCALE performed as well as or better than HIP.
+
+.. important::
+
+    SCALE uses more than 1 thread to schedule the GPU. When using a SCALE build of HOOMD-blue
+    in a job scheduler (such as SLURM), request more than default of 1 cpu per task (e.g.
+    ``--cpus-per-task=4``). If you fail to do this, your simulations will run *very* slowly.
 
 Migrating to HOOMD-blue 7
 -------------------------

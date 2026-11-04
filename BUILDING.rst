@@ -175,6 +175,12 @@ environment *before* you configure with CMake_. For example:
    source scaleenv gfx90a
    export SCALE_CUDA_VERSION=13.0.2
 
+.. important::
+
+    SCALE uses more than 1 thread to schedule the GPU. When using a SCALE build of HOOMD-blue
+    in a job scheduler (such as SLURM), request more than default of 1 cpu per task (e.g.
+    ``--cpus-per-task=4``). If you fail to do this, your simulations will run *very* slowly.
+
 Use CMake_ to configure the **HOOMD-blue** build directory:
 
 .. code-block:: bash
