@@ -19,6 +19,10 @@ Next release
 
 *Fixed*
 
+* Fix use of uninitialized memory in `nlist.Tree` on the GPU (#2350).
+* Prevent out of bounds shared memory access when using `FIRE` on the GPU (#2350).
+* Prevent out of bounds shared memory access when using `Langevin` on the GPU (#2350).
+
 7.x
 ---
 
