@@ -131,7 +131,7 @@ class UpdaterRemoveDrift : public Updater
                 {
                 Scalar r[3] = {rshift.x, rshift.y, rshift.z};
                 MPI_Allreduce(MPI_IN_PLACE,
-                              &r[0],
+                              r,
                               3,
                               MPI_HOOMD_SCALAR,
                               MPI_SUM,
