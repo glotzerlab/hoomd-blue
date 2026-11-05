@@ -7,9 +7,6 @@
 #include <iostream>
 #include <stdexcept>
 
-#include <pybind11/numpy.h>
-#include <memory>
-
 using namespace std;
 
 // SMALL a relatively small number

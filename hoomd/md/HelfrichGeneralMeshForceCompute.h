@@ -15,11 +15,6 @@
 #error This header cannot be compiled by nvcc
 #endif
 
-#ifdef ENABLE_MPI
-#include "Communicator.h"
-#endif
-
-#include <hoomd/extern/nano-signal-slot/nano_signal_slot.hpp>
 #include <pybind11/pybind11.h>
 
 #ifndef __HELFRICHGENERALMESHFORCECOMPUTE_H__
