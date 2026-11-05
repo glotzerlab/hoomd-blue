@@ -922,7 +922,7 @@ DEVICE inline OBB compute_obb(const std::vector<vec3<ShortReal>>& pts,
 
                     vec2<double> new_axes_2d[2];
                     vec2<double> c;
-                    double area = MinAreaRect(&proj_2d.front(),
+                    double area = MinAreaRect(proj_2d.data(),
                                               (unsigned int)hull_pts.size(),
                                               c,
                                               new_axes_2d);

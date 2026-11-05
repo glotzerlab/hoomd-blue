@@ -468,10 +468,10 @@ __global__ void gpu_compute_helfrich_force_kernel(Scalar4* d_force,
         Scalar sigma_dash_c2 = 0.5 * dot(sigma_dash_c, sigma_dash_c) * inv_sigma_c * inv_sigma_c;
         Scalar sigma_dash_d2 = 0.5 * dot(sigma_dash_d, sigma_dash_d) * inv_sigma_d * inv_sigma_d;
 
-        Scalar3 Fa = -(g_a * inv_sigma_a - sigma_dash_a2 * dsigma_a);
-        Fa -= g_b * inv_sigma_b - sigma_dash_b2 * dsigma_b;
-        Fa -= g_c * inv_sigma_c - sigma_dash_c2 * dsigma_c;
-        Fa -= g_d * inv_sigma_d - sigma_dash_d2 * dsigma_d;
+        Scalar3 Fa = -(g_a * inv_sigma_a - sigma_dash_a2 * dsigma_a)
+                     - (g_b * inv_sigma_b - sigma_dash_b2 * dsigma_b)
+                     - (g_c * inv_sigma_c - sigma_dash_c2 * dsigma_c)
+                     - (g_d * inv_sigma_d - sigma_dash_d2 * dsigma_d);
 
         Fa *= K;
 

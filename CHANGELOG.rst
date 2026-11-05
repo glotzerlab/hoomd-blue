@@ -11,15 +11,22 @@ Next release
 
 *Changed*
 
-* Support 2D systems with ``hoomd.md.external.field.Periodic`` (#2349).
-
 *Deprecated*
 
 *Removed*
 
 *Fixed*
 
-* Fixed buf in calculating Helfrich forces (#??).
+7.2.1 (2026-10-30)
+^^^^^^^^^^^^^^^^^^^^
+
+*Changed*
+
+* Support 2D systems with ``hoomd.md.external.field.Periodic`` (#2349).
+
+*Fixed*
+
+* Fixed bug in calculating Helfrich forces (#2376).
 
 7.2.0 (2026-09-22)
 ^^^^^^^^^^^^^^^^^^^^
