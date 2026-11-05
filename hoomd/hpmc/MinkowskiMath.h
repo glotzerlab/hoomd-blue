@@ -13,7 +13,7 @@
 
 // need to declare these class methods with __device__ qualifiers when building in nvcc
 // DEVICE is __device__ when included in nvcc and blank when included into the host compiler
-#ifdef __HIPCC__
+#ifdef __NVCC__
 #define DEVICE __device__
 #else
 #define DEVICE
@@ -52,7 +52,7 @@ template<class SupportFuncA, class SupportFuncB> class CompositeSupportFunc3D
                                   const SupportFuncB& _sb,
                                   const vec3<ShortReal>& _ab_t,
                                   const quat<ShortReal>& _q)
-#ifdef __HIPCC__
+#ifdef __NVCC__
         : sa(_sa), sb(_sb), ab_t(_ab_t), q(_q)
 #else
         : sa(_sa), sb(_sb), ab_t(_ab_t), R(rotmat3<ShortReal>(_q))
@@ -69,7 +69,7 @@ template<class SupportFuncA, class SupportFuncB> class CompositeSupportFunc3D
     operator()(const vec3<ShortReal>& n) const
         {
             // translation/rotation formula comes from pg 168 of "Games Programming Gems 7"
-#ifdef __HIPCC__
+#ifdef __NVCC__
         vec3<ShortReal> SB_n = rotate(q, sb(rotate(conj(q), n))) + ab_t;
         vec3<ShortReal> SA_n = sa(-n);
 #else
@@ -84,7 +84,7 @@ template<class SupportFuncA, class SupportFuncB> class CompositeSupportFunc3D
     const SupportFuncB& sb; //!< Support function for shape B
     const vec3<ShortReal>&
         ab_t; //!< Vector pointing from a's center to b's center, in the space frame
-#ifdef __HIPCC__
+#ifdef __NVCC__
     const quat<ShortReal>& q; //!< Orientation of shape B in frame A
 
 #else

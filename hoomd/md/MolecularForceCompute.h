@@ -4,7 +4,7 @@
 #include "NeighborList.h"
 #include "hoomd/ForceConstraint.h"
 
-#ifdef ENABLE_HIP
+#ifdef ENABLE_GPU
 #include "hoomd/Autotuner.h"
 #endif
 
@@ -29,7 +29,7 @@
    into the ghost layer.
 */
 
-#ifdef __HIPCC__
+#ifdef __NVCC__
 #error This header cannot be compiled by nvcc
 #endif
 
@@ -156,7 +156,7 @@ class PYBIND11_EXPORT MolecularForceCompute : public ForceConstraint
     /// particle index not the permanent particle tag).
     GPUVector<unsigned int> m_molecule_idx;
 
-#ifdef ENABLE_HIP
+#ifdef ENABLE_GPU
     std::shared_ptr<Autotuner<1>>
         m_tuner_fill; //!< Autotuner for block size for filling the molecule table
 #endif
@@ -173,7 +173,7 @@ class PYBIND11_EXPORT MolecularForceCompute : public ForceConstraint
     //! construct a list of local molecules
     virtual void initMolecules();
 
-#ifdef ENABLE_HIP
+#ifdef ENABLE_GPU
     //! construct a list of local molecules on the GPU
     virtual void initMoleculesGPU();
 #endif

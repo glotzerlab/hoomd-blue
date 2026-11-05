@@ -7,7 +7,7 @@
 #include "hoomd/BoxDim.h"
 #include "hoomd/HOOMDMath.h"
 
-#ifndef __HIPCC__
+#ifndef __NVCC__
 #include <pybind11/pybind11.h>
 #endif
 
@@ -18,7 +18,7 @@
 // need to declare these class methods with __device__ qualifiers when building in nvcc
 // DEVICE is __host__ __device__ when included in nvcc and blank when included into the host
 // compiler
-#ifdef __HIPCC__
+#ifdef __NVCC__
 #define DEVICE __device__
 #else
 #define DEVICE
@@ -96,7 +96,7 @@ class ManifoldPrimitive
                      // accepted
         }
 
-#ifndef __HIPCC__
+#ifndef __NVCC__
     pybind11::tuple getN()
         {
         return pybind11::make_tuple(Nx, Ny, Nz);

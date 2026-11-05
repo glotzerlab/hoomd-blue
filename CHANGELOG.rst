@@ -1,7 +1,7 @@
 Change Log
 ==========
 
-7.x
+8.x
 ---
 
 Next release
@@ -11,11 +11,20 @@ Next release
 
 *Changed*
 
+* Convert all GPU kernels from HIP to CUDA (#2350).
+
 *Deprecated*
 
 *Removed*
 
 *Fixed*
+
+* Fix use of uninitialized memory in ``nlist.Tree`` on the GPU (#2350).
+* Prevent out of bounds shared memory access when using ``FIRE`` on the GPU (#2350).
+* Prevent out of bounds shared memory access when using ``Langevin`` on the GPU (#2350).
+
+7.x
+---
 
 7.2.1 (2026-10-30)
 ^^^^^^^^^^^^^^^^^^^^

@@ -8,7 +8,7 @@ using namespace std;
 
 //! \file MuellerPlatheFlowGPU.cc Implementation of GPU version of MuellerPlatheFlow.
 
-#ifdef ENABLE_HIP
+#ifdef ENABLE_GPU
 #include "MuellerPlatheFlowGPU.cuh"
 
 namespace hoomd
@@ -152,4 +152,4 @@ void export_MuellerPlatheFlowGPU(pybind11::module& m)
     } // end namespace md
     } // end namespace hoomd
 
-#endif // ENABLE_HIP
+#endif // ENABLE_GPU

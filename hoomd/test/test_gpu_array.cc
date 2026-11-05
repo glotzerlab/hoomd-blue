@@ -11,7 +11,7 @@
 #include "hoomd/GPUArray.h"
 #include "hoomd/GPUVector.h"
 
-#ifdef ENABLE_HIP
+#ifdef ENABLE_GPU
 #include "test_gpu_array.cuh"
 using namespace hoomd::test;
 #endif
@@ -91,7 +91,7 @@ UP_TEST(GPUArray_basic_tests)
         }
     }
 
-#ifdef ENABLE_HIP
+#ifdef ENABLE_GPU
 //! test case for testing device to/from host transfers
 UP_TEST(GPUArray_transfer_tests)
     {
@@ -107,7 +107,7 @@ UP_TEST(GPUArray_transfer_tests)
         UP_ASSERT(d_handle.data != NULL);
 
         gpu_fill_test_pattern(d_handle.data, gpu_array.getNumElements());
-        hipError_t err_sync = hipPeekAtLastError();
+        cudaError_t err_sync = cudaPeekAtLastError();
         exec_conf->handleHIPError(err_sync, __FILE__, __LINE__);
         }
 
@@ -130,7 +130,7 @@ UP_TEST(GPUArray_transfer_tests)
         UP_ASSERT(d_handle.data != NULL);
 
         gpu_add_one(d_handle.data, gpu_array.getNumElements());
-        hipError_t err_sync = hipPeekAtLastError();
+        cudaError_t err_sync = cudaPeekAtLastError();
         exec_conf->handleHIPError(err_sync, __FILE__, __LINE__);
         }
 
@@ -154,7 +154,7 @@ UP_TEST(GPUArray_transfer_tests)
         UP_ASSERT(d_handle.data != NULL);
 
         gpu_add_one(d_handle.data, gpu_array.getNumElements());
-        hipError_t err_sync = hipPeekAtLastError();
+        cudaError_t err_sync = cudaPeekAtLastError();
         exec_conf->handleHIPError(err_sync, __FILE__, __LINE__);
         }
 
@@ -173,7 +173,7 @@ UP_TEST(GPUArray_transfer_tests)
         UP_ASSERT(d_handle.data != NULL);
 
         gpu_add_one(d_handle.data, gpu_array.getNumElements());
-        hipError_t err_sync = hipPeekAtLastError();
+        cudaError_t err_sync = cudaPeekAtLastError();
         exec_conf->handleHIPError(err_sync, __FILE__, __LINE__);
         }
 
@@ -192,7 +192,7 @@ UP_TEST(GPUArray_transfer_tests)
         UP_ASSERT(d_handle.data != NULL);
 
         gpu_add_one(d_handle.data, gpu_array.getNumElements());
-        hipError_t err_sync = hipPeekAtLastError();
+        cudaError_t err_sync = cudaPeekAtLastError();
         exec_conf->handleHIPError(err_sync, __FILE__, __LINE__);
         }
 

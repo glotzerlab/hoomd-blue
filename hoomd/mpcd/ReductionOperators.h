@@ -12,11 +12,11 @@
  *        mpcd::CellCommunicator
  */
 
-#ifdef __HIPCC__
+#ifdef __NVCC__
 #define HOSTDEVICE __host__ __device__
 #else
 #define HOSTDEVICE
-#endif // __HIPCC__
+#endif // __NVCC__
 
 namespace hoomd
     {

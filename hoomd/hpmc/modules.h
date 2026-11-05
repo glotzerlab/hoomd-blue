@@ -4,7 +4,7 @@
 #ifndef __MODULES__
 #define __MODULES__
 
-#ifndef __HIPCC__
+#ifndef __NVCC__
 #include <pybind11/pybind11.h>
 #include <pybind11/stl.h>
 #endif

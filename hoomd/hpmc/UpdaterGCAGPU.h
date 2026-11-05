@@ -3,12 +3,12 @@
 
 #pragma once
 
-#ifdef ENABLE_HIP
+#ifdef ENABLE_GPU
 
 #include "UpdaterGCA.h"
 #include "UpdaterGCAGPU.cuh"
 
-#include <hip/hip_runtime.h>
+#include <cuda_runtime.h>
 
 namespace hoomd
     {
@@ -73,7 +73,7 @@ template<class Shape> class UpdaterGCAGPU : public UpdaterGCA<Shape>
     unsigned int m_maxn;                   //!< Max number of neighbors
     GPUArray<unsigned int> m_overflow;     //!< Overflow condition for neighbor list
 
-    hipStream_t m_overlaps_stream; //!< Stream for overlaps kernel
+    cudaStream_t m_overlaps_stream; //!< Stream for overlaps kernel
 
     //! Determine connected components of the interaction graph
     virtual void connectedComponents();
@@ -117,7 +117,7 @@ UpdaterGCAGPU<Shape>::UpdaterGCAGPU(std::shared_ptr<SystemDefinition> sysdef,
     m_last_dim = make_uint3(0xffffffff, 0xffffffff, 0xffffffff);
     m_last_nmax = 0xffffffff;
 
-    hipDeviceProp_t dev_prop = this->m_exec_conf->dev_prop;
+    cudaDeviceProp dev_prop = this->m_exec_conf->dev_prop;
     m_tuner_excell_block_size.reset(
         new Autotuner<1>({AutotunerBase::makeBlockSizeRange(this->m_exec_conf)},
                          this->m_exec_conf,
@@ -199,7 +199,7 @@ UpdaterGCAGPU<Shape>::UpdaterGCAGPU(std::shared_ptr<SystemDefinition> sysdef,
     GPUVector<uint2>(this->m_exec_conf).swap(m_adjacency_copy);
 
     this->m_exec_conf->setDevice();
-    hipStreamCreate(&m_overlaps_stream);
+    cudaStreamCreate(&m_overlaps_stream);
 
     GPUArray<unsigned int>(1, this->m_exec_conf).swap(m_nneigh);
 
@@ -221,7 +221,7 @@ template<class Shape> UpdaterGCAGPU<Shape>::~UpdaterGCAGPU()
     this->m_exec_conf->msg->notice(5) << "Destroying UpdaterGCAGPU" << std::endl;
 
     this->m_exec_conf->setDevice();
-    hipStreamDestroy(m_overlaps_stream);
+    cudaStreamDestroy(m_overlaps_stream);
     }
 
 /*! Perform a cluster move
@@ -366,18 +366,18 @@ template<class Shape> void UpdaterGCAGPU<Shape>::backupState()
 
         if (nptl != 0)
             {
-            hipMemcpyAsync(d_postype_backup.data,
-                           d_postype.data,
-                           sizeof(Scalar4) * nptl,
-                           hipMemcpyDeviceToDevice);
-            hipMemcpyAsync(d_orientation_backup.data,
-                           d_orientation.data,
-                           sizeof(Scalar4) * nptl,
-                           hipMemcpyDeviceToDevice);
-            hipMemcpyAsync(d_image_backup.data,
-                           d_image.data,
-                           sizeof(int3) * nptl,
-                           hipMemcpyDeviceToDevice);
+            cudaMemcpyAsync(d_postype_backup.data,
+                            d_postype.data,
+                            sizeof(Scalar4) * nptl,
+                            cudaMemcpyDeviceToDevice);
+            cudaMemcpyAsync(d_orientation_backup.data,
+                            d_orientation.data,
+                            sizeof(Scalar4) * nptl,
+                            cudaMemcpyDeviceToDevice);
+            cudaMemcpyAsync(d_image_backup.data,
+                            d_image.data,
+                            sizeof(int3) * nptl,
+                            cudaMemcpyDeviceToDevice);
             }
         if (this->m_exec_conf->isCUDAErrorCheckingEnabled())
             CHECK_CUDA_ERROR();
@@ -616,7 +616,7 @@ void UpdaterGCAGPU<Shape>::findInteractions(uint64_t timestep,
 
             // reset number of neighbors
             if (this->m_pdata->getN() != 0)
-                hipMemsetAsync(d_nneigh.data, 0, sizeof(unsigned int) * this->m_pdata->getN());
+                cudaMemsetAsync(d_nneigh.data, 0, sizeof(unsigned int) * this->m_pdata->getN());
             if (this->m_exec_conf->isCUDAErrorCheckingEnabled())
                 CHECK_CUDA_ERROR();
 

@@ -10,6 +10,7 @@
  */
 
 #include <cuda_runtime.h>
+#include <stdint.h>
 
 #include "PlanarPoreGeometry.h"
 #include "hoomd/BoxDim.h"

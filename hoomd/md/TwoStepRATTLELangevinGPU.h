@@ -2,7 +2,7 @@
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 //
-#ifdef ENABLE_HIP
+#ifdef ENABLE_GPU
 
 #include "TwoStepRATTLELangevin.h"
 #include "TwoStepRATTLELangevinGPU.cuh"
@@ -14,7 +14,7 @@
 #include "hoomd/HOOMDMPI.h"
 #endif
 
-#ifdef __HIPCC__
+#ifdef __NVCC__
 #error This header cannot be compiled by nvcc
 #endif
 
@@ -392,4 +392,4 @@ void export_TwoStepRATTLELangevinGPU(pybind11::module& m, const std::string& nam
     } // end namespace md
     } // end namespace hoomd
 
-#endif // ENABLE_HIP
+#endif // ENABLE_GPU

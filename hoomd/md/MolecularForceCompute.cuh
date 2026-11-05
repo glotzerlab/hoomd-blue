@@ -10,7 +10,7 @@
 #include "hoomd/CachedAllocator.h"
 #include "hoomd/Index1D.h"
 
-#ifdef __HIPCC__
+#ifdef __NVCC__
 const unsigned int NO_MOLECULE = (unsigned int)0xffffffff;
 #endif
 
@@ -20,7 +20,7 @@ namespace md
     {
 namespace kernel
     {
-hipError_t __attribute__((visibility("default")))
+cudaError_t __attribute__((visibility("default")))
 gpu_sort_by_molecule(unsigned int nptl,
                      const unsigned int* d_tag,
                      const unsigned int* d_molecule_tag,
@@ -42,7 +42,7 @@ gpu_sort_by_molecule(unsigned int nptl,
                      CachedAllocator& alloc,
                      bool check_cuda);
 
-hipError_t __attribute__((visibility("default")))
+cudaError_t __attribute__((visibility("default")))
 gpu_fill_molecule_table(unsigned int nptl,
                         unsigned int n_local_ptls_in_molecules,
                         Index2D molecule_idx,

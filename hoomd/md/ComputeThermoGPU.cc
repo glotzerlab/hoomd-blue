@@ -74,11 +74,11 @@ void ComputeThermoGPU::computeProperties()
                                           access_location::device,
                                           access_mode::overwrite);
 
-        hipMemset(d_scratch.data, 0, sizeof(Scalar4) * m_scratch.size());
-        hipMemset(d_scratch_pressure_tensor.data,
-                  0,
-                  sizeof(Scalar) * m_scratch_pressure_tensor.size());
-        hipMemset(d_scratch_rot.data, 0, sizeof(Scalar) * m_scratch_rot.size());
+        cudaMemset(d_scratch.data, 0, sizeof(Scalar4) * m_scratch.size());
+        cudaMemset(d_scratch_pressure_tensor.data,
+                   0,
+                   sizeof(Scalar) * m_scratch_pressure_tensor.size());
+        cudaMemset(d_scratch_rot.data, 0, sizeof(Scalar) * m_scratch_rot.size());
         }
 
     // access the particle data

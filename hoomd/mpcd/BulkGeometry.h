@@ -12,12 +12,12 @@
 #include "hoomd/BoxDim.h"
 #include "hoomd/HOOMDMath.h"
 
-#ifdef __HIPCC__
+#ifdef __NVCC__
 #define HOSTDEVICE __host__ __device__ inline
 #else
 #define HOSTDEVICE inline __attribute__((always_inline))
 #include <string>
-#endif // __HIPCC__
+#endif // __NVCC__
 
 namespace hoomd
     {
@@ -62,13 +62,13 @@ class __attribute__((visibility("default"))) BulkGeometry
         return false;
         }
 
-#ifndef __HIPCC__
+#ifndef __NVCC__
     //! Get the unique name of this geometry
     static std::string getName()
         {
         return std::string("Bulk");
         }
-#endif // __HIPCC__
+#endif // __NVCC__
     };
 
     } // end namespace detail

@@ -20,20 +20,20 @@ namespace md
 namespace kernel
     {
 //! Kernel driver that computes harmonic IMPROPER forces for HarmonicImproperForceComputeGPU
-hipError_t gpu_compute_harmonic_improper_forces(Scalar4* d_force,
-                                                Scalar* d_virial,
-                                                const size_t virial_pitch,
-                                                const unsigned int N,
-                                                const Scalar4* d_pos,
-                                                const BoxDim& box,
-                                                const group_storage<4>* tlist,
-                                                const unsigned int* dihedral_ABCD,
-                                                const unsigned int pitch,
-                                                const unsigned int* n_dihedrals_list,
-                                                Scalar2* d_params,
-                                                unsigned int n_improper_types,
-                                                int block_size,
-                                                int warp_size);
+cudaError_t gpu_compute_harmonic_improper_forces(Scalar4* d_force,
+                                                 Scalar* d_virial,
+                                                 const size_t virial_pitch,
+                                                 const unsigned int N,
+                                                 const Scalar4* d_pos,
+                                                 const BoxDim& box,
+                                                 const group_storage<4>* tlist,
+                                                 const unsigned int* dihedral_ABCD,
+                                                 const unsigned int pitch,
+                                                 const unsigned int* n_dihedrals_list,
+                                                 Scalar2* d_params,
+                                                 unsigned int n_improper_types,
+                                                 int block_size,
+                                                 int warp_size);
 
     } // end namespace kernel
     } // end namespace md

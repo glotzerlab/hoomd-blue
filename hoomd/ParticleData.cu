@@ -11,7 +11,7 @@
 
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wconversion"
-#include <hipcub/hipcub.hpp>
+#include <cub/cub.cuh>
 
 #include <thrust/device_ptr.h>
 #include <thrust/iterator/counting_iterator.h>
@@ -248,14 +248,7 @@ unsigned int gpu_pdata_remove(const unsigned int N,
     unsigned int n_blocks = N / block_size + 1;
 
     // select nonzero communication flags
-    hipLaunchKernelGGL(gpu_select_sent_particles,
-                       dim3(n_blocks),
-                       dim3(block_size),
-                       0,
-                       0,
-                       N,
-                       d_comm_flags,
-                       d_tmp);
+    gpu_select_sent_particles<<<n_blocks, block_size>>>(N, d_comm_flags, d_tmp);
 
     // perform a scan over the array of ones and zeroes
     void* d_temp_storage = NULL;
@@ -265,10 +258,10 @@ unsigned int gpu_pdata_remove(const unsigned int N,
     unsigned int* d_scan = alloc.getTemporaryBuffer<unsigned int>(N);
     assert(d_scan);
 
-    hipcub::DeviceScan::ExclusiveSum(d_temp_storage, temp_storage_bytes, d_tmp, d_scan, N);
+    cub::DeviceScan::ExclusiveSum(d_temp_storage, temp_storage_bytes, d_tmp, d_scan, N);
 
     d_temp_storage = alloc.getTemporaryBuffer<char>(temp_storage_bytes);
-    hipcub::DeviceScan::ExclusiveSum(d_temp_storage, temp_storage_bytes, d_tmp, d_scan, N);
+    cub::DeviceScan::ExclusiveSum(d_temp_storage, temp_storage_bytes, d_tmp, d_scan, N);
     alloc.deallocate((char*)d_temp_storage);
 
     // determine total number of sent particles
@@ -276,11 +269,11 @@ unsigned int gpu_pdata_remove(const unsigned int N,
     temp_storage_bytes = 0;
     unsigned int* d_n_out = (unsigned int*)alloc.getTemporaryBuffer<unsigned int>(1);
     assert(d_n_out);
-    hipcub::DeviceReduce::Sum(d_temp_storage, temp_storage_bytes, d_tmp, d_n_out, N);
+    cub::DeviceReduce::Sum(d_temp_storage, temp_storage_bytes, d_tmp, d_n_out, N);
     d_temp_storage = alloc.allocate(temp_storage_bytes);
-    hipcub::DeviceReduce::Sum(d_temp_storage, temp_storage_bytes, d_tmp, d_n_out, N);
+    cub::DeviceReduce::Sum(d_temp_storage, temp_storage_bytes, d_tmp, d_n_out, N);
     alloc.deallocate((char*)d_temp_storage);
-    hipMemcpy(&n_out, d_n_out, sizeof(unsigned int), hipMemcpyDeviceToHost);
+    cudaMemcpy(&n_out, d_n_out, sizeof(unsigned int), cudaMemcpyDeviceToHost);
     alloc.deallocate((char*)d_n_out);
 
     // Don't write past end of buffer
@@ -291,46 +284,41 @@ unsigned int gpu_pdata_remove(const unsigned int N,
         unsigned int block_size = 256;
         unsigned int n_blocks = nwork / block_size + 1;
 
-        hipLaunchKernelGGL(gpu_scatter_particle_data_kernel,
-                           dim3(n_blocks),
-                           dim3(block_size),
-                           0,
-                           0,
-                           nwork,
-                           d_pos,
-                           d_vel,
-                           d_accel,
-                           d_charge,
-                           d_diameter,
-                           d_image,
-                           d_body,
-                           d_orientation,
-                           d_angmom,
-                           d_inertia,
-                           d_net_force,
-                           d_net_torque,
-                           d_net_virial,
-                           net_virial_pitch,
-                           d_tag,
-                           d_rtag,
-                           d_pos_alt,
-                           d_vel_alt,
-                           d_accel_alt,
-                           d_charge_alt,
-                           d_diameter_alt,
-                           d_image_alt,
-                           d_body_alt,
-                           d_orientation_alt,
-                           d_angmom_alt,
-                           d_inertia_alt,
-                           d_net_force_alt,
-                           d_net_torque_alt,
-                           d_net_virial_alt,
-                           d_tag_alt,
-                           d_out,
-                           d_comm_flags,
-                           d_comm_flags_out,
-                           d_scan);
+        gpu_scatter_particle_data_kernel<<<n_blocks, block_size>>>(nwork,
+                                                                   d_pos,
+                                                                   d_vel,
+                                                                   d_accel,
+                                                                   d_charge,
+                                                                   d_diameter,
+                                                                   d_image,
+                                                                   d_body,
+                                                                   d_orientation,
+                                                                   d_angmom,
+                                                                   d_inertia,
+                                                                   d_net_force,
+                                                                   d_net_torque,
+                                                                   d_net_virial,
+                                                                   net_virial_pitch,
+                                                                   d_tag,
+                                                                   d_rtag,
+                                                                   d_pos_alt,
+                                                                   d_vel_alt,
+                                                                   d_accel_alt,
+                                                                   d_charge_alt,
+                                                                   d_diameter_alt,
+                                                                   d_image_alt,
+                                                                   d_body_alt,
+                                                                   d_orientation_alt,
+                                                                   d_angmom_alt,
+                                                                   d_inertia_alt,
+                                                                   d_net_force_alt,
+                                                                   d_net_torque_alt,
+                                                                   d_net_virial_alt,
+                                                                   d_tag_alt,
+                                                                   d_out,
+                                                                   d_comm_flags,
+                                                                   d_comm_flags_out,
+                                                                   d_scan);
         }
 
     // free temp buf
@@ -449,31 +437,26 @@ void gpu_pdata_add_particles(const unsigned int old_nparticles,
     unsigned int block_size = 256;
     unsigned int n_blocks = num_add_ptls / block_size + 1;
 
-    hipLaunchKernelGGL(gpu_pdata_add_particles_kernel,
-                       dim3(n_blocks),
-                       dim3(block_size),
-                       0,
-                       0,
-                       old_nparticles,
-                       num_add_ptls,
-                       d_pos,
-                       d_vel,
-                       d_accel,
-                       d_charge,
-                       d_diameter,
-                       d_image,
-                       d_body,
-                       d_orientation,
-                       d_angmom,
-                       d_inertia,
-                       d_net_force,
-                       d_net_torque,
-                       d_net_virial,
-                       net_virial_pitch,
-                       d_tag,
-                       d_rtag,
-                       d_in,
-                       d_comm_flags);
+    gpu_pdata_add_particles_kernel<<<n_blocks, block_size>>>(old_nparticles,
+                                                             num_add_ptls,
+                                                             d_pos,
+                                                             d_vel,
+                                                             d_accel,
+                                                             d_charge,
+                                                             d_diameter,
+                                                             d_image,
+                                                             d_body,
+                                                             d_orientation,
+                                                             d_angmom,
+                                                             d_inertia,
+                                                             d_net_force,
+                                                             d_net_torque,
+                                                             d_net_virial,
+                                                             net_virial_pitch,
+                                                             d_tag,
+                                                             d_rtag,
+                                                             d_in,
+                                                             d_comm_flags);
     }
 
     } // end namespace kernel

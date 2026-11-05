@@ -5,7 +5,7 @@
     \brief Defines the SFCPackTunerGPU class
 */
 
-#ifdef ENABLE_HIP
+#ifdef ENABLE_GPU
 
 #include "SFCPackTunerGPU.h"
 #include "SFCPackTunerGPU.cuh"
