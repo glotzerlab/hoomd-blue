@@ -3,7 +3,7 @@ bending
 
 .. automodule:: hoomd.md.mesh.bending
    :members:
-   :exclude-members: BendingRigidity,Helfrich
+   :exclude-members: BendingRigidity,GeneralHelfrich,Helfrich
 
 .. rubric:: Classes
 
@@ -11,4 +11,5 @@ bending
     :maxdepth: 1
 
     bending/bendingrigidity
+    bending/generalhelfrich
     bending/helfrich
