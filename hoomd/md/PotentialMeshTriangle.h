@@ -5,6 +5,7 @@
 #include "NeighborList.h"
 #include "hoomd/GPUArray.h"
 #include "hoomd/managed_allocator.h"
+#include <algorithm>
 #include <memory>
 
 #include <vector>
@@ -408,6 +409,9 @@ template<class evaluator> void PotentialMeshTriangle<evaluator>::computeForces(u
         access_mode::read);
 
     const unsigned int size = (unsigned int)m_mesh_data->getMeshTriangleData()->getN();
+
+    std::vector<unsigned int> combined_nlist;
+
     for (unsigned int i = 0; i < size; i++)
         {
         const typename Angle::members_t& triangle = h_triangles.data[i];
@@ -419,7 +423,7 @@ template<class evaluator> void PotentialMeshTriangle<evaluator>::computeForces(u
         unsigned int ttag_c = triangle.tag[2];
         assert(ttag_c < m_pdata->getMaximumTag() + 1);
 
-        std::vector<unsigned int> idces(3);
+        unsigned int idces[3];
 
         idces[0] = h_rtag.data[ttag_a];
         idces[1] = h_rtag.data[ttag_b];
@@ -429,23 +433,19 @@ template<class evaluator> void PotentialMeshTriangle<evaluator>::computeForces(u
         assert(idces[1] < m_pdata->getN() + m_pdata->getNGhosts());
         assert(idces[2] < m_pdata->getN() + m_pdata->getNGhosts());
 
-        std::vector<unsigned int> combined_nlist;
-
+        // gather the neighbors of all three vertices, then sort and remove duplicates
+        combined_nlist.clear();
         for (unsigned int v_idx = 0; v_idx < 3; v_idx++)
             {
             unsigned int vv_idx = idces[v_idx];
-            for (unsigned int idx_i = 0; idx_i < h_n_neigh.data[vv_idx]; idx_i++)
-                {
-                unsigned int j = h_nlist.data[h_head_list.data[vv_idx] + idx_i];
-                bool not_yet_in = true;
-                for (unsigned int cn_idx = 0; cn_idx < combined_nlist.size() && not_yet_in;
-                     cn_idx++)
-                    if (combined_nlist[cn_idx] == j)
-                        not_yet_in = false;
-                if (not_yet_in)
-                    combined_nlist.push_back(j);
-                }
+            const size_t head = h_head_list.data[vv_idx];
+            combined_nlist.insert(combined_nlist.end(),
+                                  h_nlist.data + head,
+                                  h_nlist.data + head + h_n_neigh.data[vv_idx]);
             }
+        std::sort(combined_nlist.begin(), combined_nlist.end());
+        combined_nlist.erase(std::unique(combined_nlist.begin(), combined_nlist.end()),
+                             combined_nlist.end());
 
         if (combined_nlist.size() == 0)
             continue;
