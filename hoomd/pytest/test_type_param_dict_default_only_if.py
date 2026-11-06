@@ -17,5 +17,6 @@ def test_default_can_be_set_despite_only_if():
     sim.run(0)
 
     assert sim.operations.integrator.pair_potentials[0].params.default == {
-        "epsilon": [1.0, 2.0], "r": [1.0, 2.0]
+        "epsilon": [1.0, 2.0],
+        "r": [1.0, 2.0]
     }
