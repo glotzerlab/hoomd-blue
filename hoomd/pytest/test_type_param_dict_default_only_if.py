@@ -13,7 +13,7 @@ def test_default_can_be_set_despite_only_if():
     sim = make_example_simulation()
     integrator = Sphere()
     integrator.shape["A"] = {"diameter": 1}
-    integrator.pair_potentials.append(h)
+    integrator.pair_potentials.append(step)
     sim.operations.integrator = integrator
     sim.run(0)
 
