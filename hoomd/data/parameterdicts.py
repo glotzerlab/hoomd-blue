@@ -374,7 +374,13 @@ class _ValidatedDefaultDict(MutableMapping):
         if isinstance(self._default, _SmartDefault):
             new_default = self._default(new_default)
         if isinstance(new_default, dict):
-            keys = set(self._default.keys())
+            if (
+                isinstance(self._type_converter, OnlyIf)
+                and isinstance(self._type_converter.cond, TypeConverterMapping)
+            ):
+                keys = set(self._type_converter.cond)
+            else:
+                keys = set(self._default.keys())
             provided_keys = set(new_default.keys())
             if keys.intersection(provided_keys) != provided_keys:
                 raise KeyError("New default must a subset of current keys.")
