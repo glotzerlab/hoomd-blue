@@ -341,7 +341,7 @@ void VolumeConservationMeshForceCompute::precomputeParameter()
     if (m_pdata->getDomainDecomposition())
         {
         MPI_Allreduce(MPI_IN_PLACE,
-                      &global_volume[0],
+                      global_volume.data(),
                       n_types,
                       MPI_HOOMD_SCALAR,
                       MPI_SUM,

@@ -30,6 +30,7 @@ extensions = [
     "sphinx.ext.napoleon",
     "sphinx.ext.intersphinx",
     "sphinx.ext.todo",
+    "sphinx_inline_tabs",
 ]
 
 if find_spec("sphinxcontrib.katex") is not None:
@@ -89,8 +90,8 @@ year = datetime.date.today().year
 copyright = f"2009-{year} The Regents of the University of Michigan"
 author = "The Regents of the University of Michigan"
 
-version = "6.0.0"
-release = "6.0.0"
+version = "7.2.1"
+release = "7.2.1"
 
 language = "en"
 

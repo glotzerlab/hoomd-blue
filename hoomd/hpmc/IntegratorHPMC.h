@@ -241,6 +241,35 @@ class PYBIND11_EXPORT IntegratorHPMC : public Integrator
         return m_translation_move_probability / 65536.0;
         }
 
+    //! Set number of dimensions for translation moves.
+    //! \param translate_move_dimensions 0 (None) = use system dimensionality, 2 = xy-only, 3 = xyz.
+    //! When set to 2 in a 3D simulation, the z component of trial trans. displacements is
+    //! zeroed at proposal time.
+    void setTranslateMoveDimensions(unsigned int translate_move_dimensions)
+        {
+        if (translate_move_dimensions != 0 && translate_move_dimensions != 2
+            && translate_move_dimensions != 3)
+            {
+            throw std::runtime_error("translate_move_dimensions must be None (0), 2, or 3");
+            }
+        if (translate_move_dimensions == 3 && m_sysdef->getNDimensions() == 2)
+            {
+            throw std::runtime_error("translate_move_dimensions cannot be 3 in a 2D simulation");
+            }
+        m_translate_move_dimensions = translate_move_dimensions;
+        }
+
+    //! Get number of dimensions for translation moves.
+    //! \returns 0 if not set (use system dimensionality), otherwise 2 or 3.
+    unsigned int getTranslateMoveDimensionsRaw() const
+        {
+        return m_translate_move_dimensions;
+        }
+
+    //! Get effective number of dimensions for translation moves (resolved at call time).
+    //! When translate_move_dimensions is 0 (None), returns system dimensionality.
+    unsigned int getTranslateMoveDimensions() const;
+
     //! Set nselect
     /*! \param nselect new nselect value to set
      */
@@ -496,6 +525,7 @@ class PYBIND11_EXPORT IntegratorHPMC : public Integrator
 
     protected:
     unsigned int m_translation_move_probability; //!< Fraction of moves that are translation moves.
+    unsigned int m_translate_move_dimensions;    //!< 0 = use system dim, 2 = xy-only, 3 = xyz
     unsigned int m_nselect;                      //!< Number of particles to select for trial moves
 
     GPUVector<Scalar> m_d; //!< Maximum move displacement by type

@@ -97,11 +97,13 @@ class LJ(SpecialPair):
         fields, such as the scaled 1-4 interactions in OPLS where both the 1-4
         `LJ` and `Coulomb` interactions are scaled by 0.5.
 
-    Examples::
+    .. rubric:: Example:
 
-        lj = special_pair.LJ()
-        lj.params['cluster'] = dict(epsilon=3, sigma=0.5)
-        lj.r_cut['cluster'] = 5
+    .. code-block:: python
+
+            lj = hoomd.md.special_pair.LJ()
+            lj.params['cluster'] = dict(epsilon=3, sigma=0.5)
+            lj.r_cut['cluster'] = 5
 
     {inherited}
 
@@ -162,11 +164,13 @@ class Coulomb(SpecialPair):
         fields, such as the scaled 1-4 interactions in OPLS where both the 1-4
         `LJ` and `Coulomb` interactions are scaled by 0.5.
 
-    Examples::
+    .. rubric:: Example:
 
-        coulomb = special_pair.Coulomb()
-        coulomb.params['cluster'] = dict(alpha=1.0)
-        coulomb.r_cut['cluster'] = 2
+    .. code-block:: python
+
+            coulomb = hoomd.md.special_pair.Coulomb()
+            coulomb.params['cluster'] = dict(alpha=1.0)
+            coulomb.r_cut['cluster'] = 2
 
     {inherited}
 

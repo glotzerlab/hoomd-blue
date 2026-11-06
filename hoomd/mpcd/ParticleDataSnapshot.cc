@@ -125,6 +125,7 @@ void mpcd::ParticleDataSnapshot::replicate(unsigned int nx,
         // unwrap position of particle i in old box using image flags
         vec3<Scalar> p = position[i];
         vec3<Scalar> f = old_box.makeFraction(p);
+        Scalar3 v = vec_to_scalar3(velocity[i]);
 
         unsigned int j = 0;
         for (unsigned int l = 0; l < nx; ++l)
@@ -144,10 +145,10 @@ void mpcd::ParticleDataSnapshot::replicate(unsigned int nx,
                     // coordinates in new box
                     Scalar3 q = new_box.makeCoordinates(f_new);
                     int3 image = make_int3(0, 0, 0);
-                    new_box.wrap(q, image);
+                    new_box.wrap(q, v, image);
 
                     position[k] = vec3<Scalar>(q);
-                    velocity[k] = velocity[i];
+                    velocity[k] = vec3<Scalar>(v);
                     type[k] = type[i];
                     ++j;
                     } // n

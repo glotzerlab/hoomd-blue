@@ -54,7 +54,7 @@ class PYBIND11_EXPORT GSDReader
         }
 
     //! initializes a snapshot with the particle data
-    std::shared_ptr<SnapshotSystemData<float>> getSnapshot() const
+    std::shared_ptr<SnapshotSystemData<double>> getSnapshot() const
         {
         return m_snapshot;
         }
@@ -69,8 +69,9 @@ class PYBIND11_EXPORT GSDReader
     bool readChunk(void* data,
                    uint64_t frame,
                    const char* name,
-                   size_t expected_size,
-                   unsigned int cur_n = 0);
+                   uint64_t expected_n,
+                   uint32_t expected_m,
+                   gsd_type expected_type);
 
     //! clears the snapshot object
     void clearSnapshot()
@@ -91,7 +92,7 @@ class PYBIND11_EXPORT GSDReader
     uint64_t m_timestep;                                       //!< Timestep at the selected frame
     std::string m_name;                                        //!< Cached file name
     uint64_t m_frame;                                          //!< Cached frame
-    std::shared_ptr<SnapshotSystemData<float>> m_snapshot;     //!< The snapshot to read
+    std::shared_ptr<SnapshotSystemData<double>> m_snapshot;    //!< Double snapshot
     gsd_handle m_handle;                                       //!< Handle to the file
 
     //! Helper function to read a type list from the file

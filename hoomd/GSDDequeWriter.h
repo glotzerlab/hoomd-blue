@@ -27,7 +27,8 @@ class PYBIND11_EXPORT GSDDequeWriter : public GSDDumpWriter
                    std::string mode,
                    bool write_on_init,
                    bool clear_whole_buffer_after_dump,
-                   uint64_t timestep);
+                   uint64_t timestep,
+                   std::string precision);
     ~GSDDequeWriter() = default;
 
     void analyze(uint64_t timestep) override;

@@ -56,6 +56,23 @@ MPCD is intended to be used as an add-on to the standard MD methods in
    collision step.
 5. Run your simulation!
 
+.. rubric:: Acknowledgements
+
+We gratefully acknowledge the following support for the development of
+`hoomd.mpcd` and its associated documentation and tutorials:
+
+* The initial development of `hoomd.mpcd`, released in version 2.3.0, was part
+  of the Blue Waters sustained-petascale computing project, which was supported
+  by the National Science Foundation under Award Nos. 0725070 and 1238993 and
+  by the state of Illinois.
+
+* The expanded development of `hoomd.mpcd`, beginning in version 4.8.0, was
+  supported by the National Science Foundation under Award Nos. 2310724 and
+  2310725.
+
+Any opinions, findings and conclusions or recommendations expressed in this
+material are those of the author(s) and do not necessarily reflect the views of
+the National Science Foundation.
 
 """
 

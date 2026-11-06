@@ -247,14 +247,14 @@ __global__ void gpu_compute_dpd_forces_kernel(Scalar4* d_force,
                 // calculate dr (with periodic boundary conditions) (FLOPS: 3)
                 Scalar3 dx = posi - posj;
 
+                // calculate dv (FLOPS: 3)
+                Scalar3 dv = veli - velj;
+
                 // apply periodic boundary conditions: (FLOPS 12)
-                dx = box.minImage(dx);
+                box.minImage(dx, dv);
 
                 // calculate r squared (FLOPS: 5)
                 Scalar rsq = dot(dx, dx);
-
-                // calculate dv (FLOPS: 3)
-                Scalar3 dv = veli - velj;
 
                 Scalar rdotv = dot(dx, dv);
 

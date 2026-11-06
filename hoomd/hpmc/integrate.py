@@ -63,6 +63,11 @@ where :math:`d_i` is the translation move size for particle :math:`i` (set by
 particle type with `HPMCIntegrator.d`) and :math:`a_i` is the rotation move size
 (set by particle type with `HPMCIntegrator.a`).
 
+When `HPMCIntegrator.translate_move_dimensions` is set to 2 in a 3D box,
+translation moves are restricted to the :math:`x,y` plane (:math:`\vec{v}`
+is drawn from the disk of radius 1 rather than the ball), while rotation
+moves follow the same form as the 3D case above.
+
 In 2D boxes, let :math:`\vec{v}` be a random vector uniformly distributed within
 the disk of radius 1 in the x,y plane and :math:`\alpha` be a random angle in
 radians in the interval :math:`[-a_i,a_i]`. Form a quaternion that rotates about
@@ -333,6 +338,10 @@ class HPMCIntegrator(Integrator):
         nselect (int): Number of trial moves to perform per particle per
             timestep.
 
+        translate_move_dimensions (int or None): Dimensionality of
+            translation trial moves. Set to None (default) to use the system
+            dimensionality, or set explicitly to 2 or 3.
+
         kT (hoomd.variant.Variant): Temperature set point
             :math:`[\\mathrm{energy}]`.
     """
@@ -375,6 +384,11 @@ class HPMCIntegrator(Integrator):
 
         Number of trial moves to perform per particle per timestep.
         `Read more... <HPMCIntegrator.nselect>`
+
+    .. py:attribute:: translate_move_dimensions
+
+        Dimensionality for translation moves.
+        `Read more... <HPMCIntegrator.translate_move_dimensions>`
 
     .. py:attribute:: kT
 
@@ -441,6 +455,8 @@ class HPMCIntegrator(Integrator):
             translation_move_probability=float(translation_move_probability),
             nselect=int(nselect),
             kT=hoomd.variant.Variant,
+            translate_move_dimensions=OnlyIf(to_type_converter(int), allow_none=True),
+            _defaults={"translate_move_dimensions": None},
         )
         self._param_dict.update(param_dict)
         self.kT = kT
@@ -1150,6 +1166,9 @@ class Polyhedron(HPMCIntegrator):
             translation moves.
         nselect (int): Number of trial moves to perform per particle per
             timestep.
+        translate_move_dimensions (int or None): Dimensionality of
+            translation trial moves. Set to None (default) to use the system
+            dimensionality, or set explicitly to 2 or 3.
         kT (hoomd.variant.variant_like): Temperature set point
             :math:`[\\mathrm{energy}]`.
 
@@ -1314,6 +1333,9 @@ class ConvexPolyhedron(HPMCIntegrator):
             translation moves.
         nselect (int): Number of trial moves to perform per particle per
             timestep.
+        translate_move_dimensions (int or None): Dimensionality of
+            translation trial moves. Set to None (default) to use the system
+            dimensionality, or set explicitly to 2 or 3.
         kT (hoomd.variant.variant_like): Temperature set point
             :math:`[\\mathrm{energy}]`.
 
@@ -1428,6 +1450,9 @@ class FacetedEllipsoid(HPMCIntegrator):
             translation moves.
         nselect (int): Number of trial moves to perform per particle per
             timestep.
+        translate_move_dimensions (int or None): Dimensionality of
+            translation trial moves. Set to None (default) to use the system
+            dimensionality, or set explicitly to 2 or 3.
         kT (hoomd.variant.variant_like): Temperature set point
             :math:`[\\mathrm{energy}]`.
 
@@ -1582,6 +1607,9 @@ class Sphinx(HPMCIntegrator):
             translation moves.
         nselect (int): Number of trial moves to perform per particle per
             timestep.
+        translate_move_dimensions (int or None): Dimensionality of
+            translation trial moves. Set to None (default) to use the system
+            dimensionality, or set explicitly to 2 or 3.
         kT (hoomd.variant.variant_like): Temperature set point
             :math:`[\\mathrm{energy}]`.
 
@@ -1673,6 +1701,9 @@ class ConvexSpheropolyhedron(HPMCIntegrator):
             translation moves.
         nselect (int): Number of trial moves to perform per particle per
             timestep.
+        translate_move_dimensions (int or None): Dimensionality of
+            translation trial moves. Set to None (default) to use the system
+            dimensionality, or set explicitly to 2 or 3.
         kT (hoomd.variant.variant_like): Temperature set point
             :math:`[\\mathrm{energy}]`.
 
@@ -1788,6 +1819,9 @@ class Ellipsoid(HPMCIntegrator):
             translation moves.
         nselect (int): Number of trial moves to perform per particle per
             timestep.
+        translate_move_dimensions (int or None): Dimensionality of
+            translation trial moves. Set to None (default) to use the system
+            dimensionality, or set explicitly to 2 or 3.
         kT (hoomd.variant.variant_like): Temperature set point
             :math:`[\\mathrm{energy}]`.
 
@@ -1890,6 +1924,9 @@ class SphereUnion(HPMCIntegrator):
             translation moves.
         nselect (int): Number of trial moves to perform per particle per
             timestep.
+        translate_move_dimensions (int or None): Dimensionality of
+            translation trial moves. Set to None (default) to use the system
+            dimensionality, or set explicitly to 2 or 3.
         kT (hoomd.variant.variant_like): Temperature set point
             :math:`[\\mathrm{energy}]`.
 
@@ -2029,6 +2066,9 @@ class ConvexSpheropolyhedronUnion(HPMCIntegrator):
             translation moves.
         nselect (int): Number of trial moves to perform per particle per
             timestep.
+        translate_move_dimensions (int or None): Dimensionality of
+            translation trial moves. Set to None (default) to use the system
+            dimensionality, or set explicitly to 2 or 3.
         kT (hoomd.variant.variant_like): Temperature set point
             :math:`[\\mathrm{energy}]`.
 
@@ -2168,6 +2208,9 @@ class FacetedEllipsoidUnion(HPMCIntegrator):
             translation moves.
         nselect (int): Number of trial moves to perform per particle per
             timestep.
+        translate_move_dimensions (int or None): Dimensionality of
+            translation trial moves. Set to None (default) to use the system
+            dimensionality, or set explicitly to 2 or 3.
         kT (hoomd.variant.variant_like): Temperature set point
             :math:`[\\mathrm{energy}]`.
 

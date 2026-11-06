@@ -4,7 +4,7 @@
 #ifndef _SHAPE_MOVES_H
 #define _SHAPE_MOVES_H
 
-#include "GSDHPMCSchema.h"
+#include "IntegratorHPMCMono.h"
 #include "Moves.h"
 #include "ShapeUtils.h"
 #include "hoomd/extern/quickhull/QuickHull.hpp"

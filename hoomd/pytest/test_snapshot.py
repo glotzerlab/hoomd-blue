@@ -44,7 +44,7 @@ def assert_equivalent_snapshots(gsd_snap, hoomd_snap):
                 x = getattr(getattr(gsd_snap, attr), prop)
                 y = getattr(getattr(hoomd_snap, attr), prop)
                 x_box = getattr(getattr(gsd_snap, attr), "box")
-                if x_box is None or x_box.all() == 0:
+                if x_box is None or set(x_box) == {0}:
                     # if the box is all zeros, the dimensions won't match
                     # hoomd dimensions will be 2 and gsd will be 3
                     continue

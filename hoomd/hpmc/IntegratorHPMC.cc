@@ -21,8 +21,9 @@ namespace hoomd
 namespace hpmc
     {
 IntegratorHPMC::IntegratorHPMC(std::shared_ptr<SystemDefinition> sysdef)
-    : Integrator(sysdef, 0.005), m_translation_move_probability(32768), m_nselect(4),
-      m_nominal_width(1.0), m_extra_ghost_width(0), m_past_first_run(false)
+    : Integrator(sysdef, 0.005), m_translation_move_probability(32768),
+      m_translate_move_dimensions(0), m_nselect(4), m_nominal_width(1.0), m_extra_ghost_width(0),
+      m_past_first_run(false)
     {
     m_exec_conf->msg->notice(5) << "Constructing IntegratorHPMC" << endl;
 
@@ -73,6 +74,22 @@ IntegratorHPMC::~IntegratorHPMC()
             .disconnect<IntegratorHPMC, &IntegratorHPMC::getCommFlags>(this);
         }
 #endif
+    }
+
+/*! \returns  number of dimensions for translation moves.
+    When m_translate_move_dimensions is 0, returns system dimensionality.
+*/
+unsigned int IntegratorHPMC::getTranslateMoveDimensions() const
+    {
+    if (m_translate_move_dimensions == 2 || m_translate_move_dimensions == 3)
+        {
+        if (m_translate_move_dimensions == 3 && m_sysdef->getNDimensions() == 2)
+            {
+            throw std::runtime_error("translate_move_dimensions cannot be 3 in a 2D simulation");
+            }
+        return m_translate_move_dimensions;
+        }
+    return m_sysdef->getNDimensions();
     }
 
 /*! \returns True if the particle orientations are normalized
@@ -263,6 +280,31 @@ void export_IntegratorHPMC(pybind11::module& m)
         .def_property("translation_move_probability",
                       &IntegratorHPMC::getTranslationMoveProbability,
                       &IntegratorHPMC::setTranslationMoveProbability)
+        .def_property(
+            "translate_move_dimensions",
+            [](const IntegratorHPMC& self) -> pybind11::object
+            {
+                // Return stored value: None (unset) or explicit 2/3.
+                unsigned int raw = self.getTranslateMoveDimensionsRaw();
+                if (raw == 0)
+                    return pybind11::none();
+                return pybind11::cast(raw);
+            },
+            [](IntegratorHPMC& self, pybind11::object v)
+            {
+                // Accept `None` (use system dimensionality) or explicit values {2, 3}.
+                if (v.is_none())
+                    {
+                    self.setTranslateMoveDimensions(0);
+                    return;
+                    }
+
+                int vi = pybind11::cast<int>(v);
+                if (vi != 2 && vi != 3)
+                    throw std::runtime_error("translate_move_dimensions must be None, 2, or 3");
+
+                self.setTranslateMoveDimensions(static_cast<unsigned int>(vi));
+            })
         .def_property_readonly("pair_potentials", &IntegratorHPMC::getPairPotentials)
         .def("computeTotalPairEnergy", &IntegratorHPMC::computeTotalPairEnergy)
         .def_property_readonly("external_potentials", &IntegratorHPMC::getExternalPotentials)

@@ -80,11 +80,13 @@ class Harmonic(Bond):
 
         U(r) = \frac{1}{2} k \left( r - r_0 \right)^2
 
-    Examples::
+    .. rubric:: Example:
 
-        harmonic = bond.Harmonic()
-        harmonic.params["A-A"] = dict(k=3.0, r0=2.38)
-        harmonic.params["A-B"] = dict(k=10.0, r0=1.0)
+    .. code-block:: python
+
+            harmonic = hoomd.md.bond.Harmonic()
+            harmonic.params["A-A"] = dict(k=3.0, r0=2.38)
+            harmonic.params["A-B"] = dict(k=10.0, r0=1.0)
 
     {inherited}
 
@@ -141,13 +143,15 @@ class FENEWCA(Bond):
     bond, :math:`\varepsilon` is the repulsive interaction energy, and
     :math:`\sigma` is the repulsive interaction width.
 
-    Examples::
+    .. rubric:: Example:
 
-        fenewca = bond.FENEWCA()
-        fenewca.params['A-A'] = dict(k=3.0, r0=2.38, epsilon=1.0, sigma=1.0,
-                                     delta=0.0)
-        fenewca.params['A-B'] = dict(k=10.0, r0=1.0, epsilon=0.8, sigma=1.2,
-                                     delta=0.0)
+    .. code-block:: python
+
+            fenewca = hoomd.md.bond.FENEWCA()
+            fenewca.params['A-A'] = dict(k=3.0, r0=2.38, epsilon=1.0, sigma=1.0,
+                                        delta=0.0)
+            fenewca.params['A-B'] = dict(k=10.0, r0=1.0, epsilon=0.8, sigma=1.2,
+                                        delta=0.0)
 
     {inherited}
 
@@ -338,11 +342,13 @@ class Tether(Bond):
     .. math::
         l_{min} < l_{c1} < l_{c0} < l_{max}
 
-    Examples::
+    .. rubric:: Example:
 
-        bond_potential = bond.Tether()
-        bond_potential.params['A-A'] = dict(k_b=10.0, l_min=0.9, l_c1=1.2,
-                                               l_c0=1.8, l_max=2.1)
+    .. code-block:: python
+
+            bond_potential = hoomd.md.bond.Tether()
+            bond_potential.params['A-A'] = dict(k_b=10.0, l_min=0.9, l_c1=1.2,
+                                                l_c0=1.8, l_max=2.1)
 
     {inherited}
 

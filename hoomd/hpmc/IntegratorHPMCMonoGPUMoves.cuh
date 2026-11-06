@@ -45,6 +45,7 @@ __global__ void hpmc_gen_moves(const Scalar4* d_postype,
                                const Scalar* d_a,
                                const unsigned int move_ratio,
                                const uint64_t timestep,
+                               const unsigned int translate_dim,
                                const BoxDim box,
                                const unsigned int select,
                                const Scalar3 ghost_fraction,
@@ -135,7 +136,7 @@ __global__ void hpmc_gen_moves(const Scalar4* d_postype,
         {
         if (move_type_translate)
             {
-            move_translate(pos_i, rng, s_d[typ_i], dim);
+            move_translate(pos_i, rng, s_d[typ_i], translate_dim);
 
             // need to reject any move that puts the particle in the inactive region
             if (domain_decomposition && !isActive(vec_to_scalar3(pos_i), box, ghost_fraction))
@@ -305,6 +306,7 @@ void hpmc_gen_moves(const hpmc_args_t& args, const typename Shape::param_type* p
                            args.d_a,
                            args.move_ratio,
                            args.timestep,
+                           args.translate_dim,
                            args.box,
                            args.select,
                            args.ghost_fraction,
@@ -357,6 +359,7 @@ void hpmc_gen_moves(const hpmc_args_t& args, const typename Shape::param_type* p
                            args.d_a,
                            args.move_ratio,
                            args.timestep,
+                           args.translate_dim,
                            args.box,
                            args.select,
                            args.ghost_fraction,

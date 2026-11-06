@@ -392,6 +392,12 @@ class Box:
             xy = getattr(box, "xy", 0)
             xz = getattr(box, "xz", 0)
             yz = getattr(box, "yz", 0)
+            Lx_rate = getattr(box, "Lx_rate", 0)
+            Ly_rate = getattr(box, "Ly_rate", 0)
+            Lz_rate = getattr(box, "Lz_rate", 0)
+            xy_rate = getattr(box, "xy_rate", 0)
+            xz_rate = getattr(box, "xz_rate", 0)
+            yz_rate = getattr(box, "yz_rate", 0)
         except AttributeError:
             try:
                 # Handle dictionary-like
@@ -401,6 +407,12 @@ class Box:
                 xy = box.get("xy", 0)
                 xz = box.get("xz", 0)
                 yz = box.get("yz", 0)
+                Lx_rate = box.get("Lx_rate", 0)
+                Ly_rate = box.get("Ly_rate", 0)
+                Lz_rate = box.get("Lz_rate", 0)
+                xy_rate = box.get("xy_rate", 0)
+                xz_rate = box.get("xz_rate", 0)
+                yz_rate = box.get("yz_rate", 0)
             except (IndexError, KeyError, TypeError):
                 if len(box) not in [2, 3, 6]:
                     raise ValueError(
@@ -412,10 +424,19 @@ class Box:
                 Ly = box[1]
                 Lz = box[2] if len(box) > 2 else 0
                 xy, xz, yz = box[3:6] if len(box) == 6 else (0, 0, 0)
+                # No rates provided, default to 0
+                Lx_rate = Ly_rate = Lz_rate = 0
+                xy_rate = xz_rate = yz_rate = 0
         except:
             raise
 
-        return cls(Lx=Lx, Ly=Ly, Lz=Lz, xy=xy, xz=xz, yz=yz)
+        b = cls(Lx=Lx, Ly=Ly, Lz=Lz, xy=xy, xz=xz, yz=yz)
+
+        # Preserve deformation rates on box
+        b._cpp_obj.setLDeformationRate(_make_scalar3((Lx_rate, Ly_rate, Lz_rate)))
+        b._cpp_obj.setTiltDeformationRates(xy_rate, xz_rate, yz_rate)
+
+        return b
 
     # Dimension based properties
     @property
@@ -530,6 +551,34 @@ class Box:
         L[2] = float(value)
         self.L = L
 
+    @property
+    def L_rates(self):  # noqa: N802 - Allow function name
+        """(3, ) `numpy.ndarray` of `float`: The deformation rates on box lengths \
+        :math:`[\\mathrm{length} \\cdot \\mathrm{time}^{-1}]`.
+        """
+        return _vec3_to_array(self._cpp_obj.getLDeformationRate())
+
+    @property
+    def Lx_rate(self):  # noqa: N802 - Allow function name
+        """float: The deformation of the box length in the x dimension \
+        :math:`[\\mathrm{length} \\cdot \\mathrm{time}^{-1}]`.
+        """
+        return self.L_rates[0]
+
+    @property
+    def Ly_rate(self):  # noqa: N802 - Allow function name
+        """float: The deformation of the box length in the y dimension \
+        :math:`[\\mathrm{length} \\cdot \\mathrm{time}^{-1}]`.
+        """
+        return self.L_rates[1]
+
+    @property
+    def Lz_rate(self):  # noqa: N802 - Allow function name
+        """float: The deformation of the box length in the z dimension \
+        :math:`[\\mathrm{length} \\cdot \\mathrm{time}^{-1}]`.
+        """
+        return self.L_rates[2]
+
     # Box tilt based properties
     @property
     def tilts(self):
@@ -604,6 +653,34 @@ class Box:
         if self.is2D:
             raise ValueError("Cannot set yz tilt factor on a 2D box.")
         self.tilts = [self.xy, self.xz, yz]
+
+    @property
+    def tilt_rates(self):
+        """(3, ) `numpy.ndarray` of `float`: The deformation rates on box tilts \
+        :math:`[\\mathrm{time^{-1}}]`.
+        """
+        return np.array([self.xy_rate, self.xz_rate, self.yz_rate])
+
+    @property
+    def xy_rate(self):
+        """float: The deformation rate on xy \
+        :math:`[\\mathrm{time^{-1}}]`.
+        """
+        return self._cpp_obj.getTiltDeformationRateXY()
+
+    @property
+    def xz_rate(self):
+        """float: The deformation rate on xz \
+        :math:`[\\mathrm{time^{-1}}]`.
+        """
+        return self._cpp_obj.getTiltDeformationRateXZ()
+
+    @property
+    def yz_rate(self):
+        """float: The deformation rate on yz \
+        :math:`[\\mathrm{time^{-1}}]`.
+        """
+        return self._cpp_obj.getTiltDeformationRateYZ()
 
     # Misc. properties
     @property

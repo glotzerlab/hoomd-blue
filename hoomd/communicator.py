@@ -68,7 +68,8 @@ class Communicator(object):
         if ranks_per_partition is not None:
             if not hoomd.version.mpi_enabled:
                 raise RuntimeError(
-                    "The ranks_per_partition option is only available in MPI.\n"
+                    "The ranks_per_partition option is only available when"
+                    "HOOMD-blue is compiled with MPI support.\n"
                 )
 
         mpi_available = hoomd.version.mpi_enabled

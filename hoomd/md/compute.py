@@ -33,10 +33,12 @@ class ThermodynamicQuantities(Compute):
         rigid body centers - ignoring constituent particles to avoid double
         counting.
 
-    Examples::
+    .. rubric:: Example:
 
-        f = filter.Type("A")
-        compute.ThermodynamicQuantities(filter=f)
+    .. code-block:: python
+
+            f = hoomd.filter.Type(["A"])
+            hoomd.md.compute.ThermodynamicQuantities(filter=f)
 
     {inherited}
 
@@ -342,11 +344,13 @@ class HarmonicAveragedThermodynamicQuantities(Compute):
         by molecular simulation". Phys. Rev. E 92, 043303
         doi:10.1103/PhysRevE.92.043303
 
-    Examples::
+    .. rubric:: Example:
 
-        hma = hoomd.compute.HarmonicAveragedThermodynamicQuantities(
-            filter=hoomd.filter.Type("A"), kT=1.0
-        )
+    .. code-block:: python
+
+            hma = hoomd.md.compute.HarmonicAveragedThermodynamicQuantities(
+                filter=hoomd.filter.Type(["A"]), kT=1.0
+            )
 
     {inherited}
 

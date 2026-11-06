@@ -9,3 +9,4 @@ sphinxcontrib-googleanalytics
 sphinxcontrib-katex
 sphinx-copybutton
 sphinx-notfound-page
+sphinx-inline-tabs

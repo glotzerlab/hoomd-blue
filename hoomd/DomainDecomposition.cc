@@ -318,9 +318,9 @@ void DomainDecomposition::initializeCumulativeFractions(const std::vector<Scalar
     std::partial_sum(fzs.begin(), fzs.end(), m_cumulative_frac_z.begin() + 1);
 
     // broadcast the floating point result from rank 0 to all ranks
-    MPI_Bcast(&m_cumulative_frac_x[0], m_nx + 1, MPI_HOOMD_SCALAR, 0, m_mpi_comm);
-    MPI_Bcast(&m_cumulative_frac_y[0], m_ny + 1, MPI_HOOMD_SCALAR, 0, m_mpi_comm);
-    MPI_Bcast(&m_cumulative_frac_z[0], m_nz + 1, MPI_HOOMD_SCALAR, 0, m_mpi_comm);
+    MPI_Bcast(m_cumulative_frac_x.data(), m_nx + 1, MPI_HOOMD_SCALAR, 0, m_mpi_comm);
+    MPI_Bcast(m_cumulative_frac_y.data(), m_ny + 1, MPI_HOOMD_SCALAR, 0, m_mpi_comm);
+    MPI_Bcast(m_cumulative_frac_z.data(), m_nz + 1, MPI_HOOMD_SCALAR, 0, m_mpi_comm);
     }
 
 //! Find a domain decomposition with given parameters
@@ -530,7 +530,7 @@ void DomainDecomposition::setCumulativeFractions(unsigned int dir,
         {
         if (dir == 0)
             {
-            MPI_Bcast(&m_cumulative_frac_x[0], m_nx + 1, MPI_HOOMD_SCALAR, root, m_mpi_comm);
+            MPI_Bcast(m_cumulative_frac_x.data(), m_nx + 1, MPI_HOOMD_SCALAR, root, m_mpi_comm);
 
             if (m_cumulative_frac_x.front() != Scalar(0.0)
                 || m_cumulative_frac_x.back() != Scalar(1.0))
@@ -540,7 +540,7 @@ void DomainDecomposition::setCumulativeFractions(unsigned int dir,
             }
         else if (dir == 1)
             {
-            MPI_Bcast(&m_cumulative_frac_y[0], m_ny + 1, MPI_HOOMD_SCALAR, root, m_mpi_comm);
+            MPI_Bcast(m_cumulative_frac_y.data(), m_ny + 1, MPI_HOOMD_SCALAR, root, m_mpi_comm);
 
             if (m_cumulative_frac_y.front() != Scalar(0.0)
                 || m_cumulative_frac_y.back() != Scalar(1.0))
@@ -550,7 +550,7 @@ void DomainDecomposition::setCumulativeFractions(unsigned int dir,
             }
         else if (dir == 2)
             {
-            MPI_Bcast(&m_cumulative_frac_z[0], m_nz + 1, MPI_HOOMD_SCALAR, root, m_mpi_comm);
+            MPI_Bcast(m_cumulative_frac_z.data(), m_nz + 1, MPI_HOOMD_SCALAR, root, m_mpi_comm);
 
             if (m_cumulative_frac_z.front() != Scalar(0.0)
                 || m_cumulative_frac_z.back() != Scalar(1.0))

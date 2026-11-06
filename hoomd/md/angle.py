@@ -83,11 +83,13 @@ class Harmonic(Angle):
 
         U(\theta) = \frac{1}{2} k \left( \theta - \theta_0 \right)^2
 
-    Examples::
+    .. rubric:: Example:
 
-        harmonic = angle.Harmonic()
-        harmonic.params["A-A-A"] = dict(k=3.0, t0=0.7851)
-        harmonic.params["A-B-A"] = dict(k=100.0, t0=1.0)
+    .. code-block:: python
+
+            harmonic = hoomd.md.angle.Harmonic()
+            harmonic.params["A-A-A"] = dict(k=3.0, t0=0.7851)
+            harmonic.params["A-B-A"] = dict(k=100.0, t0=1.0)
 
     {inherited}
 
@@ -130,11 +132,13 @@ class CosineSquared(Angle):
 
     `CosineSquared` is used in the gromos96 and MARTINI force fields.
 
-    Examples::
+    .. rubric:: Example:
 
-        cosinesq = angle.CosineSquared()
-        cosinesq.params["A-A-A"] = dict(k=3.0, t0=0.7851)
-        cosinesq.params["A-B-A"] = dict(k=100.0, t0=1.0)
+    .. code-block:: python
+
+            cosinesq = hoomd.md.angle.CosineSquared()
+            cosinesq.params["A-A-A"] = dict(k=3.0, t0=0.7851)
+            cosinesq.params["A-B-A"] = dict(k=100.0, t0=1.0)
 
     {inherited}
 

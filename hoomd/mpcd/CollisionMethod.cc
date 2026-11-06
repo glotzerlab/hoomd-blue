@@ -437,8 +437,14 @@ void mpcd::CollisionMethod::beginThermalizeConstituentParticles(uint64_t timeste
             }
 
         const Scalar mass_const = h_velocity.data[idx].w;
-        const unsigned int tag = h_tag.data[idx];
+        // don't thermalize particles with zero mass
+        if (mass_const == Scalar(0))
+            {
+            continue;
+            }
+
         // draw random velocities from normal distribution
+        const unsigned int tag = h_tag.data[idx];
         hoomd::RandomGenerator rng(
             hoomd::Seed(hoomd::RNGIdentifier::CollisionMethod, timestep, seed),
             hoomd::Counter(tag, 1));
@@ -571,6 +577,11 @@ void mpcd::CollisionMethod::finishThermalizeConstituentParticles(uint64_t timest
 
         // get velocities and masses
         Scalar4 vel_constituent = h_velocity.data[idx];
+        if (vel_constituent.w == Scalar(0))
+            {
+            // constituents with zero mass don't get thermalized
+            continue;
+            }
         const Scalar4 thermal_vel_mass = h_alt_vel.data[idx];
         vec3<Scalar> thermal_vel(thermal_vel_mass);
 

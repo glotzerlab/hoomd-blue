@@ -232,7 +232,7 @@ template<class Manifold> void TwoStepRATTLENVE<Manifold>::integrateStepOne(uint6
     for (unsigned int group_idx = 0; group_idx < group_size; group_idx++)
         {
         unsigned int j = m_group->getMemberIndex(group_idx);
-        box.wrap(h_pos.data[j], h_image.data[j]);
+        box.wrap(h_pos.data[j], h_vel.data[j], h_image.data[j]);
         }
 
     // Integration of angular degrees of freedom using symplectic and

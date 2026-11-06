@@ -181,16 +181,18 @@ def test_kernel_parameters(
 # Test Logging
 @pytest.mark.parametrize(
     "cls, expected_namespace, expected_loggables",
-    zip(
-        (
-            md.bond.Bond,
-            md.bond.Harmonic,
-            md.bond.FENEWCA,
-            md.bond.Table,
-            md.bond.Tether,
-        ),
-        itertools.repeat(("md", "bond")),
-        itertools.repeat(expected_loggable_params),
+    list(
+        zip(
+            (
+                md.bond.Bond,
+                md.bond.Harmonic,
+                md.bond.FENEWCA,
+                md.bond.Table,
+                md.bond.Tether,
+            ),
+            itertools.repeat(("md", "bond")),
+            itertools.repeat(expected_loggable_params),
+        )
     ),
 )
 def test_logging(cls, expected_namespace, expected_loggables):

@@ -62,7 +62,6 @@ set(_hpmc_headers
     ExternalFieldWall.h
     ExternalPotential.h
     ExternalPotentialLinear.h
-    GSDHPMCSchema.h
     GPUHelpers.cuh
     GPUTree.h
     HPMCCounters.h

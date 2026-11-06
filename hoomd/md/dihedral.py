@@ -93,11 +93,13 @@ class Periodic(Dihedral):
         U(\phi) = \frac{1}{2}k \left( 1 + d \cos\left(n \phi - \phi_0 \right)
                \right)
 
-    Examples::
+    .. rubric:: Example:
 
-        harmonic = dihedral.Periodic()
-        harmonic.params["A-A-A-A"] = dict(k=3.0, d=-1, n=3, phi0=0)
-        harmonic.params["A-B-C-D"] = dict(k=100.0, d=1, n=4, phi0=math.pi / 2)
+    .. code-block:: python
+
+            harmonic = hoomd.md.dihedral.Periodic()
+            harmonic.params["A-A-A-A"] = dict(k=3.0, d=-1, n=3, phi0=0)
+            harmonic.params["A-B-C-D"] = dict(k=100.0, d=1, n=4, phi0=math.pi / 2)
 
     {inherited}
 
@@ -223,10 +225,12 @@ class OPLS(Dihedral):
 
     :math:`k_n` are the force coefficients in the Fourier series.
 
-    Examples::
+    .. rubric:: Example:
 
-        opls = dihedral.OPLS()
-        opls.params["A-A-A-A"] = dict(k1=1.0, k2=1.0, k3=1.0, k4=1.0)
+    .. code-block:: python
+
+            opls = hoomd.md.dihedral.OPLS()
+            opls.params["A-A-A-A"] = dict(k1=1.0, k2=1.0, k3=1.0, k4=1.0)
 
     {inherited}
 

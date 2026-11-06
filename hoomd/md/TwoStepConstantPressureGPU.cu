@@ -47,7 +47,8 @@ __global__ void gpu_npt_mtk_step_one_kernel(Scalar4* d_pos,
                                             Scalar mat_exp_r_int_yz,
                                             Scalar mat_exp_r_int_zz,
                                             Scalar deltaT,
-                                            bool rescale_all)
+                                            bool rescale_all,
+                                            unsigned int n_dimensions)
     {
     // determine which particle this thread works on
     int work_idx = blockIdx.x * blockDim.x + threadIdx.x;
@@ -67,6 +68,11 @@ __global__ void gpu_npt_mtk_step_one_kernel(Scalar4* d_pos,
         Scalar3 accel = d_accel[idx];
         ;
         Scalar3 r = make_scalar3(pos.x, pos.y, pos.z);
+
+        if (n_dimensions == 2)
+            {
+            accel.z = Scalar(0.0);
+            }
 
         // advance velocity
         v += deltaT / Scalar(2.0) * accel;
@@ -124,7 +130,8 @@ hipError_t gpu_npt_rescale_step_one(Scalar4* d_pos,
                                     Scalar* mat_exp_r_int,
                                     Scalar deltaT,
                                     bool rescale_all,
-                                    const unsigned int block_size)
+                                    const unsigned int block_size,
+                                    unsigned int n_dimensions)
     {
     unsigned int max_block_size;
     hipFuncAttributes attr;
@@ -170,20 +177,25 @@ hipError_t gpu_npt_rescale_step_one(Scalar4* d_pos,
                        mat_exp_r_int[4],
                        mat_exp_r_int[5],
                        deltaT,
-                       rescale_all);
+                       rescale_all,
+                       n_dimensions);
 
     return hipSuccess;
     }
 
 /*! \param N number of particles in the system
     \param d_pos array of particle positions
+    \param d_vel array of particle velocities
     \param d_image array of particle images
     \param box The new box the particles where the particles now reside
 
     Wrap particle positions for all particles in the box
 */
-__global__ void
-gpu_npt_mtk_wrap_kernel(const unsigned int nwork, Scalar4* d_pos, int3* d_image, BoxDim box)
+__global__ void gpu_npt_mtk_wrap_kernel(const unsigned int nwork,
+                                        Scalar4* d_pos,
+                                        Scalar4* d_vel,
+                                        int3* d_image,
+                                        BoxDim box)
     {
     // determine which particle this thread works on
     int idx = blockIdx.x * blockDim.x + threadIdx.x;
@@ -194,21 +206,25 @@ gpu_npt_mtk_wrap_kernel(const unsigned int nwork, Scalar4* d_pos, int3* d_image,
         // fetch particle position
         Scalar4 postype = d_pos[idx];
         Scalar3 pos = make_scalar3(postype.x, postype.y, postype.z);
+        Scalar4 velmass = d_vel[idx];
+        Scalar3 vel = make_scalar3(velmass.x, velmass.y, velmass.z);
 
         // read in the image flags
         int3 image = d_image[idx];
 
         // fix periodic boundary conditions
-        box.wrap(pos, image);
+        box.wrap(pos, vel, image);
 
         // write out the results
         d_pos[idx] = make_scalar4(pos.x, pos.y, pos.z, postype.w);
+        d_vel[idx] = make_scalar4(vel.x, vel.y, vel.z, velmass.w);
         d_image[idx] = image;
         }
     }
 
 /*! \param N number of particles in the system
     \param d_pos array of particle positions
+    \param d_vel array of particle velocities
     \param d_image array of particle images
     \param box The new box the particles where the particles now reside
 
@@ -216,6 +232,7 @@ gpu_npt_mtk_wrap_kernel(const unsigned int nwork, Scalar4* d_pos, int3* d_image,
 */
 hipError_t gpu_npt_rescale_wrap(const unsigned int N,
                                 Scalar4* d_pos,
+                                Scalar4* d_vel,
                                 int3* d_image,
                                 const BoxDim& box,
                                 const unsigned int block_size)
@@ -241,6 +258,7 @@ hipError_t gpu_npt_rescale_wrap(const unsigned int N,
                        0,
                        nwork,
                        d_pos,
+                       d_vel,
                        d_image,
                        box);
 

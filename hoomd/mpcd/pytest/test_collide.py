@@ -533,3 +533,39 @@ def test_rigid_mass_errors(
     # run simulation
     with pytest.raises(RuntimeError):
         sim.run(1)
+
+
+@pytest.mark.serial
+def test_rigid_nonparticipatory_zero_mass(small_snap, simulation_factory):
+    # create simulation
+    initial_snap = small_snap
+    if initial_snap.communicator.rank == 0:
+        initial_snap.particles.types = ["A", "B", "C"]
+        initial_snap.particles.mass[:] = [2]
+    sim = simulation_factory(initial_snap)
+    sim.seed = 5
+
+    rigid = hoomd.md.constrain.Rigid()
+    rigid.body["A"] = {
+        "constituent_types": ["B", "B", "C"],
+        "positions": [[-2.4, 0, 0], [2.4, 0, 0], [0, 1, 0]],
+        "orientations": [[1, 0, 0, 0], [1, 0, 0, 0], [1, 0, 0, 0]],
+    }
+    rigid.create_bodies(sim.state, masses={"A": np.array([1, 1, 0])})
+
+    sim.operations.integrator = hoomd.mpcd.Integrator(dt=0, rigid=rigid)
+    sim.operations.integrator.collision_method = (
+        hoomd.mpcd.collide.StochasticRotationDynamics(
+            period=1,
+            embedded_particles=hoomd.filter.Type("B"),
+            angle=90,
+            kT=1,
+        )
+    )
+
+    # run simulation
+    # velocities should all stay zero because there is no solvent to collide with
+    sim.run(1)
+    new_snap = sim.state.get_snapshot()
+    if new_snap.communicator.rank == 0:
+        assert np.array_equal(np.zeros((4, 3)), new_snap.particles.velocity)

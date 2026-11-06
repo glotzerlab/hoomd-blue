@@ -40,6 +40,7 @@ struct hpmc_args_t
                 const unsigned int _move_ratio,
                 const uint64_t _timestep,
                 const unsigned int _dim,
+                const unsigned int _translate_dim,
                 const BoxDim& _box,
                 const unsigned int _select,
                 const Scalar3 _ghost_fraction,
@@ -64,15 +65,15 @@ struct hpmc_args_t
           d_counters(_d_counters), counters_pitch(_counters_pitch), ci(_ci), cell_dim(_cell_dim),
           ghost_width(_ghost_width), N(_N), num_types(_num_types), seed(_seed), rank(_rank),
           d_d(_d), d_a(_a), d_check_overlaps(_check_overlaps), overlap_idx(_overlap_idx),
-          move_ratio(_move_ratio), timestep(_timestep), dim(_dim), box(_box), select(_select),
-          ghost_fraction(_ghost_fraction), domain_decomposition(_domain_decomposition),
-          block_size(_block_size), tpp(_tpp), overlap_threads(_overlap_threads),
-          d_reject_out_of_cell(_d_reject_out_of_cell), d_trial_postype(_d_trial_postype),
-          d_trial_orientation(_d_trial_orientation), d_trial_vel(_d_trial_vel),
-          d_trial_move_type(_d_trial_move_type), d_update_order_by_ptl(_d_update_order_by_ptl),
-          d_excell_idx(_d_excell_idx), d_excell_size(_d_excell_size), excli(_excli),
-          d_reject_in(_d_reject_in), d_reject_out(_d_reject_out), devprop(_devprop),
-          stream(_stream) { };
+          move_ratio(_move_ratio), timestep(_timestep), dim(_dim), translate_dim(_translate_dim),
+          box(_box), select(_select), ghost_fraction(_ghost_fraction),
+          domain_decomposition(_domain_decomposition), block_size(_block_size), tpp(_tpp),
+          overlap_threads(_overlap_threads), d_reject_out_of_cell(_d_reject_out_of_cell),
+          d_trial_postype(_d_trial_postype), d_trial_orientation(_d_trial_orientation),
+          d_trial_vel(_d_trial_vel), d_trial_move_type(_d_trial_move_type),
+          d_update_order_by_ptl(_d_update_order_by_ptl), d_excell_idx(_d_excell_idx),
+          d_excell_size(_d_excell_size), excli(_excli), d_reject_in(_d_reject_in),
+          d_reject_out(_d_reject_out), devprop(_devprop), stream(_stream) { };
 
     const Scalar4* d_postype;             //!< postype array
     const Scalar4* d_orientation;         //!< orientation array
@@ -92,7 +93,8 @@ struct hpmc_args_t
     const Index2D& overlap_idx;           //!< Indexer into interaction matrix
     const unsigned int move_ratio;        //!< Ratio of translation to rotation moves
     const uint64_t timestep;              //!< Current time step
-    const unsigned int dim;               //!< Number of dimensions
+    const unsigned int dim;               //!< Number of dimensions (for rotation)
+    const unsigned int translate_dim;     //!< Number of dimensions for translation (2 = xy-only)
     const BoxDim box;                     //!< Current simulation box
     unsigned int select;                  //!< Current selection
     const Scalar3 ghost_fraction;         //!< Width of the inactive layer

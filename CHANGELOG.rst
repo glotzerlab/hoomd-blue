@@ -1,19 +1,132 @@
 Change Log
 ==========
 
-Recent releases
----------------
+7.x
+---
 
 Next release
 ^^^^^^^^^^^^^^^^^^^^
 
 *Added*
 
-* Support 2D simulations in ``hoomd.md.pair.friction`` (#2184).
-
 *Changed*
 
 *Deprecated*
+
+*Removed*
+
+*Fixed*
+
+7.2.1 (2026-10-30)
+^^^^^^^^^^^^^^^^^^^^
+
+*Changed*
+
+* Support 2D systems with ``hoomd.md.external.field.Periodic`` (#2349).
+
+*Fixed*
+
+* Fixed bug in calculating Helfrich forces (#2376).
+
+7.2.0 (2026-09-22)
+^^^^^^^^^^^^^^^^^^^^
+
+*Added*
+
+* Add ``hoomd.md.deformer`` which provides an interface for applying time-dependent changes to the box in MD simulations (#2122).
+* Add ``hoomd.md.deformer.LeesEdwardsBoxDeformer`` which applies Lees-Edwards boundary conditions (bulk shear flow) in MD simulations (#2122).
+* Add active matter tutorial.
+
+7.1.2 (2026-08-11)
+^^^^^^^^^^^^^^^^^^^^
+
+*Fixed*
+
+* Fixed incorrect reading of net_force instead of acceleration in RATTLELangevin GPU code (#2325).
+
+7.1.1 (2026-07-31)
+^^^^^^^^^^^^^^^^^^^^
+
+*Fixed*
+
+* Fixed incorrect reading of net_force instead of acceleration in RATTLELangevin GPU code (#2318).
+
+
+7.1.0 (2026-06-24)
+^^^^^^^^^^^^^^^^^^^^
+
+*Added*
+
+* Added additional mesh exclusion ``meshbond_dynamic`` for dynamical bond updater (#2297).
+
+*Fixed*
+
+* Fixed incorrect smart default behavior for sequences and numpy arrays (#2292).
+* Prevent motion in the z direction on the first step after starting a simulation (#2303).
+* Prevent rigid bodies from rotating out of the plane in 2D simulations (#2303).
+
+7.0.1 (2026-04-08)
+^^^^^^^^^^^^^^^^^^^^
+
+*Fixed*
+
+* Fixed external component builds with Eigen 5.x (#2272).
+
+7.0.0 (2026-04-07)
+^^^^^^^^^^^^^^^^^^^^
+
+HOOMD-blue 7.0 writes GSD schema 2.0 files. Update your other software for compatibility:
+
+* gsd >= 5.0
+* Ovito >= 3.15.2
+* gsd-vmd >= 0.6.0
+
+HOOMD-blue 7.0 also changes the definition of the 3D rotation trial move
+size ``a`` (2D rotation moves are not changed). You will need to retune any
+hard-coded or saved values. Here are the distributions of the trial move
+rotation angles in HOOMD-blue 2.0–6.x and in 7.0+ for comparison:
+
+.. image:: https://github.com/user-attachments/assets/4a713aa9-2ec4-40dc-8363-aaf93e7eca2b
+
+*Added*
+
+* ``hoomd.hpmc.integrate.HPMCIntegrator.translate_move_dimensions``: Sets the dimensionality of HPMC translation moves,
+  enabling interfacial confinement (xy) in 3D simulations (#2265).
+* ``create_state_from_gsd`` can now read GSD schema 2.0 files (#2249).
+* ``write.GSD`` and ``write.Burst`` can now write double precision values to GSD files.
+  Set ``precision="double"`` to enable. The default value is ``"single"``, consistent
+  with previous releases (#2249).
+
+*Changed*
+
+* Use tabs in binary installation documentation (#2246).
+* Improve the sampling of 3D rotation trial moves (#2264).
+
+*Fixed*
+
+* Fixed Helfrich equation in the docs (#2242)
+* Build with Eigen 5.x (#2261)
+
+6.x
+---
+
+6.1.1 (2026-02-19)
+^^^^^^^^^^^^^^^^^^^^
+
+*Fixed*
+
+* Divide by zero with MPCD if rigid body has constituent with zero mass (#2228).
+* Ensure that GSD files are always flushed on exit (#2236).
+* Code examples in ``md.nlist``, ``md.angle``, ``md.bond``, ``md.special_pair``, ``md.compute``,
+  ``md.dihedral``, ``md.force``, ``md.integrate``, and ``md.update`` now execute without
+  errors (#2185).
+
+6.1.0 (2026-02-07)
+^^^^^^^^^^^^^^^^^^^^
+
+*Added*
+
+* Support 2D simulations in ``hoomd.md.pair.friction`` (#2184).
 
 *Removed*
 
@@ -25,6 +138,7 @@ Next release
 * Table writer no longer errors on ``Inf`` scalar values (#2196).
 
 * Fixed vertex neighbor check in dynamical bonding code (#2202).
+* Fixed Helfrich energy calculation for logging (#2215)
 
 6.0.0 (2025-11-21)
 ^^^^^^^^^^^^^^^^^^^^
@@ -2398,7 +2512,7 @@ v2.3.0 (2018-04-25)
       frame indices to index from the end of the trajectory.
    -  Faster reinitialization from snapshots when done frequently.
    -  New command line option ``--single-mpi`` allows non-mpi builds of
-      hoomd to launch within mpirun (i.e. for use with mpi4py managed
+      hoomd to launch within mpirun (i.e. for use with mpi4py managed
       pools of jobs)
    -  For users of the University of Michigan Flux system: A ``--mode``
       option is no longer required to run hoomd.
@@ -2613,7 +2727,7 @@ v2.2.0 (2017-09-08)
    -  Check that composite body dimensions are consistent with minimum
       image convention and generate an error if they are not.
    -  ``md.integrate.mode.minimize_fire()`` now supports anisotropic
-      particles (i.e. composite bodies)
+      particles (i.e. composite bodies)
    -  ``md.integrate.mode.minimize_fire()`` now supports flexible
       specification of integration methods
    -  ``md.integrate.npt()/md.integrate.nph()`` now accept a friction
@@ -3374,7 +3488,7 @@ v1.0.1 (2014-09-09)
 **Bug fixes**
 
 1.  Fixed bug where error messages were truncated and HOOMD exited with
-    a segmentation fault instead (e.g. on Blue Waters)
+    a segmentation fault instead (e.g. on Blue Waters)
 2.  Fixed bug where plug-ins did not load on Blue Waters
 3.  Fixed compile error with gcc4.4 and cuda5.0
 4.  Fixed syntax error in ``read_snapshot()``
@@ -4237,7 +4351,7 @@ Version 0.8.0 (2008-12-22)
     computation, thanks to David Tarjan
 19. A header prefix can be added to log files to make them more gnuplot
     friendly
-20. Log quantities completely revamped. Common quantities (i.e. kinetic
+20. Log quantities completely revamped. Common quantities (i.e. kinetic
     energy, potential energy can now be logged in any simulation)
 21. Particle groups can now be created. Currently only analyze.msd makes
     use of them.

@@ -56,7 +56,9 @@ namespace detail
      */
 
 #ifdef __HIP_PLATFORM_HCC__
-template<typename T, int LOGICAL_WARP_THREADS = HIPCUB_WARP_THREADS, int PTX_ARCH = HIPCUB_ARCH>
+template<typename T,
+         int LOGICAL_WARP_THREADS = HIPCUB_DEVICE_WARP_THREADS,
+         int PTX_ARCH = HIPCUB_ARCH>
 #else
 template<typename T, int LOGICAL_WARP_THREADS = CUB_PTX_WARP_THREADS, int PTX_ARCH = CUB_PTX_ARCH>
 #endif
@@ -70,7 +72,7 @@ class WarpReduce
         static_assert(LOGICAL_WARP_THREADS <= CUB_PTX_WARP_THREADS,
                       "Logical warp size cannot exceed hardware warp size");
 #else
-        static_assert(LOGICAL_WARP_THREADS <= HIPCUB_WARP_THREADS,
+        static_assert(LOGICAL_WARP_THREADS <= HIPCUB_DEVICE_WARP_THREADS,
                       "Logical warp size cannot exceed hardware warp size");
 #endif
         static_assert(LOGICAL_WARP_THREADS && !(LOGICAL_WARP_THREADS & (LOGICAL_WARP_THREADS - 1)),
@@ -187,7 +189,9 @@ class WarpReduce
  * \tparam PTX_ARCH PTX architecture to build for, must be at least 300 (Kepler).
  */
 #ifdef __HIP_PLATFORM_HCC__
-template<typename T, int LOGICAL_WARP_THREADS = HIPCUB_WARP_THREADS, int PTX_ARCH = HIPCUB_ARCH>
+template<typename T,
+         int LOGICAL_WARP_THREADS = HIPCUB_DEVICE_WARP_THREADS,
+         int PTX_ARCH = HIPCUB_ARCH>
 #else
 template<typename T, int LOGICAL_WARP_THREADS = CUB_PTX_WARP_THREADS, int PTX_ARCH = CUB_PTX_ARCH>
 #endif
@@ -201,7 +205,7 @@ class WarpScan
         static_assert(LOGICAL_WARP_THREADS <= CUB_PTX_WARP_THREADS,
                       "Logical warp size cannot exceed hardware warp size");
 #else
-        static_assert(LOGICAL_WARP_THREADS <= HIPCUB_WARP_THREADS,
+        static_assert(LOGICAL_WARP_THREADS <= HIPCUB_DEVICE_WARP_THREADS,
                       "Logical warp size cannot exceed hardware warp size");
 #endif
         static_assert(LOGICAL_WARP_THREADS && !(LOGICAL_WARP_THREADS & (LOGICAL_WARP_THREADS - 1)),

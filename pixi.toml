@@ -21,22 +21,27 @@ pytest = "*"
 rowan = "*"
 sybil = "*"
 bump-my-version = "*"
+libpython = "*"
 
-[feature.py310.dependencies]
-python = "3.10.*"
 [feature.py311.dependencies]
 python = "3.11.*"
 [feature.py312.dependencies]
 python = "3.12.*"
 [feature.py313.dependencies]
 python = "3.13.*"
-[feature.docs.dependencies]
+[feature.py314.dependencies]
 python = "3.14.*"
+[feature.py315.dependencies]
+python = "3.15.*"
+libpython = "3.15.*"
+[feature.docs.dependencies]
+python = "3.15.*"
 ipython = "*"
 nbconvert = "*"
 nbsphinx = "*"
 pandoc = "*"
 tornado = "*"
+sphinx-inline-tabs = "*"
 [feature.docs.pypi-dependencies]
 sphinxcontrib-katex = "*"
 sphinx-copybutton = "*"
@@ -44,8 +49,9 @@ furo = "*"
 
 
 [environments]
-py310 = ["py310"]
 py311 = ["py311"]
 py312 = ["py312"]
 py313 = ["py313"]
+py314 = ["py314"]
+py315 = ["py315"]
 docs = ["docs"]

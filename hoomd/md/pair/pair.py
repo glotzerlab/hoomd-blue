@@ -567,7 +567,7 @@ class Ewald(Pair):
 
         * ``kappa`` (`float`, **required**) - Splitting parameter
           :math:`\kappa` :math:`[\mathrm{length}^{-1}]`
-        * ``alpha`` (`float`, **required**) - Debye screening length
+        * ``alpha`` (`float`) - Debye screening length
           :math:`\alpha` :math:`[\mathrm{length}^{-1}]`
 
         Type: `TypeParameter` [`tuple` [``particle_type``, ``particle_type``],
@@ -1243,11 +1243,11 @@ class ZBL(Pair):
 
         The ZBL potential parameters. The dictionary has the following keys:
 
-        * ``q_i`` (`float`, **required**) - :math:`q_i=Z_i \frac{e}{\sqrt{4
+        * ``qi`` (`float`, **required**) - :math:`q_i=Z_i \frac{e}{\sqrt{4
           \pi \epsilon_0}}` :math:`[\mathrm{charge}]`
-        * ``q_j`` (`float`, **required**) - :math:`q_j=Z_j \frac{e}{\sqrt{4
+        * ``qj`` (`float`, **required**) - :math:`q_j=Z_j \frac{e}{\sqrt{4
           \pi \epsilon_0}}` :math:`[\mathrm{charge}]`
-        * ``a_F`` (`float`, **required**) -
+        * ``aF`` (`float`, **required**) -
           :math:`a_F = \frac{0.8853 a_0}{ Z_i^{0.23} + Z_j^{0.23} }`
           :math:`[\mathrm{length}]`
 

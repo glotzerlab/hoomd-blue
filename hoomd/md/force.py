@@ -240,13 +240,15 @@ class Force(Compute):
             The local arrays are read only for built-in forces. Use `Custom` to
             implement custom forces.
 
-        Examples::
+        .. rubric:: Example:
 
-            with self.cpu_local_force_arrays as arrays:
-                arrays.force[:] = ...
-                arrays.potential_energy[:] = ...
-                arrays.torque[:] = ...
-                arrays.virial[:] = ...
+        .. code-block::
+
+                with force.cpu_local_force_arrays as arrays:
+                    arrays.force[:] = ...
+                    arrays.potential_energy[:] = ...
+                    arrays.torque[:] = ...
+                    arrays.virial[:] = ...
         """
         if self._in_context_manager:
             raise RuntimeError(
@@ -273,13 +275,15 @@ class Force(Compute):
             The local arrays are read only for built-in forces. Use `Custom` to
             implement custom forces.
 
-        Examples::
+        .. rubric:: Example:
 
-            with self.gpu_local_force_arrays as arrays:
-                arrays.force[:] = ...
-                arrays.potential_energy[:] = ...
-                arrays.torque[:] = ...
-                arrays.virial[:] = ...
+        .. code-block::
+
+                with force.gpu_local_force_arrays as arrays:
+                    arrays.force[:] = ...
+                    arrays.potential_energy[:] = ...
+                    arrays.torque[:] = ...
+                    arrays.virial[:] = ...
 
         Note:
             GPU local force data is not available if the chosen device for the
@@ -427,16 +431,18 @@ class Active(Force):
 
             `hoomd.md.update.ActiveRotationalDiffusion`
 
-    Examples::
+    .. rubric:: Example:
 
-        all = hoomd.filter.All()
-        active = hoomd.md.force.Active(filter=hoomd.filter.All())
-        active.active_force["A", "B"] = (1, 0, 0)
-        active.active_torque["A", "B"] = (0, 0, 0)
-        rotational_diffusion_updater = active.create_diffusion_updater(
-            trigger=10
-        )
-        sim.operations += rotational_diffusion_updater
+    .. code-block:: python
+
+            all = hoomd.filter.All()
+            active = hoomd.md.force.Active(filter=hoomd.filter.All())
+            active.active_force["A", "B"] = (1, 0, 0)
+            active.active_torque["A", "B"] = (0, 0, 0)
+            rotational_diffusion_updater = active.create_diffusion_updater(
+                trigger=10,
+                rotational_diffusion=0.1,
+            )
 
     Note:
         The energy and virial associated with the active force are 0.
@@ -557,17 +563,18 @@ class ActiveOnManifold(Active):
 
             `hoomd.md.update.ActiveRotationalDiffusion`
 
-    Examples::
+    .. rubric:: Example:
 
-        all = filter.All()
-        sphere = hoomd.md.manifold.Sphere(r=10)
-        active = hoomd.md.force.ActiveOnManifold(
-            filter=hoomd.filter.All(),
-            rotation_diff=0.01,
-            manifold_constraint=sphere,
-        )
-        active.active_force["A", "B"] = (1, 0, 0)
-        active.active_torque["A", "B"] = (0, 0, 0)
+    .. code-block:: python
+
+            all = hoomd.filter.All()
+            sphere = hoomd.md.manifold.Sphere(r=10)
+            active = hoomd.md.force.ActiveOnManifold(
+                filter=hoomd.filter.All(),
+                manifold_constraint=sphere,
+            )
+            active.active_force["A", "B"] = (1, 0, 0)
+            active.active_torque["A", "B"] = (0, 0, 0)
 
     {inherited}
 
@@ -645,11 +652,13 @@ class Constant(Force):
     particles selected by the filter. `Constant` sets the force and torque
     to  ``(0,0,0)`` for particles not selected by the filter.
 
-    Examples::
+    .. rubric:: Example:
 
-        constant = hoomd.md.force.Constant(filter=hoomd.filter.All())
-        constant.constant_force["A"] = (1, 0, 0)
-        constant.constant_torque["A"] = (0, 0, 0)
+    .. code-block:: python
+
+            constant = hoomd.md.force.Constant(filter=hoomd.filter.All())
+            constant.constant_force["A"] = (1, 0, 0)
+            constant.constant_torque["A"] = (0, 0, 0)
 
     Note:
         The energy and virial associated with the constant force are 0.

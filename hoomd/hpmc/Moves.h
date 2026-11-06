@@ -81,32 +81,39 @@ DEVICE void move_rotate(quat<Scalar>& orientation, RandomGenerator& rng, Scalar 
         }
     else
         {
-        hoomd::UniformDistribution<Scalar> uniform(Scalar(-1.0), Scalar(1.0));
+        // Based on Karney 2007: doi.org/10.1016/j.jmgm.2006.04.002
+        hoomd::NormalDistribution<Scalar> normal(a);
+        quat<Scalar> small_rotation = quat<Scalar>();
 
-        // Frenkel and Smit reference Allen and Tildesley, referencing Vesley(1982), referencing
-        // Marsaglia(1972). Generate a random unit quaternion. Scale it to a small rotation and
-        // apply.
-        quat<Scalar> q;
-        Scalar s1, s2, s3;
-
-        do
+        while (true)
             {
-            q.s = uniform(rng);
-            q.v.x = uniform(rng);
-            } while ((s1 = q.s * q.s + q.v.x * q.v.x) >= Scalar(1.0));
+            vec3<Scalar> s = vec3<Scalar>(normal(rng), normal(rng), normal(rng));
+            Scalar theta = fast::sqrt(dot(s, s));
 
-        do
-            {
-            q.v.y = uniform(rng);
-            q.v.z = uniform(rng);
-            } while ((s2 = q.v.y * q.v.y + q.v.z * q.v.z) >= Scalar(1.0) || s2 == Scalar(0.0));
+            // Reject moves with |s| > pi to ensure detailed balance. Otherwise, there
+            // is a shorter path between the proposed move and the start (theta - pi),
+            // which has a different rejection probability.
+            if (theta > M_PI)
+                {
+                continue;
+                }
 
-        s3 = fast::sqrt((Scalar(1.0) - s1) / s2);
-        q.v.y *= s3;
-        q.v.z *= s3;
+            // Lift the normally distributed values to SO(3) with the exponential map
+            Scalar half_theta = 0.5 * theta;
+            Scalar w = fast::cos(half_theta);
 
-        // generate new trial orientation
-        orientation += a * q;
+            Scalar v_factor = fast::sin(half_theta) / theta;
+            if (!isfinite(v_factor))
+                {
+                v_factor = 0.5;
+                }
+
+            vec3<Scalar> v = s * v_factor;
+            small_rotation = quat<Scalar>(w, v);
+            break;
+            }
+
+        orientation = small_rotation * orientation;
 
         // renormalize
         orientation = orientation * (fast::rsqrt(norm2(orientation)));

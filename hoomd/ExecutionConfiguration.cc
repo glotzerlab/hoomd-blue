@@ -273,7 +273,7 @@ void ExecutionConfiguration::initializeGPU(int gpu_id)
         {
             // initialize the default CUDA context from one of the capable GPUs
 #ifdef __HIP_PLATFORM_NVCC__
-        cudaSetValidDevices(&s_capable_gpu_ids[0], (int)s_capable_gpu_ids.size());
+        cudaSetValidDevices(s_capable_gpu_ids.data(), (int)s_capable_gpu_ids.size());
 #endif
         hipSetDeviceFlags(hipDeviceMapHost);
         hipFree(0);

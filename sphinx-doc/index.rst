@@ -51,6 +51,9 @@ Resources
 Related tools
 =============
 
+- `hoomd-rs <https://hoomd-rs.readthedocs.io/>`_:
+  Infinitely customizable MC/MD simulations and order parameter computations in Rust.
+  **Faster** than HOOMD-blue in most benchmarks.
 - `freud <https://freud.readthedocs.io/>`_:
   Analyze HOOMD-blue simulation results with the **freud** Python library.
 - `signac <https://signac.readthedocs.io/>`_:

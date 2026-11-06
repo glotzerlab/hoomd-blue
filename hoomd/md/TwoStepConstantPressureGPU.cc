@@ -184,7 +184,8 @@ void TwoStepConstantPressureGPU::integrateStepOne(uint64_t timestep)
                                          m_mat_exp_r_int,
                                          m_deltaT,
                                          m_rescale_all,
-                                         m_tuner_one->getParam()[0]);
+                                         m_tuner_one->getParam()[0],
+                                         m_sysdef->getNDimensions());
 
         if (m_exec_conf->isCUDAErrorCheckingEnabled())
             CHECK_CUDA_ERROR();
@@ -199,6 +200,9 @@ void TwoStepConstantPressureGPU::integrateStepOne(uint64_t timestep)
         ArrayHandle<Scalar4> d_pos(m_pdata->getPositions(),
                                    access_location::device,
                                    access_mode::readwrite);
+        ArrayHandle<Scalar4> d_vel(m_pdata->getVelocities(),
+                                   access_location::device,
+                                   access_mode::readwrite);
         ArrayHandle<int3> d_image(m_pdata->getImages(),
                                   access_location::device,
                                   access_mode::readwrite);
@@ -208,6 +212,7 @@ void TwoStepConstantPressureGPU::integrateStepOne(uint64_t timestep)
 
         kernel::gpu_npt_rescale_wrap(m_pdata->getN(),
                                      d_pos.data,
+                                     d_vel.data,
                                      d_image.data,
                                      box,
                                      m_tuner_wrap->getParam()[0]);
@@ -243,6 +248,7 @@ void TwoStepConstantPressureGPU::integrateStepOne(uint64_t timestep)
                                          d_index_array.data,
                                          m_group->getNumMembers(),
                                          m_deltaT,
+                                         m_sysdef->getNDimensions(),
                                          rescalingFactors[1],
                                          m_tuner_angular_one->getParam()[0]);
 
@@ -345,6 +351,7 @@ void TwoStepConstantPressureGPU::integrateStepTwo(uint64_t timestep)
                                          d_index_array.data,
                                          m_group->getNumMembers(),
                                          m_deltaT,
+                                         m_sysdef->getNDimensions(),
                                          rescalingFactors[1], // exp_thermo_fac_rot,
                                          m_tuner_angular_two->getParam()[0]);
 

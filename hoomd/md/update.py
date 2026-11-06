@@ -44,11 +44,13 @@ class ZeroMomentum(Updater):
     Note:
         `ZeroMomentum` executes on the CPU even when using a GPU device.
 
-    Examples::
+    .. rubric:: Example:
 
-        zero_momentum = hoomd.md.update.ZeroMomentum(
-            hoomd.trigger.Periodic(100)
-        )
+    .. code-block:: python
+
+            zero_momentum = hoomd.md.update.ZeroMomentum(
+                hoomd.trigger.Periodic(100)
+            )
     """
 
     __doc__ = (
@@ -121,18 +123,20 @@ class ReversePerturbationFlow(Updater):
         The attributes of this updater are immutable once the updater is
         attached to a simulation.
 
-    Examples::
+    .. rubric:: Example:
 
-        # const integrated flow with 0.1 slope for max 1e8 timesteps
-        ramp = hoomd.variant.Ramp(0.0, 0.1e8, 0, int(1e8))
-        # velocity gradient in z direction and shear flow in x direction.
-        mpf = hoomd.md.update.ReversePerturbationFlow(
-            filter=hoomd.filter.All(),
-            flow_target=ramp,
-            slab_direction="Z",
-            flow_direction="X",
-            n_slabs=20,
-        )
+    .. code-block:: python
+
+            # const integrated flow with 0.1 slope for max 1e8 timesteps
+            ramp = hoomd.variant.Ramp(0.0, 0.1e8, 0, int(1e8))
+            # velocity gradient in z direction and shear flow in x direction.
+            mpf = hoomd.md.update.ReversePerturbationFlow(
+                filter=hoomd.filter.All(),
+                flow_target=ramp,
+                slab_direction="Z",
+                flow_direction="X",
+                n_slabs=20,
+            )
 
     {inherited}
 
@@ -393,6 +397,10 @@ class MeshDynamicalBonding(Updater):
     Tip:
         Use `hoomd.mesh.Mesh.create_dynamical_bonding_updater` to construct a
         `MeshDynamicalBonding` instance.
+
+    Attention:
+        Use 'meshbond_dynamic' exclusions in `NeighborList` when applying this
+        updater!
 
     Attention:
         `MeshDynamicalBonding` is NOT implemented for MPI parallel execution!

@@ -10,6 +10,10 @@
 
 #include "HPMCCounters.h"
 #include "IntegratorHPMCMono.h"
+#include "ShapeConvexPolygon.h"
+#include "ShapeEllipsoid.h"
+#include "ShapeFacetedEllipsoid.h"
+#include "ShapeSpheropolygon.h"
 
 #ifdef ENABLE_MPI
 #include "hoomd/HOOMDMPI.h"

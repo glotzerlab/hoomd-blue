@@ -289,7 +289,7 @@ struct wrap_particle_op
         {
         mpcd::detail::pdata_element ret = p;
         int3 image = make_int3(0, 0, 0);
-        box.wrap(ret.pos, image);
+        box.wrap(ret.pos, ret.vel, image);
         return ret;
         }
     };

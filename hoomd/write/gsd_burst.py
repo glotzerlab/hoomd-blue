@@ -44,6 +44,8 @@ class Burst(GSD):
             emptied after calling `dump` each time. When ``False``, `dump`
             removes frames from the buffer until the ``end`` index. Defaults
             to ``True``.
+        precision (str): Write precision for floating-point data. One of
+                ``'single'`` or ``'double'``. Defaults to ``'single'``.
 
     Warning:
         `Burst` errors when attempting to create a file or writing to one with
@@ -118,6 +120,7 @@ class Burst(GSD):
         max_burst_size=-1,
         write_at_start=False,
         clear_whole_buffer_after_dump=True,
+        precision="single",
     ):
         super().__init__(
             trigger=trigger,
@@ -126,6 +129,7 @@ class Burst(GSD):
             mode=mode,
             dynamic=dynamic,
             logger=logger,
+            precision=precision,
         )
         self._param_dict.pop("truncate")
         self._param_dict.update(ParameterDict(max_burst_size=int, write_at_start=bool))
@@ -150,6 +154,7 @@ class Burst(GSD):
             self.write_at_start,
             self.clear_whole_buffer_after_dump,
             sim.timestep,
+            self.precision,
         )
 
     def dump(self, start=0, end=-1):

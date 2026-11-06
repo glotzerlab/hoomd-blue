@@ -47,7 +47,7 @@ void MeshDefinition::setTypes(pybind11::list types)
 BondData::Snapshot MeshDefinition::getBondData()
     {
     BondData::Snapshot bond_data;
-    m_meshbond_data->takeSnapshot(bond_data);
+    m_meshbond_data->takeSnapshotBond(bond_data);
 #ifdef ENABLE_MPI
     bond_data.bcast(0, m_sysdef->getParticleData()->getExecConf()->getMPICommunicator());
 #endif

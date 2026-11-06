@@ -35,24 +35,38 @@ UP_TEST(rand_rotate_3d)
     {
     hoomd::RandomGenerator rng(hoomd::Seed(0, 1, 2), hoomd::Counter(4, 5, 6));
 
-    quat<Scalar> a(1, vec3<Scalar>(0, 0, 0));
-    for (int i = 0; i < 10000; i++)
+    // The commented code inspects the distribution of rotation move angles.
+    // ofstream out("rotate_move_angles.txt");
+    // out << "a,angle,branch" << endl;
+
+    for (Scalar maximum_rotation = 0.1; maximum_rotation < 1.0; maximum_rotation += 0.4)
         {
-        // move the shape
-        quat<Scalar> prev = a;
-        move_rotate<3>(a, rng, 1.0);
-        quat<Scalar> delta(prev.s - a.s, prev.v - a.v);
+        quat<Scalar> a(1, vec3<Scalar>(0, 0, 0));
+        for (int i = 0; i < 10000; i++)
+            {
+            // move the shape
+            quat<Scalar> prev = a;
+            move_rotate<3>(a, rng, maximum_rotation);
+            quat<Scalar> delta(prev.s - a.s, prev.v - a.v);
 
-        // check that all coordinates moved
-        // yes, it is possible that one of the random numbers is zero - if that is the case we can
-        // pick a different seed so that we do not sample that case
-        UP_ASSERT(fabs(delta.s) > 0);
-        UP_ASSERT(fabs(delta.v.x) > 0);
-        UP_ASSERT(fabs(delta.v.y) > 0);
-        UP_ASSERT(fabs(delta.v.z) > 0);
+            // compute the angle that the body rotated by
+            // quat<Scalar> q = conj(prev) * a;
+            // Scalar cos_alpha_over_2 = q.s;
+            // Scalar sin_alpha_over_2 = fast::sqrt(dot(q.v, q.v));
+            // Scalar theta = 2.0 * atan2(sin_alpha_over_2, cos_alpha_over_2);
+            // out << maximum_rotation << "," << theta << "," << "v7.x+" << endl;
 
-        // check that it is a valid rotation
-        MY_CHECK_CLOSE(norm2(a), 1, tol);
+            // check that all coordinates moved
+            // yes, it is possible that one of the random numbers is zero - if that is the case we
+            // can pick a different seed so that we do not sample that case
+            UP_ASSERT(fabs(delta.s) > 0);
+            UP_ASSERT(fabs(delta.v.x) > 0);
+            UP_ASSERT(fabs(delta.v.y) > 0);
+            UP_ASSERT(fabs(delta.v.z) > 0);
+
+            // check that it is a valid rotation
+            MY_CHECK_CLOSE(norm2(a), 1, tol);
+            }
         }
     }
 
