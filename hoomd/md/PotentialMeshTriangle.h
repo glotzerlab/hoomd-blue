@@ -700,28 +700,24 @@ template<class evaluator> void PotentialMeshTriangle<evaluator>::computeForces(u
                 pea += pair_eng * Scalar(0.5) * Area_a;
                 peb += pair_eng * Scalar(0.5) * Area_b;
                 pec += pair_eng * Scalar(0.5) * Area_c;
+
+                Scalar virial_dx[6];
+                Scalar virial_half = Scalar(0.5) * force_divr;
                 if (compute_virial)
                     {
-                    viriala[0] += force_divr * Area_a * pos_a.x * dx.x;
-                    viriala[1] += force_divr * Area_a * pos_a.x * dx.y;
-                    viriala[2] += force_divr * Area_a * pos_a.x * dx.z;
-                    viriala[3] += force_divr * Area_a * pos_a.y * dx.y;
-                    viriala[4] += force_divr * Area_a * pos_a.y * dx.z;
-                    viriala[5] += force_divr * Area_a * pos_a.z * dx.z;
+                    virial_dx[0] = dx.x * dx.x;
+                    virial_dx[1] = dx.x * dx.y;
+                    virial_dx[2] = dx.x * dx.z;
+                    virial_dx[3] = dx.y * dx.y;
+                    virial_dx[4] = dx.y * dx.z;
+                    virial_dx[5] = dx.z * dx.z;
 
-                    virialb[0] += force_divr * Area_b * pos_b.x * dx.x;
-                    virialb[1] += force_divr * Area_b * pos_b.x * dx.y;
-                    virialb[2] += force_divr * Area_b * pos_b.x * dx.z;
-                    virialb[3] += force_divr * Area_b * pos_b.y * dx.y;
-                    virialb[4] += force_divr * Area_b * pos_b.y * dx.z;
-                    virialb[5] += force_divr * Area_b * pos_b.z * dx.z;
-
-                    virialc[0] += force_divr * Area_c * pos_c.x * dx.x;
-                    virialc[1] += force_divr * Area_c * pos_c.x * dx.y;
-                    virialc[2] += force_divr * Area_c * pos_c.x * dx.z;
-                    virialc[3] += force_divr * Area_c * pos_c.y * dx.y;
-                    virialc[4] += force_divr * Area_c * pos_c.y * dx.z;
-                    virialc[5] += force_divr * Area_c * pos_c.z * dx.z;
+                    for (unsigned int kk = 0; kk < 6; kk++)
+                        {
+                        viriala[kk] += virial_half * Area_a * virial_dx[kk];
+                        virialb[kk] += virial_half * Area_b * virial_dx[kk];
+                        virialc[kk] += virial_half * Area_c * virial_dx[kk];
+                        }
                     }
 
                 if (j < m_pdata->getN())
@@ -732,12 +728,8 @@ template<class evaluator> void PotentialMeshTriangle<evaluator>::computeForces(u
                     h_force.data[j].w += pair_eng * Scalar(0.5);
                     if (compute_virial)
                         {
-                        h_virial.data[0 * virial_pitch + j] -= force_divr * pj.x * dx.x;
-                        h_virial.data[1 * virial_pitch + j] -= force_divr * pj.x * dx.y;
-                        h_virial.data[2 * virial_pitch + j] -= force_divr * pj.x * dx.z;
-                        h_virial.data[3 * virial_pitch + j] -= force_divr * pj.y * dx.y;
-                        h_virial.data[4 * virial_pitch + j] -= force_divr * pj.y * dx.z;
-                        h_virial.data[5 * virial_pitch + j] -= force_divr * pj.z * dx.z;
+                        for (unsigned int kk = 0; kk < 6; kk++)
+                            h_virial.data[kk * virial_pitch + j] += virial_half * virial_dx[kk];
                         }
                     }
                 }
