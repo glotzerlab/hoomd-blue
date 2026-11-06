@@ -17,7 +17,7 @@ Next release
 
 *Fixed*
 
-* Setting typeparamdict defaults no longer fails for `hoomd.hpmc.pair.Step` and other classes that use `hoomd.data.typeconverter.OnlyIf` (#2386)
+* Setting ``typeparamdict`` defaults no longer fails for ``hoomd.hpmc.pair.Step`` and other classes that use ``hoomd.data.typeconverter.OnlyIf`` (#2386)
 
 7.2.1 (2026-10-30)
 ^^^^^^^^^^^^^^^^^^^^
