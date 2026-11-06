@@ -7,7 +7,7 @@ from hoomd.hpmc.integrate import Sphere
 
 def test_default_can_be_set_despite_only_if():
     step = Step()
-    step.params.default = {"epsilon": [1,2], "r": [1,2]}
+    step.params.default = {"epsilon": [1, 2], "r": [1, 2]}
 
     sim = make_example_simulation()
     integrator = Sphere()
@@ -16,4 +16,6 @@ def test_default_can_be_set_despite_only_if():
     sim.operations.integrator = integrator
     sim.run(0)
 
-    assert sim.operations.integrator.pair_potentials[0].params.default == {"epsilon": [1.0, 2.0], "r": [1.0, 2.0]}
+    assert sim.operations.integrator.pair_potentials[0].params.default == {
+        "epsilon": [1.0, 2.0], "r": [1.0, 2.0]
+    }
