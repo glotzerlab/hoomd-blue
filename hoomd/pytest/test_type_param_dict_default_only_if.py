@@ -5,6 +5,7 @@ from hoomd.hpmc.pair import Step
 from hoomd.util import make_example_simulation
 from hoomd.hpmc.integrate import Sphere
 
+
 def test_default_can_be_set_despite_only_if():
     step = Step()
     step.params.default = {"epsilon": [1, 2], "r": [1, 2]}
