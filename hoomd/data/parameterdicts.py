@@ -375,7 +375,7 @@ class _ValidatedDefaultDict(MutableMapping):
             new_default = self._default(new_default)
         if isinstance(new_default, dict):
             if isinstance(self._type_converter, OnlyIf) and isinstance(
-                self._type_converter.cond, TypeConverterMapping)
+                self._type_converter.cond, TypeConverterMapping
             ):
                 keys = set(self._type_converter.cond)
             else:
