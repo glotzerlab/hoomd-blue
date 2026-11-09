@@ -190,6 +190,7 @@ def test_logging():
         },
     )
 
+
 @pytest.mark.cpu
 def test_default_can_be_set_despite_only_if(mc_simulation_factory):
     step = hoomd.hpmc.pair.Step()
