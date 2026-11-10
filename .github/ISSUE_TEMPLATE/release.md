@@ -1,7 +1,7 @@
 ---
 name: Release checklist
 about: '[for maintainer use]'
-title: 'Release 7.2.1'
+title: 'Release 7.2.2'
 labels: ''
 
 ---
@@ -12,7 +12,7 @@ To make a new HOOMD-blue release:
 
 On that branch, take the following steps (committing after each step when needed):
 
-- [ ] Run `prek autoupdate`
+- [ ] Run `prek autoupdate --freeze`
 - [ ] Check for new or duplicate contributors since the last release:
   `comm -13 (git log $(git describe --tags --abbrev=0) --format="%aN <%aE>" | sort | uniq | psub) (git log --format="%aN <%aE>" | sort | uniq | psub)`.
   Add entries to `.mailmap` to remove duplicates.
@@ -67,7 +67,7 @@ hours, the conda-forge autotick bot will submit a PR for the new release.
   - [ ] Anvil
   - [ ] Delta
   - [ ] Frontier
-  - [ ] Andes
+  - [ ] Riker
 
 For major and minor releases:
 
