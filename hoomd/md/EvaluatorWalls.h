@@ -8,7 +8,7 @@
 
 #pragma once
 
-#ifndef __HIPCC__
+#ifndef __NVCC__
 #include <pybind11/pybind11.h>
 #include <string>
 #endif
@@ -19,7 +19,7 @@
 #include "hoomd/VectorMath.h"
 
 #undef DEVICE
-#ifdef __HIPCC__
+#ifdef __NVCC__
 #define DEVICE __device__
 #define HOOMD_PYBIND11_EXPORT
 #else
@@ -114,7 +114,7 @@ template<class evaluator> class EvaluatorWalls
         Scalar rcutsq;
         Scalar rextrap;
 
-#ifndef __HIPCC__
+#ifndef __NVCC__
         param_type(pybind11::object param_dict)
             : params(param_dict), rcutsq(pow(param_dict["r_cut"].cast<Scalar>(), 2)),
               rextrap(param_dict["r_extrap"].cast<Scalar>())
@@ -181,7 +181,7 @@ template<class evaluator> class EvaluatorWalls
         if (evaluated)
             {
 // correctly result in a 0 force in this case
-#ifdef __HIPCC__
+#ifdef __NVCC__
             if (!isfinite(force_divr))
 #else
             if (!std::isfinite(force_divr))
@@ -218,7 +218,7 @@ template<class evaluator> class EvaluatorWalls
             pair_eng = pair_eng + force_divr * m_params.rextrap * r;
             force_divr *= m_params.rextrap / r;
 // correctly result in a 0 force in this case
-#ifdef __HIPCC__
+#ifdef __NVCC__
             if (!isfinite(force_divr))
 #else
             if (!std::isfinite(force_divr))
@@ -374,7 +374,7 @@ template<class evaluator> class EvaluatorWalls
         virial[5] = F.z * m_pos.z;
         }
 
-#ifndef __HIPCC__
+#ifndef __NVCC__
     //! Get the name of this potential
     /*! \returns The potential name.
      */

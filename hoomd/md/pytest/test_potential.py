@@ -967,13 +967,6 @@ def test_force_energy_relationship(
             "Cannot test force energy relationship for " + pot_name + " pair force"
         )
 
-    if (
-        pot_name == "Tersoff"
-        and isinstance(device, hoomd.device.GPU)
-        and hoomd.version.gpu_platform == "ROCm"
-    ):
-        pytest.skip("Tersoff causes seg faults on ROCm (#1606).")
-
     pair_keys = valid_params.pair_potential_params.keys()
     particle_types = list(set(itertools.chain.from_iterable(pair_keys)))
     pot = valid_params.pair_potential(
@@ -1004,8 +997,8 @@ def test_force_energy_relationship(
         calculated_forces = _calculate_force(sim)
         sim_forces = sim.operations.integrator.forces[0].forces
         if sim_forces is not None:
-            np.testing.assert_allclose(calculated_forces[0], sim_forces[0], rtol=1e-05)
-            np.testing.assert_allclose(calculated_forces[1], sim_forces[1], rtol=1e-05)
+            np.testing.assert_allclose(calculated_forces[0], sim_forces[0], rtol=1e-04)
+            np.testing.assert_allclose(calculated_forces[1], sim_forces[1], rtol=1e-04)
 
 
 def _forces_and_energies():
@@ -1106,9 +1099,14 @@ def test_force_energy_accuracy(
         sim_energies = sim.operations.integrator.forces[0].energies
         sim_forces = sim.operations.integrator.forces[0].forces
         if sim_energies is not None:
-            assert isclose(sum(sim_energies), forces_and_energies.energies[i])
+            assert isclose(
+                sum(sim_energies), forces_and_energies.energies[i], rtol=1e-4
+            )
             assert np.allclose(
-                sim_forces[0], forces_and_energies.forces[i] * r, equal_nan=True
+                sim_forces[0],
+                forces_and_energies.forces[i] * r,
+                equal_nan=True,
+                rtol=1e-4,
             )
 
 

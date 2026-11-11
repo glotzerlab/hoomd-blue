@@ -33,7 +33,7 @@ endif()
 
 foreach (CUR_TEST ${TEST_LIST} ${MPI_TEST_LIST})
     # add and link the unit test executable
-    if(ENABLE_HIP AND EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/${CUR_TEST}.cu)
+    if(ENABLE_GPU AND EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/${CUR_TEST}.cu)
         set(_cuda_sources ${CUR_TEST}.cu)
     else()
         set(_cuda_sources "")

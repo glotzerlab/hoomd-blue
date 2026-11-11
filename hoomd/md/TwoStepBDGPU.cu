@@ -1,7 +1,7 @@
 // Copyright (c) 2009-2026 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
-#include "hip/hip_runtime.h"
+#include <cuda_runtime.h>
 // Copyright (c) 2009-2021 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
@@ -75,7 +75,7 @@ __global__ void gpu_brownian_step_one_kernel(Scalar4* d_pos,
                                              const bool d_noiseless_r,
                                              bool enable_shared_cache)
     {
-    HIP_DYNAMIC_SHARED(char, s_data)
+    extern __shared__ char s_data[];
 
     Scalar3* s_gammas_r = (Scalar3*)s_data;
     Scalar* s_gammas = (Scalar*)(s_gammas_r + n_types);
@@ -309,33 +309,29 @@ __global__ void gpu_brownian_step_one_kernel(Scalar4* d_pos,
 
     This is just a driver for gpu_brownian_step_one_kernel(), see it for details.
 */
-hipError_t gpu_brownian_step_one(Scalar4* d_pos,
-                                 Scalar4* d_vel,
-                                 int3* d_image,
-                                 const BoxDim& box,
-                                 const unsigned int* d_tag,
-                                 const unsigned int* d_group_members,
-                                 const unsigned int group_size,
-                                 const Scalar4* d_net_force,
-                                 const Scalar3* d_gamma_r,
-                                 Scalar4* d_orientation,
-                                 Scalar4* d_torque,
-                                 const Scalar3* d_inertia,
-                                 Scalar4* d_angmom,
-                                 const langevin_step_two_args& langevin_args,
-                                 const bool aniso,
-                                 const Scalar deltaT,
-                                 const unsigned int D,
-                                 const bool d_noiseless_t,
-                                 const bool d_noiseless_r)
+cudaError_t gpu_brownian_step_one(Scalar4* d_pos,
+                                  Scalar4* d_vel,
+                                  int3* d_image,
+                                  const BoxDim& box,
+                                  const unsigned int* d_tag,
+                                  const unsigned int* d_group_members,
+                                  const unsigned int group_size,
+                                  const Scalar4* d_net_force,
+                                  const Scalar3* d_gamma_r,
+                                  Scalar4* d_orientation,
+                                  Scalar4* d_torque,
+                                  const Scalar3* d_inertia,
+                                  Scalar4* d_angmom,
+                                  const langevin_step_two_args& langevin_args,
+                                  const bool aniso,
+                                  const Scalar deltaT,
+                                  const unsigned int D,
+                                  const bool d_noiseless_t,
+                                  const bool d_noiseless_r)
     {
     unsigned int run_block_size = 256;
 
     unsigned int nwork = group_size;
-
-    // setup the grid to run the kernel
-    dim3 grid((nwork / run_block_size) + 1, 1, 1);
-    dim3 threads(run_block_size, 1, 1);
 
     auto shared_bytes
         = (sizeof(Scalar) * langevin_args.n_types + sizeof(Scalar3) * langevin_args.n_types);
@@ -348,38 +344,33 @@ hipError_t gpu_brownian_step_one(Scalar4* d_pos,
         shared_bytes = 0;
         }
 
-    // run the kernel
-    hipLaunchKernelGGL((gpu_brownian_step_one_kernel),
-                       dim3(grid),
-                       dim3(threads),
-                       shared_bytes,
-                       0,
-                       d_pos,
-                       d_vel,
-                       d_image,
-                       box,
-                       d_tag,
-                       d_group_members,
-                       nwork,
-                       d_net_force,
-                       d_gamma_r,
-                       d_orientation,
-                       d_torque,
-                       d_inertia,
-                       d_angmom,
-                       langevin_args.d_gamma,
-                       langevin_args.n_types,
-                       langevin_args.timestep,
-                       langevin_args.seed,
-                       langevin_args.T,
-                       aniso,
-                       deltaT,
-                       D,
-                       d_noiseless_t,
-                       d_noiseless_r,
-                       enable_shared_cache);
+    gpu_brownian_step_one_kernel<<<(nwork / run_block_size) + 1, run_block_size, shared_bytes>>>(
+        d_pos,
+        d_vel,
+        d_image,
+        box,
+        d_tag,
+        d_group_members,
+        nwork,
+        d_net_force,
+        d_gamma_r,
+        d_orientation,
+        d_torque,
+        d_inertia,
+        d_angmom,
+        langevin_args.d_gamma,
+        langevin_args.n_types,
+        langevin_args.timestep,
+        langevin_args.seed,
+        langevin_args.T,
+        aniso,
+        deltaT,
+        D,
+        d_noiseless_t,
+        d_noiseless_r,
+        enable_shared_cache);
 
-    return hipSuccess;
+    return cudaSuccess;
     }
 
     } // end namespace kernel

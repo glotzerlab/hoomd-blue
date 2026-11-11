@@ -9,7 +9,7 @@
 #include <functional>
 
 #include "hoomd/md/HarmonicAngleForceCompute.h"
-#ifdef ENABLE_HIP
+#ifdef ENABLE_GPU
 #include "hoomd/md/HarmonicAngleForceComputeGPU.h"
 #endif
 
@@ -429,7 +429,7 @@ base_class_af_creator(std::shared_ptr<SystemDefinition> sysdef)
     return std::shared_ptr<HarmonicAngleForceCompute>(new HarmonicAngleForceCompute(sysdef));
     }
 
-#ifdef ENABLE_HIP
+#ifdef ENABLE_GPU
 //! AngleForceCompute creator for bond_force_basic_tests()
 std::shared_ptr<HarmonicAngleForceCompute> gpu_af_creator(std::shared_ptr<SystemDefinition> sysdef)
     {
@@ -448,7 +448,7 @@ UP_TEST(HarmonicAngleForceCompute_basic)
     angle_force_basic_tests(af_creator, exec_conf);
     }
 
-#ifdef ENABLE_HIP
+#ifdef ENABLE_GPU
 //! test case for angle forces on the GPU
 UP_TEST(HarmonicAngleForceComputeGPU_basic)
     {

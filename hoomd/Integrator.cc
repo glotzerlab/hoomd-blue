@@ -3,7 +3,7 @@
 
 #include "Integrator.h"
 
-#ifdef ENABLE_HIP
+#ifdef ENABLE_GPU
 #include "Integrator.cuh"
 #endif
 
@@ -336,7 +336,7 @@ void Integrator::computeNetForce(uint64_t timestep)
     m_pdata->setExternalEnergy(external_energy);
     }
 
-#ifdef ENABLE_HIP
+#ifdef ENABLE_GPU
 /** @param timestep Current time step of the simulation
     \post All added force computes in \a m_forces are computed and totaled up in \a m_net_force and
    \a m_net_virial \note The summation step is performed <b>on the GPU</b>.

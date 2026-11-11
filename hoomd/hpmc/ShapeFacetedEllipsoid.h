@@ -12,7 +12,7 @@
 #include "hoomd/HOOMDMath.h"
 #include "hoomd/VectorMath.h"
 
-#ifdef __HIPCC__
+#ifdef __NVCC__
 #define DEVICE __device__
 #define HOSTDEVICE __host__ __device__
 #else
@@ -44,7 +44,7 @@ struct FacetedEllipsoidParams : ShapeParams
         {
         }
 
-#ifndef __HIPCC__
+#ifndef __NVCC__
     /// Construct a faceted ellipsoid with n_facet facets
     FacetedEllipsoidParams(unsigned int n_facet, bool managed)
         : a(1.0), b(1.0), c(1.0), N(n_facet), ignore(0)
@@ -337,7 +337,7 @@ struct FacetedEllipsoidParams : ShapeParams
         additional_verts.allocate_shared(ptr, available_bytes);
         }
 
-#ifdef ENABLE_HIP
+#ifdef ENABLE_GPU
     void set_memory_hint() const
         {
         n.set_memory_hint();

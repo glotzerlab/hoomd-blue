@@ -23,7 +23,7 @@ void export_HOOMDHostBuffer(pybind11::module& m)
     ;
     }
 
-#if ENABLE_HIP
+#if ENABLE_GPU
 
 void export_HOOMDDeviceBuffer(pybind11::module& m)
     {

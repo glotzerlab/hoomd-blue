@@ -3,7 +3,7 @@
 
 #include "hoomd/HOOMDMath.h"
 
-#ifndef __HIPCC__
+#ifndef __NVCC__
 #include <pybind11/pybind11.h>
 #endif
 
@@ -18,7 +18,7 @@ struct volume_conservation_param_t
     Scalar k;
     Scalar V0;
 
-#ifndef __HIPCC__
+#ifndef __NVCC__
     volume_conservation_param_t() : k(0), V0(0) { }
 
     volume_conservation_param_t(pybind11::dict params)

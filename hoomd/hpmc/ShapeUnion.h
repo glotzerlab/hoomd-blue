@@ -13,7 +13,7 @@
 
 #include "hoomd/AABB.h"
 #include "hoomd/ManagedArray.h"
-#ifdef __HIPCC__
+#ifdef __NVCC__
 #define DEVICE __device__
 #define HOSTDEVICE __host__ __device__
 #else
@@ -54,7 +54,7 @@ template<class Shape> struct ShapeUnionParams : ShapeParams
         morientation.load_shared(ptr, available_bytes);
 
 // load all member parameters
-#if defined(__HIP_DEVICE_COMPILE__)
+#ifdef __CUDA_ARCH__
         __syncthreads();
 #endif
 
@@ -88,7 +88,7 @@ template<class Shape> struct ShapeUnionParams : ShapeParams
             }
         }
 
-#ifdef ENABLE_HIP
+#ifdef ENABLE_GPU
 
     /// Set CUDA memory hints
     void set_memory_hint() const
@@ -107,7 +107,7 @@ template<class Shape> struct ShapeUnionParams : ShapeParams
 
 #endif
 
-#ifndef __HIPCC__
+#ifndef __NVCC__
 
     /** Construct with a given number of members
 
@@ -456,7 +456,7 @@ DEVICE inline bool test_narrow_phase_overlap(vec3<ShortReal> dr,
 
     unsigned int len = na * nb;
 
-#if defined(__HIP_DEVICE_COMPILE__)
+#ifdef __CUDA_ARCH__
     unsigned int offset = threadIdx.x;
     unsigned int incr = blockDim.x;
 #else
@@ -552,7 +552,7 @@ DEVICE inline bool test_overlap(const vec3<Scalar>& r_ab,
     return false;
     }
 
-#ifndef __HIPCC__
+#ifndef __NVCC__
 template<> inline std::string getShapeSpec(const ShapeUnion<ShapeSphere>& sphere_union)
     {
     auto& members = sphere_union.members;

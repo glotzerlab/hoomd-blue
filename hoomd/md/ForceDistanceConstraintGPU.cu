@@ -3,7 +3,8 @@
 
 #include "ForceDistanceConstraintGPU.cuh"
 
-#include <hip/hip_runtime_api.h>
+#include <cuda_runtime.h>
+#include <cusparse.h>
 
 /*! \file ForceDistanceConstraintGPU.cu
     \brief Defines GPU kernel code for pairwise distance constraints on the GPU
@@ -172,30 +173,30 @@ __global__ void gpu_fill_matrix_vector_kernel(unsigned int n_constraint,
         }
     }
 
-hipError_t gpu_fill_matrix_vector(unsigned int n_constraint,
-                                  unsigned int nptl_local,
-                                  double* d_matrix,
-                                  double* d_vec,
-                                  double* d_csr_val,
-                                  const int* d_csr_idxlookup,
-                                  unsigned int* d_sparsity_pattern_changed,
-                                  Scalar rel_tol,
-                                  unsigned int* d_constraint_violated,
-                                  const Scalar4* d_pos,
-                                  const Scalar4* d_vel,
-                                  const Scalar4* d_netforce,
-                                  const group_storage<2>* d_gpu_clist,
-                                  const Index2D& gpu_clist_indexer,
-                                  const unsigned int* d_gpu_n_constraints,
-                                  const unsigned int* d_gpu_cpos,
-                                  const typeval_union* d_group_typeval,
-                                  Scalar deltaT,
-                                  const BoxDim box,
-                                  unsigned int block_size)
+cudaError_t gpu_fill_matrix_vector(unsigned int n_constraint,
+                                   unsigned int nptl_local,
+                                   double* d_matrix,
+                                   double* d_vec,
+                                   double* d_csr_val,
+                                   const int* d_csr_idxlookup,
+                                   unsigned int* d_sparsity_pattern_changed,
+                                   Scalar rel_tol,
+                                   unsigned int* d_constraint_violated,
+                                   const Scalar4* d_pos,
+                                   const Scalar4* d_vel,
+                                   const Scalar4* d_netforce,
+                                   const group_storage<2>* d_gpu_clist,
+                                   const Index2D& gpu_clist_indexer,
+                                   const unsigned int* d_gpu_n_constraints,
+                                   const unsigned int* d_gpu_cpos,
+                                   const typeval_union* d_group_typeval,
+                                   Scalar deltaT,
+                                   const BoxDim box,
+                                   unsigned int block_size)
     {
     unsigned int max_block_size;
-    hipFuncAttributes attr;
-    hipFuncGetAttributes(&attr, (const void*)gpu_fill_matrix_vector_kernel);
+    cudaFuncAttributes attr;
+    cudaFuncGetAttributes(&attr, (const void*)gpu_fill_matrix_vector_kernel);
     max_block_size = attr.maxThreadsPerBlock;
 
     // run configuration
@@ -203,32 +204,27 @@ hipError_t gpu_fill_matrix_vector(unsigned int n_constraint,
     unsigned int n_blocks = nptl_local / run_block_size + 1;
 
     // run GPU kernel
-    hipLaunchKernelGGL((gpu_fill_matrix_vector_kernel),
-                       dim3(n_blocks),
-                       dim3(run_block_size),
-                       0,
-                       0,
-                       n_constraint,
-                       nptl_local,
-                       d_matrix,
-                       d_vec,
-                       d_csr_val,
-                       d_csr_idxlookup,
-                       d_sparsity_pattern_changed,
-                       rel_tol,
-                       d_constraint_violated,
-                       d_pos,
-                       d_vel,
-                       d_netforce,
-                       d_gpu_clist,
-                       gpu_clist_indexer,
-                       d_gpu_n_constraints,
-                       d_gpu_cpos,
-                       d_group_typeval,
-                       deltaT,
-                       box);
+    gpu_fill_matrix_vector_kernel<<<n_blocks, run_block_size>>>(n_constraint,
+                                                                nptl_local,
+                                                                d_matrix,
+                                                                d_vec,
+                                                                d_csr_val,
+                                                                d_csr_idxlookup,
+                                                                d_sparsity_pattern_changed,
+                                                                rel_tol,
+                                                                d_constraint_violated,
+                                                                d_pos,
+                                                                d_vel,
+                                                                d_netforce,
+                                                                d_gpu_clist,
+                                                                gpu_clist_indexer,
+                                                                d_gpu_n_constraints,
+                                                                d_gpu_cpos,
+                                                                d_group_typeval,
+                                                                deltaT,
+                                                                box);
 
-    return hipSuccess;
+    return cudaSuccess;
     }
 
 __global__ void gpu_fill_constraint_forces_kernel(unsigned int nptl_local,
@@ -328,12 +324,12 @@ __global__ void gpu_fill_constraint_forces_kernel(unsigned int nptl_local,
     }
 
 #ifdef CUSOLVER_AVAILABLE
-hipError_t gpu_count_nnz(unsigned int n_constraint,
-                         double* d_matrix,
-                         int* d_nnz,
-                         int& nnz,
-                         cusparseHandle_t cusparse_handle,
-                         cusparseMatDescr_t cusparse_mat_descr)
+cudaError_t gpu_count_nnz(unsigned int n_constraint,
+                          double* d_matrix,
+                          int* d_nnz,
+                          int& nnz,
+                          cusparseHandle_t cusparse_handle,
+                          cusparseMatDescr_t cusparse_mat_descr)
     {
     // count zeros
     cusparseDnnz(cusparse_handle,
@@ -345,57 +341,29 @@ hipError_t gpu_count_nnz(unsigned int n_constraint,
                  n_constraint,
                  d_nnz,
                  &nnz);
-    return hipSuccess;
-    }
-
-#ifndef CUSPARSE_NEW_API
-hipError_t gpu_dense2sparse(unsigned int n_constraint,
-                            double* d_matrix,
-                            int* d_nnz,
-                            cusparseHandle_t cusparse_handle,
-                            cusparseMatDescr_t cusparse_mat_descr,
-                            int* d_csr_rowptr,
-                            int* d_csr_colind,
-                            double* d_csr_val)
-    {
-    // convert dense matrix to compressed sparse row
-
-    // update values in CSR format
-    cusparseDdense2csr(cusparse_handle,
-                       n_constraint,
-                       n_constraint,
-                       cusparse_mat_descr,
-                       d_matrix,
-                       n_constraint,
-                       d_nnz,
-                       d_csr_val,
-                       d_csr_rowptr,
-                       d_csr_colind);
-
-    return hipSuccess;
+    return cudaSuccess;
     }
 #endif
-#endif
 
-hipError_t gpu_compute_constraint_forces(const Scalar4* d_pos,
-                                         const group_storage<2>* d_gpu_clist,
-                                         const Index2D& gpu_clist_indexer,
-                                         const unsigned int* d_gpu_n_constraints,
-                                         const unsigned int* d_gpu_cpos,
-                                         Scalar4* d_force,
-                                         Scalar* d_virial,
-                                         size_t virial_pitch,
-                                         const BoxDim box,
-                                         unsigned int nptl_local,
-                                         unsigned int block_size,
-                                         double* d_lagrange)
+cudaError_t gpu_compute_constraint_forces(const Scalar4* d_pos,
+                                          const group_storage<2>* d_gpu_clist,
+                                          const Index2D& gpu_clist_indexer,
+                                          const unsigned int* d_gpu_n_constraints,
+                                          const unsigned int* d_gpu_cpos,
+                                          Scalar4* d_force,
+                                          Scalar* d_virial,
+                                          size_t virial_pitch,
+                                          const BoxDim box,
+                                          unsigned int nptl_local,
+                                          unsigned int block_size,
+                                          double* d_lagrange)
     {
     // d_lagrange contains the Lagrange multipliers
 
     // fill out force array
     unsigned int max_block_size;
-    hipFuncAttributes attr;
-    hipFuncGetAttributes(&attr, (const void*)gpu_fill_constraint_forces_kernel);
+    cudaFuncAttributes attr;
+    cudaFuncGetAttributes(&attr, (const void*)gpu_fill_constraint_forces_kernel);
     max_block_size = attr.maxThreadsPerBlock;
 
     // run configuration
@@ -403,24 +371,19 @@ hipError_t gpu_compute_constraint_forces(const Scalar4* d_pos,
     unsigned int n_blocks = nptl_local / run_block_size + 1;
 
     // invoke kernel
-    hipLaunchKernelGGL((gpu_fill_constraint_forces_kernel),
-                       dim3(n_blocks),
-                       dim3(run_block_size),
-                       0,
-                       0,
-                       nptl_local,
-                       d_pos,
-                       d_gpu_clist,
-                       gpu_clist_indexer,
-                       d_gpu_n_constraints,
-                       d_gpu_cpos,
-                       d_lagrange,
-                       d_force,
-                       d_virial,
-                       virial_pitch,
-                       box);
+    gpu_fill_constraint_forces_kernel<<<n_blocks, run_block_size>>>(nptl_local,
+                                                                    d_pos,
+                                                                    d_gpu_clist,
+                                                                    gpu_clist_indexer,
+                                                                    d_gpu_n_constraints,
+                                                                    d_gpu_cpos,
+                                                                    d_lagrange,
+                                                                    d_force,
+                                                                    d_virial,
+                                                                    virial_pitch,
+                                                                    box);
 
-    return hipSuccess;
+    return cudaSuccess;
     }
 
     } // end namespace kernel

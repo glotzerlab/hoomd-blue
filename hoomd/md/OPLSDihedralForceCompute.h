@@ -11,7 +11,7 @@
     \brief Declares a class for computing OPLS dihedrals
 */
 
-#ifdef __HIPCC__
+#ifdef __NVCC__
 #error This header cannot be compiled by nvcc
 #endif
 
@@ -31,7 +31,7 @@ struct dihedral_opls_params
     Scalar k3;
     Scalar k4;
 
-#ifndef __HIPCC__
+#ifndef __NVCC__
     dihedral_opls_params() : k1(0.), k2(0.), k3(0.), k4(0.) { }
 
     dihedral_opls_params(pybind11::dict v)

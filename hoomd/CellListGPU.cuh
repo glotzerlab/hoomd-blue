@@ -4,8 +4,8 @@
 #ifndef __CELLLISTGPU_CUH__
 #define __CELLLISTGPU_CUH__
 
-#if defined(ENABLE_HIP)
-#include <hip/hip_runtime.h>
+#ifdef ENABLE_GPU
+#include <cuda_runtime.h>
 #endif
 
 #include "HOOMDMath.h"
@@ -42,35 +42,35 @@ void gpu_compute_cell_list(unsigned int* d_cell_size,
                            const unsigned int block_size);
 
 //! Driver function to combine the cell lists from different GPUs into one
-hipError_t gpu_combine_cell_lists(const unsigned int* d_cell_size_scratch,
-                                  unsigned int* d_cell_size,
-                                  const unsigned int* d_idx_scratch,
-                                  unsigned int* d_idx,
-                                  const Scalar4* d_xyzf_scratch,
-                                  Scalar4* d_xyzf,
-                                  const uint2* d_type_body_scratch,
-                                  uint2* d_type_body,
-                                  const Scalar4* d_cell_orientation_scratch,
-                                  Scalar4* d_cell_orientation,
-                                  const Index2D cli,
-                                  unsigned int ngpu,
-                                  const unsigned int block_size,
-                                  const unsigned int Nmax,
-                                  uint3* d_conditions);
+cudaError_t gpu_combine_cell_lists(const unsigned int* d_cell_size_scratch,
+                                   unsigned int* d_cell_size,
+                                   const unsigned int* d_idx_scratch,
+                                   unsigned int* d_idx,
+                                   const Scalar4* d_xyzf_scratch,
+                                   Scalar4* d_xyzf,
+                                   const uint2* d_type_body_scratch,
+                                   uint2* d_type_body,
+                                   const Scalar4* d_cell_orientation_scratch,
+                                   Scalar4* d_cell_orientation,
+                                   const Index2D cli,
+                                   unsigned int ngpu,
+                                   const unsigned int block_size,
+                                   const unsigned int Nmax,
+                                   uint3* d_conditions);
 
-hipError_t gpu_sort_cell_list(unsigned int* d_cell_size,
-                              Scalar4* d_xyzf,
-                              Scalar4* d_xyzf_new,
-                              uint2* d_type_body,
-                              uint2* d_type_body_new,
-                              Scalar4* d_cell_orientation,
-                              Scalar4* d_cell_orientation_new,
-                              unsigned int* d_cell_idx,
-                              unsigned int* d_cell_idx_new,
-                              uint2* d_sort_idx,
-                              unsigned int* d_sort_permutation,
-                              const Index3D ci,
-                              const Index2D cli);
+cudaError_t gpu_sort_cell_list(unsigned int* d_cell_size,
+                               Scalar4* d_xyzf,
+                               Scalar4* d_xyzf_new,
+                               uint2* d_type_body,
+                               uint2* d_type_body_new,
+                               Scalar4* d_cell_orientation,
+                               Scalar4* d_cell_orientation_new,
+                               unsigned int* d_cell_idx,
+                               unsigned int* d_cell_idx_new,
+                               uint2* d_sort_idx,
+                               unsigned int* d_sort_permutation,
+                               const Index3D ci,
+                               const Index2D cli);
 
     } // end namespace hoomd
 #endif

@@ -13,7 +13,6 @@
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wconversion"
 #include <cub/device/device_partition.cuh>
-#include <cub/iterator/counting_input_iterator.cuh>
 #include <thrust/iterator/counting_iterator.h>
 #pragma GCC diagnostic pop
 

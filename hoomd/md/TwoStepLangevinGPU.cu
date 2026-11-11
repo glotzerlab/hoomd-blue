@@ -1,7 +1,7 @@
 // Copyright (c) 2009-2026 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
-#include "hip/hip_runtime.h"
+#include <cuda_runtime.h>
 // Copyright (c) 2009-2021 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
@@ -67,7 +67,7 @@ __global__ void gpu_langevin_step_two_kernel(const Scalar4* d_pos,
                                              Scalar* d_partial_sum_bdenergy,
                                              bool enable_shared_cache)
     {
-    HIP_DYNAMIC_SHARED(char, s_data)
+    extern __shared__ char s_data[];
     Scalar* s_gammas = (Scalar*)s_data;
 
     if (enable_shared_cache)
@@ -197,7 +197,7 @@ __global__ void
 gpu_bdtally_reduce_partial_sum_kernel(Scalar* d_sum, Scalar* d_partial_sum, unsigned int num_blocks)
     {
     Scalar sum = Scalar(0.0);
-    HIP_DYNAMIC_SHARED(char, s_data)
+    extern __shared__ char s_data[];
     Scalar* bdtally_sdata = (Scalar*)&s_data[0];
 
     // sum up the values in the partial sum via a sliding window
@@ -266,7 +266,7 @@ __global__ void gpu_langevin_angular_step_two_kernel(const Scalar4* d_pos,
                                                      Scalar scale,
                                                      bool enable_shared_cache)
     {
-    HIP_DYNAMIC_SHARED(char, s_data)
+    extern __shared__ char s_data[];
     Scalar3* s_gammas_r = (Scalar3*)s_data;
 
     if (enable_shared_cache)
@@ -409,24 +409,21 @@ __global__ void gpu_langevin_angular_step_two_kernel(const Scalar4* d_pos,
     This is just a driver for gpu_langevin_angular_step_two_kernel(), see it for details.
 
 */
-hipError_t gpu_langevin_angular_step_two(const Scalar4* d_pos,
-                                         Scalar4* d_orientation,
-                                         Scalar4* d_angmom,
-                                         const Scalar3* d_inertia,
-                                         Scalar4* d_net_torque,
-                                         const unsigned int* d_group_members,
-                                         const Scalar3* d_gamma_r,
-                                         const unsigned int* d_tag,
-                                         unsigned int group_size,
-                                         const langevin_step_two_args& langevin_args,
-                                         Scalar deltaT,
-                                         unsigned int D,
-                                         Scalar scale)
+cudaError_t gpu_langevin_angular_step_two(const Scalar4* d_pos,
+                                          Scalar4* d_orientation,
+                                          Scalar4* d_angmom,
+                                          const Scalar3* d_inertia,
+                                          Scalar4* d_net_torque,
+                                          const unsigned int* d_group_members,
+                                          const Scalar3* d_gamma_r,
+                                          const unsigned int* d_tag,
+                                          unsigned int group_size,
+                                          const langevin_step_two_args& langevin_args,
+                                          Scalar deltaT,
+                                          unsigned int D,
+                                          Scalar scale)
     {
-    // setup the grid to run the kernel
     int block_size = 256;
-    dim3 grid((group_size / block_size) + 1, 1, 1);
-    dim3 threads(block_size, 1, 1);
 
     auto shared_bytes = max((sizeof(Scalar3) * langevin_args.n_types),
                             (langevin_args.block_size * sizeof(Scalar)));
@@ -440,31 +437,28 @@ hipError_t gpu_langevin_angular_step_two(const Scalar4* d_pos,
         }
 
     // run the kernel
-    hipLaunchKernelGGL(gpu_langevin_angular_step_two_kernel,
-                       grid,
-                       threads,
-                       shared_bytes,
-                       0,
-                       d_pos,
-                       d_orientation,
-                       d_angmom,
-                       d_inertia,
-                       d_net_torque,
-                       d_group_members,
-                       d_gamma_r,
-                       d_tag,
-                       langevin_args.n_types,
-                       group_size,
-                       langevin_args.timestep,
-                       langevin_args.seed,
-                       langevin_args.T,
-                       langevin_args.noiseless_r,
-                       deltaT,
-                       D,
-                       scale,
-                       enable_shared_cache);
+    gpu_langevin_angular_step_two_kernel<<<(group_size / block_size) + 1,
+                                           block_size,
+                                           shared_bytes>>>(d_pos,
+                                                           d_orientation,
+                                                           d_angmom,
+                                                           d_inertia,
+                                                           d_net_torque,
+                                                           d_group_members,
+                                                           d_gamma_r,
+                                                           d_tag,
+                                                           langevin_args.n_types,
+                                                           group_size,
+                                                           langevin_args.timestep,
+                                                           langevin_args.seed,
+                                                           langevin_args.T,
+                                                           langevin_args.noiseless_r,
+                                                           deltaT,
+                                                           D,
+                                                           scale,
+                                                           enable_shared_cache);
 
-    return hipSuccess;
+    return cudaSuccess;
     }
 
 /*! \param d_pos array of particle positions and types
@@ -480,23 +474,17 @@ hipError_t gpu_langevin_angular_step_two(const Scalar4* d_pos,
 
     This is just a driver for gpu_langevin_step_two_kernel(), see it for details.
 */
-hipError_t gpu_langevin_step_two(const Scalar4* d_pos,
-                                 Scalar4* d_vel,
-                                 Scalar3* d_accel,
-                                 const unsigned int* d_tag,
-                                 unsigned int* d_group_members,
-                                 unsigned int group_size,
-                                 Scalar4* d_net_force,
-                                 const langevin_step_two_args& langevin_args,
-                                 Scalar deltaT,
-                                 unsigned int D)
+cudaError_t gpu_langevin_step_two(const Scalar4* d_pos,
+                                  Scalar4* d_vel,
+                                  Scalar3* d_accel,
+                                  const unsigned int* d_tag,
+                                  unsigned int* d_group_members,
+                                  unsigned int group_size,
+                                  Scalar4* d_net_force,
+                                  const langevin_step_two_args& langevin_args,
+                                  Scalar deltaT,
+                                  unsigned int D)
     {
-    // setup the grid to run the kernel
-    dim3 grid(langevin_args.num_blocks, 1, 1);
-    dim3 grid1(1, 1, 1);
-    dim3 threads(langevin_args.block_size, 1, 1);
-    dim3 threads1(256, 1, 1);
-
     auto shared_bytes = max((sizeof(Scalar) * langevin_args.n_types),
                             (langevin_args.block_size * sizeof(Scalar)));
 
@@ -509,42 +497,37 @@ hipError_t gpu_langevin_step_two(const Scalar4* d_pos,
         }
 
     // run the kernel
-    hipLaunchKernelGGL((gpu_langevin_step_two_kernel),
-                       grid,
-                       threads,
-                       shared_bytes,
-                       0,
-                       d_pos,
-                       d_vel,
-                       d_accel,
-                       d_tag,
-                       d_group_members,
-                       group_size,
-                       d_net_force,
-                       langevin_args.d_gamma,
-                       langevin_args.n_types,
-                       langevin_args.timestep,
-                       langevin_args.seed,
-                       langevin_args.T,
-                       langevin_args.noiseless_t,
-                       deltaT,
-                       D,
-                       langevin_args.tally,
-                       langevin_args.d_partial_sum_bdenergy,
-                       enable_shared_cache);
+    gpu_langevin_step_two_kernel<<<langevin_args.num_blocks,
+                                   langevin_args.block_size,
+                                   shared_bytes>>>(d_pos,
+                                                   d_vel,
+                                                   d_accel,
+                                                   d_tag,
+                                                   d_group_members,
+                                                   group_size,
+                                                   d_net_force,
+                                                   langevin_args.d_gamma,
+                                                   langevin_args.n_types,
+                                                   langevin_args.timestep,
+                                                   langevin_args.seed,
+                                                   langevin_args.T,
+                                                   langevin_args.noiseless_t,
+                                                   deltaT,
+                                                   D,
+                                                   langevin_args.tally,
+                                                   langevin_args.d_partial_sum_bdenergy,
+                                                   enable_shared_cache);
 
     // run the summation kernel
     if (langevin_args.tally)
-        hipLaunchKernelGGL((gpu_bdtally_reduce_partial_sum_kernel),
-                           dim3(grid1),
-                           dim3(threads1),
-                           langevin_args.block_size * sizeof(Scalar),
-                           0,
-                           &langevin_args.d_sum_bdenergy[0],
-                           langevin_args.d_partial_sum_bdenergy,
-                           langevin_args.num_blocks);
+        gpu_bdtally_reduce_partial_sum_kernel<<<1,
+                                                langevin_args.block_size,
+                                                langevin_args.block_size * sizeof(Scalar)>>>(
+            &langevin_args.d_sum_bdenergy[0],
+            langevin_args.d_partial_sum_bdenergy,
+            langevin_args.num_blocks);
 
-    return hipSuccess;
+    return cudaSuccess;
     }
 
     } // end namespace kernel

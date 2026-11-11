@@ -16,7 +16,7 @@
 #include "ShapeMoves.h"
 #include "UpdaterShape.h"
 
-#ifdef ENABLE_HIP
+#ifdef ENABLE_GPU
 #include "ComputeFreeVolumeGPU.h"
 #include "IntegratorHPMCMonoGPU.h"
 #include "UpdaterGCAGPU.h"
@@ -46,7 +46,7 @@ void export_ellipsoid(pybind11::module& m)
 
     export_ExternalFieldWall<ShapeEllipsoid>(m, "WallEllipsoid");
 
-#ifdef ENABLE_HIP
+#ifdef ENABLE_GPU
     export_IntegratorHPMCMonoGPU<ShapeEllipsoid>(m, "IntegratorHPMCMonoEllipsoidGPU");
     export_ComputeFreeVolumeGPU<ShapeEllipsoid>(m, "ComputeFreeVolumeEllipsoidGPU");
     export_UpdaterGCAGPU<ShapeEllipsoid>(m, "UpdaterGCAEllipsoidGPU");
