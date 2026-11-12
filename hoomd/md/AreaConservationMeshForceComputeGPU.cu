@@ -2,9 +2,9 @@
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #include "AreaConservationMeshForceComputeGPU.cuh"
-#include "hip/hip_runtime.h"
 #include "hoomd/TextureTools.h"
 #include "hoomd/VectorMath.h"
+#include <cuda_runtime.h>
 
 #include <assert.h>
 
@@ -45,7 +45,7 @@ __global__ void gpu_compute_area_constraint_area_kernel(Scalar* d_partial_sum_ar
                                                         const bool ignore_type,
                                                         const unsigned int* n_triangles_list)
     {
-    HIP_DYNAMIC_SHARED(char, s_data)
+    extern __shared__ char s_data[];
     Scalar* area_sdata = (Scalar*)&s_data[0];
 
     int idx = blockIdx.x * blockDim.x + threadIdx.x;
@@ -152,7 +152,7 @@ __global__ void gpu_area_reduce_partial_sum_kernel(Scalar* d_sum,
                                                    unsigned int tN,
                                                    unsigned int num_blocks)
     {
-    HIP_DYNAMIC_SHARED(char, s_data)
+    extern __shared__ char s_data[];
     Scalar* area_sdata = (Scalar*)&s_data[0];
 
     for (unsigned int i_types = 0; i_types < tN; i_types++)
@@ -200,58 +200,46 @@ __global__ void gpu_area_reduce_partial_sum_kernel(Scalar* d_sum,
     \param block_size Block size to use when performing calculations
 
     \returns Any error code resulting from the kernel launch
-    \note Always returns hipSuccess in release builds to avoid the hipDeviceSynchronize()
+    \note Always returns cudaSuccess in release builds to avoid the cudaDeviceSynchronize()
 */
-hipError_t gpu_compute_area_constraint_area(Scalar* d_sum_area,
-                                            Scalar* d_sum_partial_area,
-                                            const unsigned int N,
-                                            const unsigned int tN,
-                                            const Scalar4* d_pos,
-                                            const BoxDim& box,
-                                            const group_storage<3>* tlist,
-                                            const unsigned int* tpos_list,
-                                            const Index2D tlist_idx,
-                                            const bool ignore_type,
-                                            const unsigned int* n_triangles_list,
-                                            unsigned int block_size,
-                                            unsigned int num_blocks)
+cudaError_t gpu_compute_area_constraint_area(Scalar* d_sum_area,
+                                             Scalar* d_sum_partial_area,
+                                             const unsigned int N,
+                                             const unsigned int tN,
+                                             const Scalar4* d_pos,
+                                             const BoxDim& box,
+                                             const group_storage<3>* tlist,
+                                             const unsigned int* tpos_list,
+                                             const Index2D tlist_idx,
+                                             const bool ignore_type,
+                                             const unsigned int* n_triangles_list,
+                                             unsigned int block_size,
+                                             unsigned int num_blocks)
     {
-    dim3 grid(num_blocks, 1, 1);
-    dim3 grid1(1, 1, 1);
-    dim3 threads(block_size, 1, 1);
-
     for (unsigned int i_types = 0; i_types < tN; i_types++)
         {
-        // run the kernel
-        hipLaunchKernelGGL((gpu_compute_area_constraint_area_kernel),
-                           dim3(grid),
-                           dim3(threads),
-                           block_size * sizeof(Scalar),
-                           0,
-                           d_sum_partial_area,
-                           N,
-                           tN,
-                           i_types,
-                           d_pos,
-                           box,
-                           tlist,
-                           tpos_list,
-                           tlist_idx,
-                           ignore_type,
-                           n_triangles_list);
+        gpu_compute_area_constraint_area_kernel<<<num_blocks,
+                                                  block_size,
+                                                  block_size * sizeof(Scalar)>>>(d_sum_partial_area,
+                                                                                 N,
+                                                                                 tN,
+                                                                                 i_types,
+                                                                                 d_pos,
+                                                                                 box,
+                                                                                 tlist,
+                                                                                 tpos_list,
+                                                                                 tlist_idx,
+                                                                                 ignore_type,
+                                                                                 n_triangles_list);
         }
 
-    hipLaunchKernelGGL((gpu_area_reduce_partial_sum_kernel),
-                       dim3(grid1),
-                       dim3(threads),
-                       block_size * sizeof(Scalar),
-                       0,
-                       d_sum_area,
-                       d_sum_partial_area,
-                       tN,
-                       num_blocks);
+    gpu_area_reduce_partial_sum_kernel<<<1, block_size, block_size * sizeof(Scalar)>>>(
+        d_sum_area,
+        d_sum_partial_area,
+        tN,
+        num_blocks);
 
-    return hipSuccess;
+    return cudaSuccess;
     }
 
 //! Kernel for calculating area_constraint sigmas on the GPU
@@ -439,59 +427,50 @@ __global__ void gpu_compute_area_constraint_force_kernel(Scalar4* d_force,
 
 
     \returns Any error code resulting from the kernel launch
-    \note Always returns hipSuccess in release builds to avoid the hipDeviceSynchronize()
+    \note Always returns cudaSuccess in release builds to avoid the cudaDeviceSynchronize()
 */
-hipError_t gpu_compute_area_constraint_force(Scalar4* d_force,
-                                             Scalar* d_virial,
-                                             const size_t virial_pitch,
-                                             const unsigned int N,
-                                             const unsigned int* gN,
-                                             const unsigned int aN,
-                                             const Scalar4* d_pos,
-                                             const BoxDim& box,
-                                             const Scalar* area,
-                                             const group_storage<3>* tlist,
-                                             const unsigned int* tpos_list,
-                                             const Index2D tlist_idx,
-                                             const unsigned int* n_triangles_list,
-                                             area_conservation_param_t* d_params,
-                                             const bool ignore_type,
-                                             int block_size)
+cudaError_t gpu_compute_area_constraint_force(Scalar4* d_force,
+                                              Scalar* d_virial,
+                                              const size_t virial_pitch,
+                                              const unsigned int N,
+                                              const unsigned int* gN,
+                                              const unsigned int aN,
+                                              const Scalar4* d_pos,
+                                              const BoxDim& box,
+                                              const Scalar* area,
+                                              const group_storage<3>* tlist,
+                                              const unsigned int* tpos_list,
+                                              const Index2D tlist_idx,
+                                              const unsigned int* n_triangles_list,
+                                              area_conservation_param_t* d_params,
+                                              const bool ignore_type,
+                                              int block_size)
     {
     unsigned int max_block_size;
-    hipFuncAttributes attr;
-    hipFuncGetAttributes(&attr, (const void*)gpu_compute_area_constraint_force_kernel);
+    cudaFuncAttributes attr;
+    cudaFuncGetAttributes(&attr, (const void*)gpu_compute_area_constraint_force_kernel);
     max_block_size = attr.maxThreadsPerBlock;
 
     unsigned int run_block_size = min(block_size, max_block_size);
 
-    // setup the grid to run the kernel
-    dim3 grid(N / run_block_size + 1, 1, 1);
-    dim3 threads(run_block_size, 1, 1);
+    gpu_compute_area_constraint_force_kernel<<<N / run_block_size + 1, run_block_size>>>(
+        d_force,
+        d_virial,
+        virial_pitch,
+        N,
+        gN,
+        aN,
+        d_pos,
+        box,
+        area,
+        tlist,
+        tpos_list,
+        tlist_idx,
+        n_triangles_list,
+        d_params,
+        ignore_type);
 
-    // run the kernel
-    hipLaunchKernelGGL((gpu_compute_area_constraint_force_kernel),
-                       dim3(grid),
-                       dim3(threads),
-                       0,
-                       0,
-                       d_force,
-                       d_virial,
-                       virial_pitch,
-                       N,
-                       gN,
-                       aN,
-                       d_pos,
-                       box,
-                       area,
-                       tlist,
-                       tpos_list,
-                       tlist_idx,
-                       n_triangles_list,
-                       d_params,
-                       ignore_type);
-
-    return hipSuccess;
+    return cudaSuccess;
     }
 
     } // end namespace kernel

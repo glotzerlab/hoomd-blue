@@ -7,12 +7,12 @@
 #ifndef __PAIR_EVALUATOR_DIPOLE_H__
 #define __PAIR_EVALUATOR_DIPOLE_H__
 
-#ifndef __HIPCC__
+#ifndef __NVCC__
 #include <string>
 #endif
 
-#ifdef ENABLE_HIP
-#include <hip/hip_runtime.h>
+#ifdef ENABLE_GPU
+#include <cuda_runtime.h>
 #endif
 #include "hoomd/VectorMath.h"
 #include <iostream>
@@ -23,7 +23,7 @@
 // need to declare these class methods with __device__ qualifiers when building
 // in nvcc.  HOSTDEVICE is __host__ __device__ when included in nvcc and blank
 // when included into the host compiler
-#ifdef __HIPCC__
+#ifdef __NVCC__
 #define HOSTDEVICE __host__ __device__
 #define DEVICE __device__
 #else
@@ -43,7 +43,7 @@ class EvaluatorPairDipole
         Scalar A;     //! The electrostatic energy scale.
         Scalar kappa; //! The inverse screening length.
 
-#ifdef ENABLE_HIP
+#ifdef ENABLE_GPU
         //! Set CUDA memory hints
         void set_memory_hint() const
             {
@@ -62,7 +62,7 @@ class EvaluatorPairDipole
 
         HOSTDEVICE param_type() : A(0), kappa(0) { }
 
-#ifndef __HIPCC__
+#ifndef __NVCC__
 
         param_type(pybind11::dict v, bool managed)
             {
@@ -100,7 +100,7 @@ class EvaluatorPairDipole
 
         HOSTDEVICE shape_type() : mu {0, 0, 0} { }
 
-#ifndef __HIPCC__
+#ifndef __NVCC__
 
         shape_type(vec3<Scalar> mu_, bool managed = false) : mu(mu_) { }
 
@@ -114,9 +114,9 @@ class EvaluatorPairDipole
             {
             return pybind11::make_tuple(mu.x, mu.y, mu.z);
             }
-#endif // __HIPCC__
+#endif // __NVCC__
 
-#ifdef ENABLE_HIP
+#ifdef ENABLE_GPU
         //! Attach managed memory to CUDA stream
         void set_memory_hint() const { }
 #endif
@@ -315,7 +315,7 @@ class EvaluatorPairDipole
         return 0;
         }
 
-#ifndef __HIPCC__
+#ifndef __NVCC__
     //! Get the name of the potential
     /*! \returns The potential name.
      */

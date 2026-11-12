@@ -4,7 +4,7 @@
 #ifndef __PAIR_EVALUATOR_LJ_H__
 #define __PAIR_EVALUATOR_LJ_H__
 
-#ifndef __HIPCC__
+#ifndef __NVCC__
 #include <string>
 #endif
 
@@ -19,7 +19,7 @@
 // need to declare these class methods with __device__ qualifiers when building in nvcc
 // DEVICE is __host__ __device__ when included in nvcc and blank when included into the host
 // compiler
-#ifdef __HIPCC__
+#ifdef __NVCC__
 #define DEVICE __device__
 #define HOSTDEVICE __host__ __device__
 #else
@@ -76,7 +76,7 @@ namespace md
     A pair potential evaluator class is also used on the GPU. So all of its members must be declared
    with the DEVICE keyword before them to mark them __device__ when compiling in nvcc and blank
    otherwise. If any other code needs to diverge between the host and device (i.e., to use a special
-   math function like __powf on the device), it can similarly be put inside an ifdef __HIPCC__
+   math function like __powf on the device), it can similarly be put inside an ifdef __NVCC__
    block.
 
     <b>LJ specifics</b>
@@ -105,7 +105,7 @@ class EvaluatorPairLJ
 
         HOSTDEVICE void allocate_shared(char*& ptr, unsigned int& available_bytes) const { }
 
-#ifdef ENABLE_HIP
+#ifdef ENABLE_GPU
         //! Set CUDA memory hints
         void set_memory_hint() const
             {
@@ -113,7 +113,7 @@ class EvaluatorPairLJ
             }
 #endif
 
-#ifndef __HIPCC__
+#ifndef __NVCC__
         param_type() : sigma_6(0), epsilon_x_4(0) { }
 
         param_type(pybind11::dict v, bool managed = false)
@@ -247,7 +247,7 @@ class EvaluatorPairLJ
         return lj1 / Scalar(9.0) * rcut9inv - lj2 / Scalar(3.0) * rcut3inv;
         }
 
-#ifndef __HIPCC__
+#ifndef __NVCC__
     //! Get the name of this potential
     /*! \returns The potential name.
      */

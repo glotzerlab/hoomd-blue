@@ -11,7 +11,7 @@
 #include "hoomd/RandomNumbers.h"
 #include "hoomd/VectorMath.h"
 #include "hoomd/hpmc/Moves.h"
-#include <hip/hip_runtime.h>
+#include <cuda_runtime.h>
 
 #include "hoomd/hpmc/HPMCCounters.h"
 
@@ -29,47 +29,40 @@ namespace hpmc
     {
 namespace gpu
     {
-#ifdef __HIP_PLATFORM_NVCC__
 #define MAX_BLOCK_SIZE 1024
 #define MIN_BLOCK_SIZE 32
-#else
-#define MAX_BLOCK_SIZE 1024
-#define MIN_BLOCK_SIZE 1024 // on AMD, we do not use __launch_bounds__
-#endif
 
-#ifdef __HIPCC__
+#ifdef __NVCC__
 namespace kernel
     {
 //! Check narrow-phase overlaps
 template<class Shape, unsigned int max_threads>
-#ifdef __HIP_PLATFORM_NVCC__
-__launch_bounds__(max_threads)
-#endif
-    __global__ void hpmc_narrow_phase(const Scalar4* d_postype,
-                                      const Scalar4* d_orientation,
-                                      const Scalar4* d_trial_postype,
-                                      const Scalar4* d_trial_orientation,
-                                      const unsigned int* d_trial_move_type,
-                                      const unsigned int* d_excell_idx,
-                                      const unsigned int* d_excell_size,
-                                      const Index2D excli,
-                                      hpmc_counters_t* d_counters,
-                                      const unsigned int num_types,
-                                      const BoxDim box,
-                                      const Scalar3 ghost_width,
-                                      const uint3 cell_dim,
-                                      const Index3D ci,
-                                      const unsigned int N_local,
-                                      const unsigned int* d_check_overlaps,
-                                      const Index2D overlap_idx,
-                                      const typename Shape::param_type* d_params,
-                                      const unsigned int* d_update_order_by_ptl,
-                                      const unsigned int* d_reject_in,
-                                      unsigned int* d_reject_out,
-                                      const unsigned int* d_reject_out_of_cell,
-                                      const unsigned int max_extra_bytes,
-                                      const unsigned int max_queue_size,
-                                      const unsigned int nwork)
+__launch_bounds__(max_threads) __global__
+    void hpmc_narrow_phase(const Scalar4* d_postype,
+                           const Scalar4* d_orientation,
+                           const Scalar4* d_trial_postype,
+                           const Scalar4* d_trial_orientation,
+                           const unsigned int* d_trial_move_type,
+                           const unsigned int* d_excell_idx,
+                           const unsigned int* d_excell_size,
+                           const Index2D excli,
+                           hpmc_counters_t* d_counters,
+                           const unsigned int num_types,
+                           const BoxDim box,
+                           const Scalar3 ghost_width,
+                           const uint3 cell_dim,
+                           const Index3D ci,
+                           const unsigned int N_local,
+                           const unsigned int* d_check_overlaps,
+                           const Index2D overlap_idx,
+                           const typename Shape::param_type* d_params,
+                           const unsigned int* d_update_order_by_ptl,
+                           const unsigned int* d_reject_in,
+                           unsigned int* d_reject_out,
+                           const unsigned int* d_reject_out_of_cell,
+                           const unsigned int max_extra_bytes,
+                           const unsigned int max_queue_size,
+                           const unsigned int nwork)
     {
     __shared__ unsigned int s_overlap_checks;
     __shared__ unsigned int s_overlap_err_count;
@@ -83,7 +76,7 @@ __launch_bounds__(max_threads)
     unsigned int n_groups = blockDim.y;
 
     // load the per type pair parameters into shared memory
-    HIP_DYNAMIC_SHARED(char, s_data)
+    extern __shared__ char s_data[];
 
     typename Shape::param_type* s_params = (typename Shape::param_type*)(&s_data[0]);
     Scalar4* s_orientation_group = (Scalar4*)(s_params + num_types);
@@ -378,10 +371,10 @@ void narrow_phase_launcher(const hpmc_args_t& args,
         {
         // determine the maximum block size and clamp the input block size down
         int max_block_size;
-        hipFuncAttributes attr;
+        cudaFuncAttributes attr;
         constexpr unsigned int launch_bounds_nonzero
             = cur_launch_bounds > 0 ? cur_launch_bounds : 1;
-        hipFuncGetAttributes(
+        cudaFuncGetAttributes(
             &attr,
             reinterpret_cast<const void*>(
                 kernel::hpmc_narrow_phase<Shape, launch_bounds_nonzero * MIN_BLOCK_SIZE>));
@@ -470,36 +463,32 @@ void narrow_phase_launcher(const hpmc_args_t& args,
         assert(args.d_reject_out);
         assert(args.d_reject_out_of_cell);
 
-        hipLaunchKernelGGL((hpmc_narrow_phase<Shape, launch_bounds_nonzero * MIN_BLOCK_SIZE>),
-                           grid,
-                           thread,
-                           shared_bytes,
-                           args.stream,
-                           args.d_postype,
-                           args.d_orientation,
-                           args.d_trial_postype,
-                           args.d_trial_orientation,
-                           args.d_trial_move_type,
-                           args.d_excell_idx,
-                           args.d_excell_size,
-                           args.excli,
-                           args.d_counters,
-                           args.num_types,
-                           args.box,
-                           args.ghost_width,
-                           args.cell_dim,
-                           args.ci,
-                           args.N,
-                           args.d_check_overlaps,
-                           args.overlap_idx,
-                           params,
-                           args.d_update_order_by_ptl,
-                           args.d_reject_in,
-                           args.d_reject_out,
-                           args.d_reject_out_of_cell,
-                           max_extra_bytes,
-                           max_queue_size,
-                           nwork);
+        hpmc_narrow_phase<Shape, launch_bounds_nonzero * MIN_BLOCK_SIZE>
+            <<<grid, thread, shared_bytes, args.stream>>>(args.d_postype,
+                                                          args.d_orientation,
+                                                          args.d_trial_postype,
+                                                          args.d_trial_orientation,
+                                                          args.d_trial_move_type,
+                                                          args.d_excell_idx,
+                                                          args.d_excell_size,
+                                                          args.excli,
+                                                          args.d_counters,
+                                                          args.num_types,
+                                                          args.box,
+                                                          args.ghost_width,
+                                                          args.cell_dim,
+                                                          args.ci,
+                                                          args.N,
+                                                          args.d_check_overlaps,
+                                                          args.overlap_idx,
+                                                          params,
+                                                          args.d_update_order_by_ptl,
+                                                          args.d_reject_in,
+                                                          args.d_reject_out,
+                                                          args.d_reject_out_of_cell,
+                                                          max_extra_bytes,
+                                                          max_queue_size,
+                                                          nwork);
         }
     else
         {

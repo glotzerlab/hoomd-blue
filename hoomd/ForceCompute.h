@@ -7,7 +7,7 @@
 #include "ParticleGroup.h"
 #include "PythonLocalDataAccess.h"
 
-#ifdef ENABLE_HIP
+#ifdef ENABLE_GPU
 #include "ParticleData.cuh"
 #endif
 
@@ -22,7 +22,7 @@
     \brief Declares the ForceCompute class
 */
 
-#ifdef __HIPCC__
+#ifdef __NVCC__
 #error This header cannot be compiled by nvcc
 #endif
 
@@ -352,7 +352,7 @@ template<class Real> struct vec6
     };
 
 //! Exports the ForceCompute class to python
-#ifndef __HIPCC__
+#ifndef __NVCC__
 void export_ForceCompute(pybind11::module& m);
 #endif
 

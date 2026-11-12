@@ -13,7 +13,7 @@
 #include <cfloat>
 #include <cmath>
 
-#ifndef __HIPCC__
+#ifndef __NVCC__
 #include <algorithm>
 
 #include <Eigen/Dense>
@@ -42,7 +42,7 @@
 // compiler
 #undef DEVICE
 
-#ifdef __HIPCC__
+#ifdef __NVCC__
 #define DEVICE __device__
 #else
 #define DEVICE __attribute__((always_inline))
@@ -137,7 +137,7 @@ struct OBB
         return is_sphere;
         }
 
-#ifndef __HIPCC__
+#ifndef __NVCC__
     //! Get list of OBB corners
     std::vector<vec3<ShortReal>> getCorners() const
         {
@@ -505,7 +505,7 @@ DEVICE inline bool IntersectRayOBB(const vec3<ShortReal>& p,
     return true;
     }
 
-#ifndef __HIPCC__
+#ifndef __NVCC__
 // Ericson, Christer (2013-05-02). Real-Time Collision Detection (Page 111). Taylor and Francis CRC
 // https://doi.org/10.1201/b14581
 

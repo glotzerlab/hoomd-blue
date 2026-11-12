@@ -9,11 +9,11 @@
 #ifndef MPCD_COLLISION_METHOD_H_
 #define MPCD_COLLISION_METHOD_H_
 
-#ifdef __HIPCC__
+#ifdef __NVCC__
 #error This header cannot be compiled by nvcc
 #endif
 
-#ifdef ENABLE_HIP
+#ifdef ENABLE_GPU
 #include "CollisionMethod.cuh"
 #endif
 
@@ -68,12 +68,12 @@ class PYBIND11_EXPORT CollisionMethod : public Autotuned
         if (embed_group != m_embed_group)
             {
             m_checked_collision_warnings = false;
-#ifdef ENABLE_HIP
+#ifdef ENABLE_GPU
             if (m_exec_conf->isCUDAEnabled())
                 {
                 m_check_rigid_tuners = true;
                 }
-#endif // ENABLE_HIP
+#endif // ENABLE_GPU
             }
         m_embed_group = embed_group;
         if (m_cl)
@@ -116,12 +116,12 @@ class PYBIND11_EXPORT CollisionMethod : public Autotuned
     //! Set the rigid body definitions
     void setRigid(std::shared_ptr<hoomd::md::ForceComposite> new_rigid)
         {
-#ifdef ENABLE_HIP
+#ifdef ENABLE_GPU
         if (m_exec_conf->isCUDAEnabled() && new_rigid != m_rigid_bodies)
             {
             m_check_rigid_tuners = true;
             }
-#endif // ENABLE_HIP
+#endif // ENABLE_GPU
         m_rigid_bodies = new_rigid;
         }
 
@@ -158,7 +158,7 @@ class PYBIND11_EXPORT CollisionMethod : public Autotuned
     GPUArray<Scalar3> m_linmom_accum;     //!< Accumulated change in linear momentum of rigid bodies
     GPUArray<Scalar3> m_angmom_accum; //!< Accumulated change in angular momentum of rigid bodies
 
-#ifdef ENABLE_HIP
+#ifdef ENABLE_GPU
     std::shared_ptr<Autotuner<1>> m_drawrandvec_tuner;  //!< Tuner for drawing random vectors
     std::shared_ptr<Autotuner<1>> m_netvelo_tuner;      //!< Tuner for finding net velocity
     std::shared_ptr<Autotuner<1>> m_applyrandvec_tuner; //!< Tuner for applying random vectors
@@ -167,7 +167,7 @@ class PYBIND11_EXPORT CollisionMethod : public Autotuned
     std::shared_ptr<Autotuner<1>> m_transfer_tuner;     //!< Tuner for transfering momenta
 
     bool m_check_rigid_tuners; //!< True if rigid autotuners need to be tuned
-#endif                         // ENABLE_HIP
+#endif                         // ENABLE_GPU
 
     //! Check if a collision should occur and advance the timestep counter
     virtual bool shouldCollide(uint64_t timestep);
@@ -199,7 +199,7 @@ class PYBIND11_EXPORT CollisionMethod : public Autotuned
     //! Finish process of applying collisions to rigid bodies
     void transferRigidBodyMomenta(uint64_t timestep);
 
-#ifdef ENABLE_HIP
+#ifdef ENABLE_GPU
 
     //! Adds autotuners
     void checkRigidAutotuners();
@@ -218,7 +218,7 @@ class PYBIND11_EXPORT CollisionMethod : public Autotuned
 
     //! Finish process of applying collisions to rigid bodies (GPU version)
     void transferRigidBodyMomentaGPU(uint64_t timestep);
-#endif // ENABLE_HIP
+#endif // ENABLE_GPU
     };
     } // end namespace mpcd
     } // end namespace hoomd

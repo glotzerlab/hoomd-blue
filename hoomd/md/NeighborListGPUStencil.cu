@@ -1,14 +1,14 @@
 // Copyright (c) 2009-2026 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
-#include "hip/hip_runtime.h"
+#include <cuda_runtime.h>
 // Copyright (c) 2009-2021 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
 #include "NeighborListGPUStencil.cuh"
 #include "hoomd/TextureTools.h"
 #include "hoomd/WarpTools.cuh"
-#include <hipcub/hipcub.hpp>
+#include <cub/cub.cuh>
 
 /*! \file NeighborListGPUStencil.cu
     \brief Defines GPU kernel code for O(N) neighbor list generation on the GPU with multiple bin
@@ -80,7 +80,7 @@ __global__ void gpu_compute_nlist_stencil_kernel(unsigned int* d_nlist,
     const unsigned int num_typ_parameters = typpair_idx.getNumElements();
 
     // shared data for per type pair parameters
-    HIP_DYNAMIC_SHARED(unsigned char, s_data)
+    extern __shared__ unsigned char s_data[];
 
     // pointer for the r_listsq data
     Scalar* s_r_list = (Scalar*)(&s_data[0]);
@@ -295,8 +295,8 @@ __global__ void gpu_compute_nlist_stencil_kernel(unsigned int* d_nlist,
 //! determine maximum possible block size
 template<typename T> int get_max_block_size_stencil(T func)
     {
-    hipFuncAttributes attr;
-    hipFuncGetAttributes(&attr, (const void*)func);
+    cudaFuncAttributes attr;
+    cudaFuncGetAttributes(&attr, (const void*)func);
     int max_threads = attr.maxThreadsPerBlock;
     // number of threads has to be multiple of warp size
     max_threads -= max_threads % max_threads_per_particle;
@@ -332,7 +332,7 @@ inline void stencil_launcher(unsigned int* d_nlist,
                              bool filter_body,
                              const unsigned int threads_per_particle,
                              const unsigned int block_size,
-                             const hipDeviceProp_t& devprop)
+                             const cudaDeviceProp& devprop)
     {
     // shared memory = r_listsq + Nmax + stuff needed for neighborlist (computed below)
     Index2D typpair_idx(ntypes);
@@ -355,35 +355,32 @@ inline void stencil_launcher(unsigned int* d_nlist,
 
             unsigned int run_block_size
                 = (block_size < max_block_size) ? block_size : max_block_size;
-            dim3 grid(N / (block_size / threads_per_particle) + 1);
-            hipLaunchKernelGGL((gpu_compute_nlist_stencil_kernel<0, cur_tpp>),
-                               dim3(grid),
-                               dim3(run_block_size),
-                               shared_size,
-                               0,
-                               d_nlist,
-                               d_n_neigh,
-                               d_last_updated_pos,
-                               d_conditions,
-                               d_Nmax,
-                               d_head_list,
-                               d_pid_map,
-                               d_pos,
-                               d_body,
-                               N,
-                               d_cell_size,
-                               d_cell_xyzf,
-                               d_cell_type_body,
-                               ci,
-                               cli,
-                               d_stencil,
-                               d_n_stencil,
-                               stencil_idx,
-                               box,
-                               d_r_cut,
-                               r_buff,
-                               ntypes,
-                               ghost_width);
+
+            gpu_compute_nlist_stencil_kernel<0, cur_tpp>
+                <<<N / (block_size / threads_per_particle) + 1, run_block_size, shared_size>>>(
+                    d_nlist,
+                    d_n_neigh,
+                    d_last_updated_pos,
+                    d_conditions,
+                    d_Nmax,
+                    d_head_list,
+                    d_pid_map,
+                    d_pos,
+                    d_body,
+                    N,
+                    d_cell_size,
+                    d_cell_xyzf,
+                    d_cell_type_body,
+                    ci,
+                    cli,
+                    d_stencil,
+                    d_n_stencil,
+                    stencil_idx,
+                    box,
+                    d_r_cut,
+                    r_buff,
+                    ntypes,
+                    ghost_width);
             }
         else if (filter_body)
             {
@@ -393,35 +390,32 @@ inline void stencil_launcher(unsigned int* d_nlist,
 
             unsigned int run_block_size
                 = (block_size < max_block_size) ? block_size : max_block_size;
-            dim3 grid(N / (block_size / threads_per_particle) + 1);
-            hipLaunchKernelGGL((gpu_compute_nlist_stencil_kernel<1, cur_tpp>),
-                               dim3(grid),
-                               dim3(run_block_size),
-                               shared_size,
-                               0,
-                               d_nlist,
-                               d_n_neigh,
-                               d_last_updated_pos,
-                               d_conditions,
-                               d_Nmax,
-                               d_head_list,
-                               d_pid_map,
-                               d_pos,
-                               d_body,
-                               N,
-                               d_cell_size,
-                               d_cell_xyzf,
-                               d_cell_type_body,
-                               ci,
-                               cli,
-                               d_stencil,
-                               d_n_stencil,
-                               stencil_idx,
-                               box,
-                               d_r_cut,
-                               r_buff,
-                               ntypes,
-                               ghost_width);
+
+            gpu_compute_nlist_stencil_kernel<1, cur_tpp>
+                <<<N / (block_size / threads_per_particle) + 1, run_block_size, shared_size>>>(
+                    d_nlist,
+                    d_n_neigh,
+                    d_last_updated_pos,
+                    d_conditions,
+                    d_Nmax,
+                    d_head_list,
+                    d_pid_map,
+                    d_pos,
+                    d_body,
+                    N,
+                    d_cell_size,
+                    d_cell_xyzf,
+                    d_cell_type_body,
+                    ci,
+                    cli,
+                    d_stencil,
+                    d_n_stencil,
+                    stencil_idx,
+                    box,
+                    d_r_cut,
+                    r_buff,
+                    ntypes,
+                    ghost_width);
             }
         }
     else
@@ -484,37 +478,37 @@ inline void stencil_launcher<min_threads_per_particle / 2>(unsigned int* d_nlist
                                                            bool filter_body,
                                                            const unsigned int threads_per_particle,
                                                            const unsigned int block_size,
-                                                           const hipDeviceProp_t& devprop)
+                                                           const cudaDeviceProp& devprop)
     {
     }
 
-hipError_t gpu_compute_nlist_stencil(unsigned int* d_nlist,
-                                     unsigned int* d_n_neigh,
-                                     Scalar4* d_last_updated_pos,
-                                     unsigned int* d_conditions,
-                                     const unsigned int* d_Nmax,
-                                     const size_t* d_head_list,
-                                     const unsigned int* d_pid_map,
-                                     const Scalar4* d_pos,
-                                     const unsigned int* d_body,
-                                     const unsigned int N,
-                                     const unsigned int* d_cell_size,
-                                     const Scalar4* d_cell_xyzf,
-                                     const uint2* d_cell_type_body,
-                                     const Index3D& ci,
-                                     const Index2D& cli,
-                                     const Scalar4* d_stencil,
-                                     const unsigned int* d_n_stencil,
-                                     const Index2D& stencil_idx,
-                                     const BoxDim& box,
-                                     const Scalar* d_r_cut,
-                                     const Scalar r_buff,
-                                     const unsigned int ntypes,
-                                     const Scalar3& ghost_width,
-                                     bool filter_body,
-                                     const unsigned int threads_per_particle,
-                                     const unsigned int block_size,
-                                     const hipDeviceProp_t& devprop)
+cudaError_t gpu_compute_nlist_stencil(unsigned int* d_nlist,
+                                      unsigned int* d_n_neigh,
+                                      Scalar4* d_last_updated_pos,
+                                      unsigned int* d_conditions,
+                                      const unsigned int* d_Nmax,
+                                      const size_t* d_head_list,
+                                      const unsigned int* d_pid_map,
+                                      const Scalar4* d_pos,
+                                      const unsigned int* d_body,
+                                      const unsigned int N,
+                                      const unsigned int* d_cell_size,
+                                      const Scalar4* d_cell_xyzf,
+                                      const uint2* d_cell_type_body,
+                                      const Index3D& ci,
+                                      const Index2D& cli,
+                                      const Scalar4* d_stencil,
+                                      const unsigned int* d_n_stencil,
+                                      const Index2D& stencil_idx,
+                                      const BoxDim& box,
+                                      const Scalar* d_r_cut,
+                                      const Scalar r_buff,
+                                      const unsigned int ntypes,
+                                      const Scalar3& ghost_width,
+                                      bool filter_body,
+                                      const unsigned int threads_per_particle,
+                                      const unsigned int block_size,
+                                      const cudaDeviceProp& devprop)
     {
     stencil_launcher<max_threads_per_particle>(d_nlist,
                                                d_n_neigh,
@@ -543,7 +537,7 @@ hipError_t gpu_compute_nlist_stencil(unsigned int* d_nlist,
                                                threads_per_particle,
                                                block_size,
                                                devprop);
-    return hipSuccess;
+    return cudaSuccess;
     }
 
 /*!
@@ -576,24 +570,19 @@ __global__ void gpu_compute_nlist_stencil_fill_types_kernel(unsigned int* d_pids
  * \param d_pos Particle position array
  * \param N Number of particles
  */
-hipError_t gpu_compute_nlist_stencil_fill_types(unsigned int* d_pids,
-                                                unsigned int* d_types,
-                                                const Scalar4* d_pos,
-                                                const unsigned int N)
+cudaError_t gpu_compute_nlist_stencil_fill_types(unsigned int* d_pids,
+                                                 unsigned int* d_types,
+                                                 const Scalar4* d_pos,
+                                                 const unsigned int N)
     {
     const unsigned int block_size = 128;
 
-    hipLaunchKernelGGL((gpu_compute_nlist_stencil_fill_types_kernel),
-                       dim3(N / block_size + 1),
-                       dim3(block_size),
-                       0,
-                       0,
-                       d_pids,
-                       d_types,
-                       d_pos,
-                       N);
+    gpu_compute_nlist_stencil_fill_types_kernel<<<N / block_size + 1, block_size>>>(d_pids,
+                                                                                    d_types,
+                                                                                    d_pos,
+                                                                                    N);
 
-    return hipSuccess;
+    return cudaSuccess;
     }
 
 /*!
@@ -620,9 +609,9 @@ void gpu_compute_nlist_stencil_sort_types(unsigned int* d_pids,
                                           bool& swap,
                                           const unsigned int N)
     {
-    hipcub::DoubleBuffer<unsigned int> d_keys(d_types, d_types_alt);
-    hipcub::DoubleBuffer<unsigned int> d_vals(d_pids, d_pids_alt);
-    hipcub::DeviceRadixSort::SortPairs(d_tmp_storage, tmp_storage_bytes, d_keys, d_vals, N);
+    cub::DoubleBuffer<unsigned int> d_keys(d_types, d_types_alt);
+    cub::DoubleBuffer<unsigned int> d_vals(d_pids, d_pids_alt);
+    cub::DeviceRadixSort::SortPairs(d_tmp_storage, tmp_storage_bytes, d_keys, d_vals, N);
     if (d_tmp_storage != NULL)
         {
         swap = (d_vals.selector == 1);
