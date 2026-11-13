@@ -6,7 +6,7 @@
 #include "hoomd/Autotuner.h"
 #include "hoomd/CachedAllocator.h"
 
-#ifdef ENABLE_HIP
+#ifdef ENABLE_GPU
 #include "MolecularForceCompute.cuh"
 #endif
 
@@ -32,7 +32,7 @@ MolecularForceCompute::MolecularForceCompute(std::shared_ptr<SystemDefinition> s
     m_pdata->getParticleSortSignal()
         .connect<MolecularForceCompute, &MolecularForceCompute::setRebuildMolecules>(this);
 
-#ifdef ENABLE_HIP
+#ifdef ENABLE_GPU
     if (m_exec_conf->isCUDAEnabled())
         {
         // initialize autotuner
@@ -56,7 +56,7 @@ MolecularForceCompute::~MolecularForceCompute()
         .disconnect<MolecularForceCompute, &MolecularForceCompute::setRebuildMolecules>(this);
     }
 
-#ifdef ENABLE_HIP
+#ifdef ENABLE_GPU
 void MolecularForceCompute::initMoleculesGPU()
     {
     unsigned int nptl_local = m_pdata->getN() + m_pdata->getNGhosts();
@@ -196,7 +196,7 @@ void MolecularForceCompute::initMolecules()
 
     m_exec_conf->msg->notice(7) << "MolecularForceCompute initializing molecule table" << std::endl;
 
-#ifdef ENABLE_HIP
+#ifdef ENABLE_GPU
     if (m_exec_conf->isCUDAEnabled())
         {
         initMoleculesGPU();

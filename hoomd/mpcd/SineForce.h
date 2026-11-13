@@ -11,7 +11,7 @@
 
 #include "hoomd/HOOMDMath.h"
 
-#ifdef __HIPCC__
+#ifdef __NVCC__
 #define HOSTDEVICE __host__ __device__
 #define INLINE inline
 #else
@@ -86,13 +86,13 @@ class __attribute__((visibility("default"))) SineForce
         m_k = k;
         }
 
-#ifndef __HIPCC__
+#ifndef __NVCC__
     //! Get the unique name of this force
     static std::string getName()
         {
         return std::string("SineForce");
         }
-#endif // __HIPCC__
+#endif // __NVCC__
 
     private:
     Scalar m_F; //!< Force constant

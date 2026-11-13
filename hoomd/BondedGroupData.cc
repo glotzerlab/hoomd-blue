@@ -11,7 +11,7 @@
 
 #include <pybind11/numpy.h>
 
-#ifdef ENABLE_HIP
+#ifdef ENABLE_GPU
 #include "BondedGroupData.cuh"
 #include "CachedAllocator.h"
 #endif
@@ -208,7 +208,7 @@ void BondedGroupData<group_size, Group, name, has_type_mapping>::initialize()
         }
 #endif
 
-#ifdef ENABLE_HIP
+#ifdef ENABLE_GPU
     // allocate condition variable
     GPUArray<unsigned int> condition(1, m_exec_conf);
     m_condition.swap(condition);
@@ -754,7 +754,7 @@ void BondedGroupData<group_size, Group, name, has_type_mapping>::maybe_rebuild_t
 template<unsigned int group_size, typename Group, const char* name, bool has_type_mapping>
 void BondedGroupData<group_size, Group, name, has_type_mapping>::rebuildGPUTable()
     {
-#ifdef ENABLE_HIP
+#ifdef ENABLE_GPU
     if (m_exec_conf->isCUDAEnabled())
         rebuildGPUTableGPU();
     else
@@ -876,7 +876,7 @@ void BondedGroupData<group_size, Group, name, has_type_mapping>::rebuildGPUTable
         }
     }
 
-#ifdef ENABLE_HIP
+#ifdef ENABLE_GPU
 template<unsigned int group_size, typename Group, const char* name, bool has_type_mapping>
 void BondedGroupData<group_size, Group, name, has_type_mapping>::rebuildGPUTableGPU()
     {

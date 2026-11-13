@@ -20,11 +20,11 @@ set(TEST_LIST
     random_numbers_test
     )
 
-if (ENABLE_HIP)
+if (ENABLE_GPU)
 list(APPEND TEST_LIST
      test_warp_tools
      )
-endif (ENABLE_HIP)
+endif (ENABLE_GPU)
 
 if(ENABLE_MPI)
     MACRO(ADD_TO_MPI_TESTS _KEY _VALUE)
@@ -38,9 +38,9 @@ endif()
 
 foreach (CUR_TEST ${TEST_LIST} ${MPI_TEST_LIST})
     # add and link the unit test executable
-    if(ENABLE_HIP AND EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/${CUR_TEST}.cu)
+    if(ENABLE_GPU AND EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/${CUR_TEST}.cu)
         set(_cuda_sources ${CUR_TEST}.cu)
-        set_source_files_properties(${_cuda_sources} PROPERTIES LANGUAGE ${HOOMD_DEVICE_LANGUAGE})
+        set_source_files_properties(${_cuda_sources} PROPERTIES LANGUAGE CUDA)
     else()
         set(_cuda_sources "")
     endif()

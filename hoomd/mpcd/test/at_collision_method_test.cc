@@ -3,9 +3,9 @@
 
 #include "hoomd/mpcd/ATCollisionMethod.h"
 #include "utils.h"
-#ifdef ENABLE_HIP
+#ifdef ENABLE_GPU
 #include "hoomd/mpcd/ATCollisionMethodGPU.h"
-#endif // ENABLE_HIP
+#endif // ENABLE_GPU
 
 #include "hoomd/SnapshotSystemData.h"
 #include "hoomd/filter/ParticleFilterAll.h"
@@ -175,7 +175,7 @@ UP_TEST(at_collision_method_embed)
     at_collision_method_embed_test<mpcd::ATCollisionMethod>(
         std::make_shared<ExecutionConfiguration>(ExecutionConfiguration::CPU));
     }
-#ifdef ENABLE_HIP
+#ifdef ENABLE_GPU
 //! basic test case for MPCD ATCollisionMethodGPU class
 UP_TEST(at_collision_method_basic_gpu)
     {
@@ -188,4 +188,4 @@ UP_TEST(at_collision_method_embed_gpu)
     at_collision_method_embed_test<mpcd::ATCollisionMethodGPU>(
         std::make_shared<ExecutionConfiguration>(ExecutionConfiguration::GPU));
     }
-#endif // ENABLE_HIP
+#endif // ENABLE_GPU

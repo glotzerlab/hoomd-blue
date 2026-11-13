@@ -1,7 +1,7 @@
 // Copyright (c) 2009-2026 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
-#include "hip/hip_runtime.h"
+#include <cuda_runtime.h>
 // Copyright (c) 2009-2021 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
@@ -10,9 +10,9 @@
 #include "hoomd/ParticleData.cuh"
 #include "hoomd/TextureTools.h"
 
-#ifdef __HIPCC__
+#ifdef __NVCC__
 #include "hoomd/WarpTools.cuh"
-#endif // __HIPCC__
+#endif // __NVCC__
 
 #include <assert.h>
 #include <type_traits>
@@ -32,11 +32,7 @@ namespace kernel
     {
 //! Maximum number of threads (width of a warp)
 // currently this is hardcoded, we should set it to the max of platforms
-#if defined(__HIP_PLATFORM_NVCC__)
 const int gpu_pair_force_max_tpp = 32;
-#elif defined(__HIP_PLATFORM_HCC__)
-const int gpu_pair_force_max_tpp = 64;
-#endif
 
 //! Wraps arguments to gpu_cgpf
 struct pair_args_t
@@ -61,7 +57,7 @@ struct pair_args_t
                 const unsigned int _shift_mode,
                 const unsigned int _compute_virial,
                 const unsigned int _threads_per_particle,
-                const hipDeviceProp_t& _devprop)
+                const cudaDeviceProp& _devprop)
         : d_force(_d_force), d_virial(_d_virial), virial_pitch(_virial_pitch), N(_N), n_max(_n_max),
           d_pos(_d_pos), d_charge(_d_charge), box(_box), d_n_neigh(_d_n_neigh), d_nlist(_d_nlist),
           d_head_list(_d_head_list), d_rcutsq(_d_rcutsq), d_ronsq(_d_ronsq),
@@ -89,10 +85,10 @@ struct pair_args_t
     const unsigned int shift_mode;           //!< The potential energy shift mode
     const unsigned int compute_virial;       //!< Flag to indicate if virials should be computed
     const unsigned int threads_per_particle; //!< Number of threads per particle (maximum: 1 warp)
-    const hipDeviceProp_t& devprop;          //!< CUDA device properties
+    const cudaDeviceProp& devprop;           //!< CUDA device properties
     };
 
-#ifdef __HIPCC__
+#ifdef __NVCC__
 
 //! Kernel for calculating pair forces
 /*! This kernel is called to calculate the pair forces on all N particles. Actual evaluation of the
@@ -157,7 +153,7 @@ gpu_compute_pair_forces_shared_kernel(Scalar4* d_force,
     const unsigned int num_typ_parameters = typpair_idx.getNumElements();
 
     // shared arrays for per type pair parameters
-    HIP_DYNAMIC_SHARED(char, s_data)
+    extern __shared__ char s_data[];
     typename evaluator::param_type* s_params = (typename evaluator::param_type*)(&s_data[0]);
     Scalar* s_rcutsq
         = (Scalar*)(&s_data[num_typ_parameters * sizeof(typename evaluator::param_type)]);
@@ -395,8 +391,8 @@ gpu_compute_pair_forces_shared_kernel(Scalar4* d_force,
 
 template<typename T> int get_max_block_size(T func)
     {
-    hipFuncAttributes attr;
-    hipFuncGetAttributes(&attr, (const void*)func);
+    cudaFuncAttributes attr;
+    cudaFuncGetAttributes(&attr, (const void*)func);
     int max_threads = attr.maxThreadsPerBlock;
     // number of threads has to be multiple of warp size
     max_threads -= max_threads % gpu_pair_force_max_tpp;
@@ -447,8 +443,8 @@ struct PairForceComputeKernel
                                                                            tpp,
                                                                            true>);
 
-            hipFuncAttributes attr;
-            hipFuncGetAttributes(
+            cudaFuncAttributes attr;
+            cudaFuncGetAttributes(
                 &attr,
                 reinterpret_cast<const void*>(&gpu_compute_pair_forces_shared_kernel<evaluator,
                                                                                      shift_mode,
@@ -476,61 +472,55 @@ struct PairForceComputeKernel
             unsigned int extra_shared_bytes = max_extra_bytes - available_bytes;
 
             block_size = block_size < max_block_size ? block_size : max_block_size;
-            dim3 grid(N / (block_size / tpp) + 1, 1, 1);
+            const unsigned int num_blocks = N / (block_size / tpp) + 1;
 
             if (enable_shared_cache)
                 {
-                hipLaunchKernelGGL((gpu_compute_pair_forces_shared_kernel<evaluator,
-                                                                          shift_mode,
-                                                                          compute_virial,
-                                                                          tpp,
-                                                                          true>),
-                                   dim3(grid),
-                                   dim3(block_size),
-                                   param_shared_bytes + extra_shared_bytes,
-                                   0,
-                                   pair_args.d_force,
-                                   pair_args.d_virial,
-                                   pair_args.virial_pitch,
-                                   N,
-                                   pair_args.d_pos,
-                                   pair_args.d_charge,
-                                   pair_args.box,
-                                   pair_args.d_n_neigh,
-                                   pair_args.d_nlist,
-                                   pair_args.d_head_list,
-                                   d_params,
-                                   pair_args.d_rcutsq,
-                                   pair_args.d_ronsq,
-                                   pair_args.ntypes,
-                                   max_extra_bytes);
+                gpu_compute_pair_forces_shared_kernel<evaluator,
+                                                      shift_mode,
+                                                      compute_virial,
+                                                      tpp,
+                                                      true>
+                    <<<num_blocks, block_size, param_shared_bytes + extra_shared_bytes>>>(
+                        pair_args.d_force,
+                        pair_args.d_virial,
+                        pair_args.virial_pitch,
+                        N,
+                        pair_args.d_pos,
+                        pair_args.d_charge,
+                        pair_args.box,
+                        pair_args.d_n_neigh,
+                        pair_args.d_nlist,
+                        pair_args.d_head_list,
+                        d_params,
+                        pair_args.d_rcutsq,
+                        pair_args.d_ronsq,
+                        pair_args.ntypes,
+                        max_extra_bytes);
                 }
             else
                 {
-                hipLaunchKernelGGL((gpu_compute_pair_forces_shared_kernel<evaluator,
-                                                                          shift_mode,
-                                                                          compute_virial,
-                                                                          tpp,
-                                                                          false>),
-                                   dim3(grid),
-                                   dim3(block_size),
-                                   param_shared_bytes + extra_shared_bytes,
-                                   0,
-                                   pair_args.d_force,
-                                   pair_args.d_virial,
-                                   pair_args.virial_pitch,
-                                   N,
-                                   pair_args.d_pos,
-                                   pair_args.d_charge,
-                                   pair_args.box,
-                                   pair_args.d_n_neigh,
-                                   pair_args.d_nlist,
-                                   pair_args.d_head_list,
-                                   d_params,
-                                   pair_args.d_rcutsq,
-                                   pair_args.d_ronsq,
-                                   pair_args.ntypes,
-                                   max_extra_bytes);
+                gpu_compute_pair_forces_shared_kernel<evaluator,
+                                                      shift_mode,
+                                                      compute_virial,
+                                                      tpp,
+                                                      false>
+                    <<<num_blocks, block_size, param_shared_bytes + extra_shared_bytes>>>(
+                        pair_args.d_force,
+                        pair_args.d_virial,
+                        pair_args.virial_pitch,
+                        N,
+                        pair_args.d_pos,
+                        pair_args.d_charge,
+                        pair_args.box,
+                        pair_args.d_n_neigh,
+                        pair_args.d_nlist,
+                        pair_args.d_head_list,
+                        d_params,
+                        pair_args.d_rcutsq,
+                        pair_args.d_ronsq,
+                        pair_args.ntypes,
+                        max_extra_bytes);
                 }
             }
         else
@@ -562,7 +552,7 @@ struct PairForceComputeKernel<evaluator, shift_mode, compute_virial, 0>
     This is just a driver function for gpu_compute_pair_forces_shared_kernel(), see it for details.
 */
 template<class evaluator>
-__attribute__((visibility("default"))) hipError_t
+__attribute__((visibility("default"))) cudaError_t
 gpu_compute_pair_forces(const pair_args_t& pair_args,
                         const typename evaluator::param_type* d_params)
     {
@@ -631,13 +621,13 @@ gpu_compute_pair_forces(const pair_args_t& pair_args,
             }
         }
 
-    return hipSuccess;
+    return cudaSuccess;
     }
 #else
 template<class evaluator>
 __attribute__((visibility("default")))
-hipError_t gpu_compute_pair_forces(const pair_args_t& pair_args,
-                                   const typename evaluator::param_type* d_params);
+cudaError_t gpu_compute_pair_forces(const pair_args_t& pair_args,
+                                    const typename evaluator::param_type* d_params);
 #endif
 
     } // end namespace kernel

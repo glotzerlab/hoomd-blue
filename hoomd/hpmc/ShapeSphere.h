@@ -17,7 +17,7 @@
 
 #include <stdexcept>
 
-#ifdef __HIPCC__
+#ifdef __NVCC__
 #define DEVICE __device__
 #define HOSTDEVICE __host__ __device__
 #else
@@ -129,12 +129,12 @@ struct SphereParams : ShapeParams
     /// True when the shape may be oriented
     bool isOriented;
 
-#ifdef ENABLE_HIP
+#ifdef ENABLE_GPU
     /// Set CUDA memory hints
     void set_memory_hint() const { }
 #endif
 
-#ifndef __HIPCC__
+#ifndef __NVCC__
 
     /// Default constructor
     SphereParams() { }
@@ -351,7 +351,7 @@ DEVICE inline ShortReal sweep_distance(const vec3<Scalar>& r_ab,
         }
     }
 
-#ifndef __HIPCC__
+#ifndef __NVCC__
 template<class Shape> std::string getShapeSpec(const Shape& shape)
     {
     // default implementation

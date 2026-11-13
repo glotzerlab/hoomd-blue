@@ -9,7 +9,7 @@
 #define __COMMUNICATOR_GPU_H__
 
 #ifdef ENABLE_MPI
-#ifdef ENABLE_HIP
+#ifdef ENABLE_GPU
 
 #include "Communicator.h"
 
@@ -18,7 +18,7 @@
 #include "GPUFlags.h"
 #include "GPUVector.h"
 
-#ifndef __HIPCC__
+#ifndef __NVCC__
 #include <pybind11/pybind11.h>
 #endif
 
@@ -267,7 +267,7 @@ class PYBIND11_EXPORT CommunicatorGPU : public Communicator
     std::vector<unsigned int> m_n_send_ghosts_tot; //!< Total number of sent ghosts per stage
     std::vector<unsigned int> m_n_recv_ghosts_tot; //!< Total number of received ghosts per stage
 
-    hipEvent_t m_event; //!< CUDA event for synchronization
+    cudaEvent_t m_event; //!< CUDA event for synchronization
 
     //! Helper function to allocate various buffers
     void allocateBuffers();
@@ -284,6 +284,6 @@ void export_CommunicatorGPU(pybind11::module& m);
 
     } // end namespace hoomd
 
-#endif // ENABLE_HIP
+#endif // ENABLE_GPU
 #endif // ENABLE_MPI
 #endif // __COMMUNICATOR_GPU_H

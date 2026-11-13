@@ -2,9 +2,9 @@
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #include "hoomd/mpcd/RejectionVirtualParticleFiller.h"
-#ifdef ENABLE_HIP
+#ifdef ENABLE_GPU
 #include "hoomd/mpcd/RejectionVirtualParticleFillerGPU.h"
-#endif // ENABLE_HIP
+#endif // ENABLE_GPU
 #include "hoomd/mpcd/SphereGeometry.h"
 
 #include "hoomd/SnapshotSystemData.h"
@@ -182,10 +182,10 @@ UP_TEST(sphere_rejection_fill_basic)
     sphere_rejection_fill_basic_test<mpcd::RejectionVirtualParticleFiller<mpcd::SphereGeometry>>(
         std::make_shared<ExecutionConfiguration>(ExecutionConfiguration::CPU));
     }
-#ifdef ENABLE_HIP
+#ifdef ENABLE_GPU
 UP_TEST(sphere_rejection_fill_basic_gpu)
     {
     sphere_rejection_fill_basic_test<mpcd::RejectionVirtualParticleFillerGPU<mpcd::SphereGeometry>>(
         std::make_shared<ExecutionConfiguration>(ExecutionConfiguration::GPU));
     }
-#endif // ENABLE_HIP
+#endif // ENABLE_GPU

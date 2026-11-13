@@ -9,8 +9,8 @@
     \brief Declaration of IntegratorHPMC
 */
 
-#ifdef ENABLE_HIP
-#include <hip/hip_runtime.h>
+#ifdef ENABLE_GPU
+#include <cuda_runtime.h>
 #endif
 
 #include "hoomd/CellList.h"
@@ -21,12 +21,12 @@
 #include "HPMCCounters.h"
 #include "PairPotential.h"
 
-#ifndef __HIPCC__
+#ifndef __NVCC__
 #include <pybind11/pybind11.h>
 #include <pybind11/stl.h>
 #endif
 
-#ifdef ENABLE_HIP
+#ifdef ENABLE_GPU
 #include "hoomd/Autotuner.h"
 #endif
 
@@ -36,7 +36,7 @@ namespace hpmc
     {
 namespace detail
     {
-#ifdef ENABLE_HIP
+#ifdef ENABLE_GPU
 //! Wraps arguments to kernel::narow_phase_patch functions
 struct hpmc_patch_args_t
     {

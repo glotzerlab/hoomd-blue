@@ -5,7 +5,7 @@
 #include "hoomd/CellListStencil.h"
 #include "hoomd/Initializers.h"
 
-#ifdef ENABLE_HIP
+#ifdef ENABLE_GPU
 #include "hoomd/CellListGPU.h"
 #endif
 
@@ -180,7 +180,7 @@ UP_TEST(CellListStencil_cpu)
         new ExecutionConfiguration(ExecutionConfiguration::CPU)));
     }
 
-#ifdef ENABLE_HIP
+#ifdef ENABLE_GPU
 //! test case for cell list stencil on the GPU
 UP_TEST(CellListStencil_gpu)
     {

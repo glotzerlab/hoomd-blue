@@ -12,7 +12,7 @@
     \brief Declares a class for computing harmonic angles
 */
 
-#ifdef __HIPCC__
+#ifdef __NVCC__
 #error This header cannot be compiled by nvcc
 #endif
 
@@ -30,7 +30,7 @@ struct angle_harmonic_params
     Scalar k;
     Scalar t_0;
 
-#ifndef __HIPCC__
+#ifndef __NVCC__
     angle_harmonic_params() : k(0), t_0(0) { }
 
     angle_harmonic_params(pybind11::dict params)
