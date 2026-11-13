@@ -118,7 +118,7 @@ template<class evaluator> class PotentialMeshTriangle : public MeshForceCompute
             }
         }
 
-    virtual void notifyDetach()
+    void notifyDetach() override
         {
         if (m_attached)
             {
