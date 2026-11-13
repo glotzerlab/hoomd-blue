@@ -128,6 +128,7 @@ void HelfrichGeneralMeshForceComputeGPU::computeForces(uint64_t timestep)
                                        d_gpu_n_meshbond.data,
                                        d_params.data,
                                        m_mesh_data->getMeshBondData()->getNTypes(),
+                                       m_has_spontaneous_curvature,
                                        m_tuner_force->getParam()[0]);
 
     if (this->m_exec_conf->isCUDAErrorCheckingEnabled())
@@ -187,6 +188,7 @@ void HelfrichGeneralMeshForceComputeGPU::precomputeParameter()
                                        gpu_table_indexer,
                                        d_gpu_meshbond_pos_list.data,
                                        d_gpu_n_meshbond.data,
+                                       m_has_spontaneous_curvature || m_force_normals,
                                        m_tuner_sigma->getParam()[0]);
 
     if (this->m_exec_conf->isCUDAErrorCheckingEnabled())

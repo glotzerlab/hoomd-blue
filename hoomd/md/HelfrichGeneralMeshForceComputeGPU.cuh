@@ -33,6 +33,7 @@ hipError_t gpu_compute_generalhelfrich_sigma(Scalar* d_sigma,
                                       const Index2D blist_idx,
                                       const unsigned int* bpos_list,
                                       const unsigned int* n_bonds_list,
+                                      const bool compute_normals,
                                       int block_size);
 
 //! Kernel driver that computes the forces for HelfrichGeneralMeshForceComputeGPU
@@ -52,6 +53,7 @@ hipError_t gpu_compute_generalhelfrich_force(Scalar4* d_force,
                                       const unsigned int* n_bonds_list,
                                       helfrich_param_t* d_params,
                                       const unsigned int n_bond_type,
+                                      const bool has_spontaneous_curvature,
                                       int block_size);
     } // end namespace kernel
     } // end namespace md
