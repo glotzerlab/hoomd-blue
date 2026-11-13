@@ -85,95 +85,12 @@ class BendingRigidity(MeshPotential):
 
 
 class Helfrich(MeshPotential):
-    r"""Helfrich bending potential.
-
-    Args:
-        mesh (:py:mod:`hoomd.mesh.Mesh`): Mesh data structure constraint.
-
-    `Helfrich` specifies a Helfrich bending energy applied to
-    all particles within the mesh.
-
-    .. math::
-
-        U(i) = \frac{1}{2} k_i \frac{1}{\sigma_i}\left( \sum_{j \in
-        \mathrm{Neigh}(i)} \frac{\sigma_{ij}}{l_{ij}} (\mathbf{r}_j
-        - \mathbf{r}_i) \right)^2
-
-    with the stiffness :math:`k_i` of the particle type of vertex :math:`i`,
-    the area of the dual cell of vertex :math:`i`
-    :math:`\sigma_i=(\sum_{j \in \mathrm{Neigh}(i)}\sigma_{ij}\cdot l_{ij})/4`,
-    the length of the bond between :math:`i` and :math:`j` :math:`l_{ij}`, the length of
-    the bond in the dual lattice  :math:`\sigma_{ij}=l_{ij}(\text{cot}\theta_1+
-    \text{cot}\theta_2)/2` and the angles :math:`\theta_1` and :math:`\theta_2` opposite
-    to the shared bond of vertex :math:`i` and :math:`j`.
-
-    See Also:
-        * `Gompper and Kroll 1996 <https://doi.org/10.1051/jp1:1996246>`__
-        * `Helfrich 1973 <https://doi.org/10.1515/znc-1973-11-1209>`__
-
-    Attention:
-        `Helfrich` is NOT implemented for MPI parallel execution!
-
-    .. rubric:: Example:
-
-    .. skip: next if(hoomd.version.mpi_enabled)
-
-    .. code-block:: python
-
-        helfrich_potential = hoomd.md.mesh.bending.Helfrich(mesh)
-        helfrich_potential.params["A"] = dict(k=10.0)
-
-    {inherited}
-
-
-    **Members defined in** `Helfrich`:
-
-    Attributes:
-        params (TypeParameter[``particle type``, dict]):
-            The parameters of the Helfrich energy for each particle type.
-            The dictionary has the following keys:
-
-            * ``k`` (`float`, **required**) - bending stiffness
-              :math:`[\mathrm{energy}]`
-
-    """
-
-    _cpp_class_name = "HelfrichMeshForceCompute"
-    __doc__ = inspect.cleandoc(__doc__).replace(
-        "{inherited}", inspect.cleandoc(MeshPotential._doc_inherited)
-    )
-
-    def __init__(self, mesh):
-        params = TypeParameter(
-            "params", "particle_types", TypeParameterDict(k=float, len_keys=1)
-        )
-        self._add_typeparam(params)
-
-        super().__init__(mesh)
-
-    def _apply_typeparam_dict(self, cpp_obj, simulation):
-        for typeparam in self._typeparam_dict.values():
-            try:
-                typeparam._attach(cpp_obj, simulation.state)
-            except ValueError as err:
-                raise err.__class__(
-                    f"For {type(self)} in TypeParameter {typeparam.name} {err!s}"
-                )
-
-    def _attach_hook(self):
-        if self._simulation.device.communicator.num_ranks == 1:
-            super()._attach_hook()
-        else:
-            raise MPINotAvailableError("Helfrich is not implemented for MPI")
-
-
-class GeneralHelfrich(MeshPotential):
     r"""Helfrich bending potential with spontaneous curvature.
 
     Args:
         mesh (:py:mod:`hoomd.mesh.Mesh`): Mesh data structure constraint.
 
-    `GeneralHelfrich` specifies a Helfrich bending energy with a spontaneous
+    `Helfrich` specifies a Helfrich bending energy with a spontaneous
     mean curvature :math:`H_0` applied to all particles within the mesh.
 
     .. math::
@@ -194,7 +111,7 @@ class GeneralHelfrich(MeshPotential):
     the vertex normal.
 
     Attention:
-        `GeneralHelfrich` is NOT implemented for MPI parallel execution!
+        `Helfrich` is NOT implemented for MPI parallel execution!
 
     .. rubric:: Example:
 
@@ -202,14 +119,14 @@ class GeneralHelfrich(MeshPotential):
 
     .. code-block:: python
 
-        helfrich_potential = hoomd.md.mesh.bending.GeneralHelfrich(mesh)
+        helfrich_potential = hoomd.md.mesh.bending.Helfrich(mesh)
         helfrich_potential.params["A"] = dict(k=10.0, H0=0.5)
 
     {inherited}
 
     ----------
 
-    **Members defined in** `GeneralHelfrich`:
+    **Members defined in** `Helfrich`:
 
     Attributes:
         params (TypeParameter[``particle type``, dict]):
@@ -223,7 +140,7 @@ class GeneralHelfrich(MeshPotential):
 
     """
 
-    _cpp_class_name = "HelfrichGeneralMeshForceCompute"
+    _cpp_class_name = "HelfrichMeshForceCompute"
     __doc__ = inspect.cleandoc(__doc__).replace(
         "{inherited}", inspect.cleandoc(MeshPotential._doc_inherited)
     )
@@ -262,5 +179,4 @@ class GeneralHelfrich(MeshPotential):
 __all__ = [
     "BendingRigidity",
     "Helfrich",
-    "GeneralHelfrich",
 ]

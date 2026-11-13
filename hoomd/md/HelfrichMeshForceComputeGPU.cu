@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2026 The Regents of the University of Michigan.
+// Copyright (c) 2009-2025 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #include "hip/hip_runtime.h"
@@ -15,7 +15,7 @@
 
 /*! \file HelfrichMeshForceComputeGPU.cu
     \brief Defines GPU kernel code for calculating the helfrich forces. Used by
-   HelfrichMeshForceComputeComputeGPU.
+   HelfrichMeshForceComputeGPU.
 */
 
 namespace hoomd
@@ -27,6 +27,7 @@ namespace kernel
 //! Kernel for calculating helfrich sigmas on the GPU
 /*! \param d_sigma Device memory to write per paricle sigma
     \param d_sigma_dash Device memory to write per particle sigma_dash
+    \param d_normal Device memory to write per particle normal
     \param N number of particles
     \param d_pos device array of particle positions
     \param d_rtag device array of particle reverse tags
@@ -37,6 +38,7 @@ namespace kernel
 */
 __global__ void gpu_compute_helfrich_sigma_kernel(Scalar* d_sigma,
                                                   Scalar3* d_sigma_dash,
+                                                  Scalar4* d_normal,
                                                   const unsigned int N,
                                                   const Scalar4* d_pos,
                                                   const unsigned int* d_rtag,
@@ -44,7 +46,8 @@ __global__ void gpu_compute_helfrich_sigma_kernel(Scalar* d_sigma,
                                                   const group_storage<4>* blist,
                                                   const Index2D blist_idx,
                                                   const unsigned int* bpos_list,
-                                                  const unsigned int* n_bonds_list)
+                                                  const unsigned int* n_bonds_list,
+                                                  const bool compute_normals)
     {
     // start by identifying which particle we are to handle
     int idx = blockIdx.x * blockDim.x + threadIdx.x;
@@ -63,6 +66,8 @@ __global__ void gpu_compute_helfrich_sigma_kernel(Scalar* d_sigma,
     Scalar3 sigma_dash = make_scalar3(Scalar(0.0), Scalar(0.0), Scalar(0.0));
 
     Scalar sigma = 0.0;
+
+    Scalar3 normal = make_scalar3(Scalar(0.0), Scalar(0.0), Scalar(0.0));
 
     // loop over all angles
     for (int bond_idx = 0; bond_idx < n_bonds; bond_idx++)
@@ -125,6 +130,20 @@ __global__ void gpu_compute_helfrich_sigma_kernel(Scalar* d_sigma,
         nbc = dbc / rbc;
         nbd = dbd / rbd;
 
+	if (compute_normals)
+		{
+		Scalar3 normal_abcd;
+
+		normal_abcd.x = 0.5*(dac.y*dab.z - dac.z*dab.y + dab.y*dad.z - dab.z*dad.y);
+		normal_abcd.y = 0.5*(dac.z*dab.x - dac.x*dab.z + dab.z*dad.x - dab.x*dad.z);
+		normal_abcd.z = 0.5*(dac.x*dab.y - dac.y*dab.x + dab.x*dad.y - dab.y*dad.x);
+
+		if (cur_bond_pos == 1)
+			normal_abcd *= -1;
+
+		normal += normal_abcd;
+		}
+
         Scalar c_accb = nac.x * nbc.x + nac.y * nbc.y + nac.z * nbc.z;
 
         if (c_accb > 1.0)
@@ -162,6 +181,19 @@ __global__ void gpu_compute_helfrich_sigma_kernel(Scalar* d_sigma,
         sigma_dash += sigma_dash_a;
         }
 
+    if (compute_normals)
+        {
+        Scalar factor = dot(normal, sigma_dash);
+
+        if (factor < 0)
+            d_normal[idx].w = -1;
+        else
+            d_normal[idx].w = 1;
+        d_normal[idx].x = normal.x;
+        d_normal[idx].y = normal.y;
+        d_normal[idx].z = normal.z;
+        }
+
     // now that the force calculation is complete, write out the result (MEM TRANSFER: 20 bytes)
     d_sigma[idx] = sigma;
     d_sigma_dash[idx] = sigma_dash;
@@ -169,6 +201,7 @@ __global__ void gpu_compute_helfrich_sigma_kernel(Scalar* d_sigma,
 
 /*! \param d_sigma Device memory to write per paricle sigma
     \param d_sigma_dash Device memory to write per particle sigma_dash
+    \param d_normal Device memory to write per particle normal
     \param N number of particles
     \param d_pos device array of particle positions
     \param d_rtag device array of particle reverse tags
@@ -184,6 +217,7 @@ __global__ void gpu_compute_helfrich_sigma_kernel(Scalar* d_sigma,
 */
 hipError_t gpu_compute_helfrich_sigma(Scalar* d_sigma,
                                       Scalar3* d_sigma_dash,
+                                      Scalar4* d_normal,
                                       const unsigned int N,
                                       const Scalar4* d_pos,
                                       const unsigned int* d_rtag,
@@ -192,6 +226,7 @@ hipError_t gpu_compute_helfrich_sigma(Scalar* d_sigma,
                                       const Index2D blist_idx,
                                       const unsigned int* bpos_list,
                                       const unsigned int* n_bonds_list,
+                                      const bool compute_normals,
                                       int block_size)
     {
     unsigned int max_block_size;
@@ -213,6 +248,7 @@ hipError_t gpu_compute_helfrich_sigma(Scalar* d_sigma,
                        0,
                        d_sigma,
                        d_sigma_dash,
+                       d_normal,
                        N,
                        d_pos,
                        d_rtag,
@@ -220,7 +256,8 @@ hipError_t gpu_compute_helfrich_sigma(Scalar* d_sigma,
                        blist,
                        blist_idx,
                        bpos_list,
-                       n_bonds_list);
+                       n_bonds_list,
+                       compute_normals);
 
     return hipSuccess;
     }
@@ -235,11 +272,12 @@ hipError_t gpu_compute_helfrich_sigma(Scalar* d_sigma,
     \param box Box dimensions (in GPU format) to use for periodic boundary conditions
     \param d_sigma Device memory to write per paricle sigma
     \param d_sigma_dash Device memory to write per particle sigma_dash
+    \param d_normal Device memory to write per particle normal
     \param blist List of mesh bonds stored on the GPU
     \param bpos_list Position of current index in list of mesh bonds stored on the GPU
     \param n_bonds_list List of numbers of mesh bonds stored on the GPU
     \param d_params K params packed as Scalar variables
-    \param n_bond_type number of particle types
+    \param n_bond_type number of mesh bond types
 */
 __global__ void gpu_compute_helfrich_force_kernel(Scalar4* d_force,
                                                   Scalar* d_virial,
@@ -250,12 +288,14 @@ __global__ void gpu_compute_helfrich_force_kernel(Scalar4* d_force,
                                                   BoxDim box,
                                                   const Scalar* d_sigma,
                                                   const Scalar3* d_sigma_dash,
+                                                  const Scalar4* d_normal,
                                                   const group_storage<4>* blist,
                                                   const Index2D blist_idx,
                                                   const unsigned int* bpos_list,
                                                   const unsigned int* n_bonds_list,
-                                                  Scalar* d_params,
-                                                  const unsigned int n_bond_type)
+                                                  helfrich_param_t* d_params,
+                                                  const unsigned int n_bond_type,
+                                                  const bool has_spontaneous_curvature)
     {
     // start by identifying which particle we are to handle
     int idx = blockIdx.x * blockDim.x + threadIdx.x;
@@ -275,12 +315,30 @@ __global__ void gpu_compute_helfrich_force_kernel(Scalar4* d_force,
     Scalar3 sigma_dash_a = d_sigma_dash[idx]; // precomputed
     Scalar sigma_a = d_sigma[idx];            // precomputed
     Scalar inv_sigma_a = 1.0 / sigma_a;
-    Scalar sigma_dash_a2 = 0.5 * dot(sigma_dash_a, sigma_dash_a) * inv_sigma_a * inv_sigma_a;
-    Scalar K_a = __ldg(d_params + type_a);
+    Scalar sigma_dash_a2 = dot(sigma_dash_a, sigma_dash_a);
+
+    helfrich_param_t params_a = d_params[type_a];
+    Scalar K_a = params_a.k;
 
     Scalar4 force = make_scalar4(Scalar(0.0), Scalar(0.0), Scalar(0.0), Scalar(0.0));
 
-    force.w = K_a / 2.0 * dot(sigma_dash_a, sigma_dash_a) * inv_sigma_a;
+    // without a spontaneous curvature the energy is k / 2 |sigma'|^2 / sigma, which needs neither
+    // the normals nor a square root
+    Scalar factor_a = Scalar(1.0);
+    Scalar H0_a = Scalar(0.0);
+    Scalar Curv_a = Scalar(0.0);
+    if (has_spontaneous_curvature)
+        {
+        factor_a = d_normal[idx].w;
+        H0_a = 2 * params_a.H0;
+        Curv_a = factor_a * sqrt(sigma_dash_a2) - H0_a * sigma_a;
+        force.w = K_a / 2.0 * Curv_a * Curv_a * inv_sigma_a;
+        }
+    else
+        {
+        force.w = K_a / 2.0 * sigma_dash_a2 * inv_sigma_a;
+        }
+
 
     // initialize the virial to 0
     Scalar virial[6];
@@ -438,6 +496,19 @@ __global__ void gpu_compute_helfrich_force_kernel(Scalar4* d_force,
         Scalar sigma_b = d_sigma[cur_bond_idx]; // precomputed
         Scalar sigma_c = d_sigma[cur_idx_c];    // precomputed
         Scalar sigma_d = d_sigma[cur_idx_d];    // precomputed
+						//
+	Scalar sigma_dash_b2 = dot(sigma_dash_b,sigma_dash_b);
+        Scalar sigma_dash_c2 = dot(sigma_dash_c,sigma_dash_c);
+        Scalar sigma_dash_d2 = dot(sigma_dash_d,sigma_dash_d);
+
+        helfrich_param_t params_b = d_params[type_b];
+        Scalar K_b = params_b.k;
+
+        helfrich_param_t params_c = d_params[type_c];
+        Scalar K_c = params_c.k;
+
+        helfrich_param_t params_d = d_params[type_d];
+        Scalar K_d = params_d.k;
 
         Scalar3 dc_abbc, dc_abbd, dc_baac, dc_baad;
         dc_abbc = -nbc / rab - c_abbc / rab * nab;
@@ -461,28 +532,65 @@ __global__ void gpu_compute_helfrich_force_kernel(Scalar4* d_force,
                       + dot(sigma_dash_a, dad) * dsigma_hat_ad;
         Scalar3 g_b = -sigma_hat_ab * sigma_dash_b + dot(sigma_dash_b, dbc) * dsigma_hat_bc
                       + dot(sigma_dash_b, dbd) * dsigma_hat_bd;
-        Scalar3 g_c
-            = -dot(sigma_dash_c, dac) * dsigma_hat_ac - dot(sigma_dash_c, dbc) * dsigma_hat_bc;
-        Scalar3 g_d
-            = -dot(sigma_dash_d, dad) * dsigma_hat_ad - dot(sigma_dash_d, dbd) * dsigma_hat_bd;
-
-        // the stiffness is a property of the vertex
-    	Scalar K_b = __ldg(d_params + type_a);
-    	Scalar K_c = __ldg(d_params + type_c);
-    	Scalar K_d = __ldg(d_params + type_d);
+        Scalar3 g_c = -dot(sigma_dash_c, dac) * dsigma_hat_ac - dot(sigma_dash_c, dbc) * dsigma_hat_bc;
+        Scalar3 g_d = -dot(sigma_dash_d, dad) * dsigma_hat_ad - dot(sigma_dash_d, dbd) * dsigma_hat_bd;
 
         Scalar inv_sigma_b = 1.0 / sigma_b;
         Scalar inv_sigma_c = 1.0 / sigma_c;
         Scalar inv_sigma_d = 1.0 / sigma_d;
 
-        Scalar sigma_dash_b2 = 0.5 * dot(sigma_dash_b, sigma_dash_b) * inv_sigma_b * inv_sigma_b;
-        Scalar sigma_dash_c2 = 0.5 * dot(sigma_dash_c, sigma_dash_c) * inv_sigma_c * inv_sigma_c;
-        Scalar sigma_dash_d2 = 0.5 * dot(sigma_dash_d, sigma_dash_d) * inv_sigma_d * inv_sigma_d;
+        Scalar3 Fa;
 
-        Scalar3 Fa = -K_a * (g_a * inv_sigma_a - sigma_dash_a2 * dsigma_a)
-                     - K_b * (g_b * inv_sigma_b - sigma_dash_b2 * dsigma_b)
-                     - K_c * (g_c * inv_sigma_c - sigma_dash_c2 * dsigma_c)
-                     - K_d * (g_d * inv_sigma_d - sigma_dash_d2 * dsigma_d);
+        if (has_spontaneous_curvature)
+            {
+            Scalar H0_b = 2 * params_b.H0;
+            Scalar H0_c = 2 * params_c.H0;
+            Scalar H0_d = 2 * params_d.H0;
+
+            Scalar factor_b = d_normal[cur_bond_idx].w;
+            Scalar factor_c = d_normal[cur_idx_c].w;
+            Scalar factor_d = d_normal[cur_idx_d].w;
+
+            Scalar Curv_b = factor_b * sqrt(sigma_dash_b2) - H0_b * sigma_b;
+            Scalar Curv_c = factor_c * sqrt(sigma_dash_c2) - H0_c * sigma_c;
+            Scalar Curv_d = factor_d * sqrt(sigma_dash_d2) - H0_d * sigma_d;
+
+            Scalar3 dCurv_a = -H0_a * dsigma_a;
+            Scalar3 dCurv_b = -H0_b * dsigma_b;
+            Scalar3 dCurv_c = -H0_c * dsigma_c;
+            Scalar3 dCurv_d = -H0_d * dsigma_d;
+
+            if (sigma_dash_a2 > 0)
+                dCurv_a += factor_a * rsqrt(sigma_dash_a2) * g_a;
+            if (sigma_dash_b2 > 0)
+                dCurv_b += factor_b * rsqrt(sigma_dash_b2) * g_b;
+            if (sigma_dash_c2 > 0)
+                dCurv_c += factor_c * rsqrt(sigma_dash_c2) * g_c;
+            if (sigma_dash_d2 > 0)
+                dCurv_d += factor_d * rsqrt(sigma_dash_d2) * g_d;
+
+            Scalar Curv_a2 = 0.5 * Curv_a * Curv_a * inv_sigma_a * inv_sigma_a;
+            Scalar Curv_b2 = 0.5 * Curv_b * Curv_b * inv_sigma_b * inv_sigma_b;
+            Scalar Curv_c2 = 0.5 * Curv_c * Curv_c * inv_sigma_c * inv_sigma_c;
+            Scalar Curv_d2 = 0.5 * Curv_d * Curv_d * inv_sigma_d * inv_sigma_d;
+
+            Fa = -K_a * (Curv_a * inv_sigma_a * dCurv_a - Curv_a2 * dsigma_a)
+                 - K_b * (Curv_b * inv_sigma_b * dCurv_b - Curv_b2 * dsigma_b)
+                 - K_c * (Curv_c * inv_sigma_c * dCurv_c - Curv_c2 * dsigma_c)
+                 - K_d * (Curv_d * inv_sigma_d * dCurv_d - Curv_d2 * dsigma_d);
+            }
+        else
+            {
+            Scalar sigma_dash_a2_s = 0.5 * sigma_dash_a2 * inv_sigma_a * inv_sigma_a;
+            Scalar sigma_dash_b2_s = 0.5 * sigma_dash_b2 * inv_sigma_b * inv_sigma_b;
+            Scalar sigma_dash_c2_s = 0.5 * sigma_dash_c2 * inv_sigma_c * inv_sigma_c;
+            Scalar sigma_dash_d2_s = 0.5 * sigma_dash_d2 * inv_sigma_d * inv_sigma_d;
+
+            Fa = -K_a * (g_a * inv_sigma_a - sigma_dash_a2_s * dsigma_a)
+                 - K_b * (g_b * inv_sigma_b - sigma_dash_b2_s * dsigma_b)
+                 - K_c * (g_c * inv_sigma_c - sigma_dash_c2_s * dsigma_c)
+                 - K_d * (g_d * inv_sigma_d - sigma_dash_d2_s * dsigma_d);
+            }
 
         force.x += Fa.x;
         force.y += Fa.y;
@@ -512,11 +620,12 @@ __global__ void gpu_compute_helfrich_force_kernel(Scalar4* d_force,
     \param box Box dimensions (in GPU format) to use for periodic boundary conditions
     \param d_sigma Device memory to write per paricle sigma
     \param d_sigma_dash Device memory to write per particle sigma_dash
+    \param d_normal Device memory to write per particle normal
     \param blist List of mesh bonds stored on the GPU
     \param bpos_list Position of current index in list of mesh bonds stored on the GPU
     \param n_bonds_list List of numbers of mesh bonds stored on the GPU
     \param d_params K params packed as Scalar variables
-    \param n_bond_type number of particle types
+    \param n_bond_type number of mesh bond types
     \param block_size Block size to use when performing calculations
 
     \returns Any error code resulting from the kernel launch
@@ -531,12 +640,14 @@ hipError_t gpu_compute_helfrich_force(Scalar4* d_force,
                                       const BoxDim& box,
                                       const Scalar* d_sigma,
                                       const Scalar3* d_sigma_dash,
+                                      const Scalar4* d_normal,
                                       const group_storage<4>* blist,
                                       const Index2D blist_idx,
                                       const unsigned int* bpos_list,
                                       const unsigned int* n_bonds_list,
-                                      Scalar* d_params,
+                                      helfrich_param_t* d_params,
                                       const unsigned int n_bond_type,
+                                      const bool has_spontaneous_curvature,
                                       int block_size)
     {
     unsigned int max_block_size;
@@ -565,12 +676,14 @@ hipError_t gpu_compute_helfrich_force(Scalar4* d_force,
                        box,
                        d_sigma,
                        d_sigma_dash,
+                       d_normal,
                        blist,
                        blist_idx,
                        bpos_list,
                        n_bonds_list,
                        d_params,
-                       n_bond_type);
+                       n_bond_type,
+                       has_spontaneous_curvature);
 
     return hipSuccess;
     }
