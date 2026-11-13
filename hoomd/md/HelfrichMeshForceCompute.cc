@@ -191,6 +191,12 @@ void HelfrichMeshForceCompute::resizeSigmaArrays()
         GPUArray<Scalar3> tmp_sigma_dash(m_pdata->getMaxN(), m_exec_conf);
         m_sigma_dash.swap(tmp_sigma_dash);
         }
+
+    if (m_normal.getNumElements() < n_tot)
+        {
+        GPUArray<Scalar4> tmp_normal(m_pdata->getMaxN(), m_exec_conf);
+        m_normal.swap(tmp_normal);
+        }
     }
 
 void HelfrichMeshForceCompute::communicateSigma()
@@ -225,6 +231,12 @@ void HelfrichMeshForceCompute::communicateSigma()
         }
 
     m_comm->updateGhostArray(m_sigma_comm);
+
+    // The normals are only computed if H0 != 0.
+    if (m_has_spontaneous_curvature)
+        {
+        m_comm->updateGhostArray(m_normal);
+        }
 
         {
         ArrayHandle<Scalar> h_sigma(m_sigma, access_location::host, access_mode::readwrite);

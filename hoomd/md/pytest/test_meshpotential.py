@@ -295,6 +295,7 @@ def _find_type_name(pair_potential):
     else:
         return "mesh"
 
+
 @pytest.fixture(scope="session")
 def tetrahedron_snapshot_factory(device):
     def make_snapshot(d=1.0, particle_types=["A"], L=20):

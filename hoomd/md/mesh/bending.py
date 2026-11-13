@@ -164,6 +164,7 @@ class Helfrich(MeshPotential):
         self._cpp_obj.compute(self._simulation.timestep)
         return self._cpp_obj.getCurvatures()
 
+
 __all__ = [
     "BendingRigidity",
     "Helfrich",

@@ -248,7 +248,7 @@ cudaError_t gpu_compute_helfrich_sigma(Scalar* d_sigma,
                                                                                   blist_idx,
                                                                                   bpos_list,
                                                                                   n_bonds_list,
-                       compute_normals);
+                                                                                  compute_normals);
 
     return cudaSuccess;
     }
@@ -650,23 +650,24 @@ cudaError_t gpu_compute_helfrich_force(Scalar4* d_force,
     unsigned int run_block_size = min(block_size, max_block_size);
 
     // run the kernel
-    gpu_compute_helfrich_force_kernel<<<N / run_block_size + 1, run_block_size>>>(d_force,
-                                                                                  d_virial,
-                                                                                  virial_pitch,
-                                                                                  N,
-                                                                                  d_pos,
-                                                                                  d_rtag,
-                                                                                  box,
-                                                                                  d_sigma,
-                                                                                  d_sigma_dash,
-                                                                                  d_normal,
-                                                                                  blist,
-                                                                                  blist_idx,
-                                                                                  bpos_list,
-                                                                                  n_bonds_list,
-                                                                                  d_params,
-                                                                                  n_bond_type,
-                       has_spontaneous_curvature);
+    gpu_compute_helfrich_force_kernel<<<N / run_block_size + 1, run_block_size>>>(
+        d_force,
+        d_virial,
+        virial_pitch,
+        N,
+        d_pos,
+        d_rtag,
+        box,
+        d_sigma,
+        d_sigma_dash,
+        d_normal,
+        blist,
+        blist_idx,
+        bpos_list,
+        n_bonds_list,
+        d_params,
+        n_bond_type,
+        has_spontaneous_curvature);
     return cudaSuccess;
     }
 
