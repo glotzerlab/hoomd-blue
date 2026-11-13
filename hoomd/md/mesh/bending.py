@@ -28,7 +28,6 @@ from hoomd.md.mesh.potential import MeshPotential
 from hoomd.logging import log
 from hoomd.data.typeparam import TypeParameter
 from hoomd.data.parameterdicts import TypeParameterDict
-from hoomd.error import MPINotAvailableError
 import inspect
 
 
@@ -110,12 +109,7 @@ class Helfrich(MeshPotential):
     and :math:`j`. The sign of :math:`H_i` is defined with respect to
     the vertex normal.
 
-    Attention:
-        `Helfrich` is NOT implemented for MPI parallel execution!
-
     .. rubric:: Example:
-
-    .. skip: next if(hoomd.version.mpi_enabled)
 
     .. code-block:: python
 
@@ -153,12 +147,6 @@ class Helfrich(MeshPotential):
 
         super().__init__(mesh)
 
-    def _attach_hook(self):
-        if self._simulation.device.communicator.num_ranks == 1:
-            super()._attach_hook()
-        else:
-            raise MPINotAvailableError("Helfrich is not implemented for MPI")
-
     def _apply_typeparam_dict(self, cpp_obj, simulation):
         for typeparam in self._typeparam_dict.values():
             try:
@@ -175,7 +163,6 @@ class Helfrich(MeshPotential):
         """
         self._cpp_obj.compute(self._simulation.timestep)
         return self._cpp_obj.getCurvatures()
-
 
 __all__ = [
     "BendingRigidity",

@@ -191,7 +191,6 @@ def get_mesh_potential_args_forces_and_energies():
         ],
     ]
     Helfrich_energies = [9.237604, 184.752086, 923.760431, 0, 32.22625]
-
     AreaConservation_forces = [
         [
             [0.94380349, 0.0, -0.66736985],
@@ -289,20 +288,12 @@ def get_mesh_potential_args_forces_and_energies():
     )
 
 
-def _skip_if_helfrich_mpi(sim, pair_potential):
-    """Determines if the simulation is able to run this pair potential."""
-    if sim.device.communicator.num_ranks > 1:
-        if issubclass(pair_potential, hoomd.md.mesh.bending.Helfrich):
-            pytest.skip("Cannot run Helfrich with MPI")
-
-
 def _find_type_name(pair_potential):
     """Determines if particle or mesh type has to be used."""
     if issubclass(pair_potential, hoomd.md.mesh.bending.Helfrich):
         return "A"
     else:
         return "mesh"
-
 
 @pytest.fixture(scope="session")
 def tetrahedron_snapshot_factory(device):
@@ -374,8 +365,6 @@ def test_after_attaching(
     mesh_potential = mesh_potential_cls(mesh)
     mesh_potential.params[type_name] = potential_kwargs
 
-    _skip_if_helfrich_mpi(sim, mesh_potential_cls)
-
     integrator = hoomd.md.Integrator(dt=0.005)
 
     integrator.forces.append(mesh_potential)
@@ -418,8 +407,6 @@ def test_multiple_types(
 
     mesh_potential = mesh_potential_cls(mesh)
     mesh_potential.params.default = potential_kwargs
-
-    _skip_if_helfrich_mpi(sim, mesh_potential_cls)
 
     integrator = hoomd.md.Integrator(dt=0.005)
 
@@ -565,8 +552,6 @@ def test_forces_and_energies(
         mesh_potential.params["mesh"] = potential_kwargs
         mesh_potential.params["patch"] = potential_kwargs
 
-    _skip_if_helfrich_mpi(sim, mesh_potential_cls)
-
     integrator = hoomd.md.Integrator(dt=0.005)
 
     integrator.forces.append(mesh_potential)
@@ -679,7 +664,6 @@ def test_helfrich_curvatures(simulation_factory, tetrahedron_snapshot_factory):
 
     helfrich = hoomd.md.mesh.bending.Helfrich(mesh)
     helfrich.params["A"] = dict(k=1.0, H0=0.0)
-    _skip_if_helfrich_mpi(sim, hoomd.md.mesh.bending.Helfrich)
 
     integrator = hoomd.md.Integrator(dt=0.005, forces=[helfrich])
     integrator.methods.append(
@@ -693,23 +677,3 @@ def test_helfrich_curvatures(simulation_factory, tetrahedron_snapshot_factory):
 
     assert len(curvatures) == 4
     np.testing.assert_allclose(curvatures, mean_curvature, rtol=1e-5)
-
-
-def test_helfrich_mpi_error(simulation_factory, tetrahedron_snapshot_factory):
-    sim = simulation_factory(tetrahedron_snapshot_factory(d=0.969, L=5))
-    mesh = hoomd.mesh.Mesh()
-    mesh.triangulation = dict(type_ids=[0, 0], triangles=[[0, 1, 2], [0, 2, 3]])
-
-    helfrich = hoomd.md.mesh.bending.Helfrich(mesh)
-    helfrich.params["A"] = dict(k=1)
-
-    integrator = hoomd.md.Integrator(dt=0.005, forces=[helfrich])
-
-    integrator.methods.append(
-        hoomd.md.methods.Langevin(kT=1, filter=hoomd.filter.All())
-    )
-    sim.operations.integrator = integrator
-
-    if sim.device.communicator.num_ranks > 1:
-        with pytest.raises(NotImplementedError):
-            sim.run(0)
