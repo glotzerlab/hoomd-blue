@@ -239,7 +239,7 @@ hipError_t gpu_compute_helfrich_sigma(Scalar* d_sigma,
     \param bpos_list Position of current index in list of mesh bonds stored on the GPU
     \param n_bonds_list List of numbers of mesh bonds stored on the GPU
     \param d_params K params packed as Scalar variables
-    \param n_bond_type number of mesh bond types
+    \param n_bond_type number of particle types
 */
 __global__ void gpu_compute_helfrich_force_kernel(Scalar4* d_force,
                                                   Scalar* d_virial,
@@ -270,12 +270,17 @@ __global__ void gpu_compute_helfrich_force_kernel(Scalar4* d_force,
     Scalar4 postype = __ldg(d_pos + idx);
     Scalar3 pos = make_scalar3(postype.x, postype.y, postype.z);
 
+    unsigned int type_a = __scalar_as_int(postype.w);
+
     Scalar3 sigma_dash_a = d_sigma_dash[idx]; // precomputed
     Scalar sigma_a = d_sigma[idx];            // precomputed
     Scalar inv_sigma_a = 1.0 / sigma_a;
     Scalar sigma_dash_a2 = 0.5 * dot(sigma_dash_a, sigma_dash_a) * inv_sigma_a * inv_sigma_a;
+    Scalar K_a = __ldg(d_params + type_a);
 
     Scalar4 force = make_scalar4(Scalar(0.0), Scalar(0.0), Scalar(0.0), Scalar(0.0));
+
+    force.w = K_a / 2.0 * dot(sigma_dash_a, sigma_dash_a) * inv_sigma_a;
 
     // initialize the virial to 0
     Scalar virial[6];
@@ -299,7 +304,6 @@ __global__ void gpu_compute_helfrich_force_kernel(Scalar4* d_force,
             continue;
 
         int cur_bond_idx = cur_bond.idx[0];
-        int cur_bond_type = cur_bond.idx[3];
 
         // get the b-particle's position (MEM TRANSFER: 16 bytes)
         Scalar4 bb_postype = d_pos[cur_bond_idx];
@@ -310,6 +314,10 @@ __global__ void gpu_compute_helfrich_force_kernel(Scalar4* d_force,
         // get the c-particle's position (MEM TRANSFER: 16 bytes)
         Scalar4 dd_postype = d_pos[cur_idx_d];
         Scalar3 dd_pos = make_scalar3(dd_postype.x, dd_postype.y, dd_postype.z);
+
+    	unsigned int type_b = __scalar_as_int(bb_postype.w);
+    	unsigned int type_c = __scalar_as_int(cc_postype.w);
+    	unsigned int type_d = __scalar_as_int(dd_postype.w);
 
         Scalar3 dab = pos - bb_pos;
         Scalar3 dac = pos - cc_pos;
@@ -458,7 +466,10 @@ __global__ void gpu_compute_helfrich_force_kernel(Scalar4* d_force,
         Scalar3 g_d
             = -dot(sigma_dash_d, dad) * dsigma_hat_ad - dot(sigma_dash_d, dbd) * dsigma_hat_bd;
 
-        Scalar K = __ldg(d_params + cur_bond_type);
+        // the stiffness is a property of the vertex
+    	Scalar K_b = __ldg(d_params + type_a);
+    	Scalar K_c = __ldg(d_params + type_c);
+    	Scalar K_d = __ldg(d_params + type_d);
 
         Scalar inv_sigma_b = 1.0 / sigma_b;
         Scalar inv_sigma_c = 1.0 / sigma_c;
@@ -468,17 +479,14 @@ __global__ void gpu_compute_helfrich_force_kernel(Scalar4* d_force,
         Scalar sigma_dash_c2 = 0.5 * dot(sigma_dash_c, sigma_dash_c) * inv_sigma_c * inv_sigma_c;
         Scalar sigma_dash_d2 = 0.5 * dot(sigma_dash_d, sigma_dash_d) * inv_sigma_d * inv_sigma_d;
 
-        Scalar3 Fa = -(g_a * inv_sigma_a - sigma_dash_a2 * dsigma_a)
-                     - (g_b * inv_sigma_b - sigma_dash_b2 * dsigma_b)
-                     - (g_c * inv_sigma_c - sigma_dash_c2 * dsigma_c)
-                     - (g_d * inv_sigma_d - sigma_dash_d2 * dsigma_d);
-
-        Fa *= K;
+        Scalar3 Fa = -K_a * (g_a * inv_sigma_a - sigma_dash_a2 * dsigma_a)
+                     - K_b * (g_b * inv_sigma_b - sigma_dash_b2 * dsigma_b)
+                     - K_c * (g_c * inv_sigma_c - sigma_dash_c2 * dsigma_c)
+                     - K_d * (g_d * inv_sigma_d - sigma_dash_d2 * dsigma_d);
 
         force.x += Fa.x;
         force.y += Fa.y;
         force.z += Fa.z;
-        force.w = K / 2.0 * dot(sigma_dash_a, sigma_dash_a) * inv_sigma_a;
 
         virial[0] += Scalar(1. / 2.) * dab.x * Fa.x; // xx
         virial[1] += Scalar(1. / 2.) * dab.y * Fa.x; // xy
@@ -508,7 +516,7 @@ __global__ void gpu_compute_helfrich_force_kernel(Scalar4* d_force,
     \param bpos_list Position of current index in list of mesh bonds stored on the GPU
     \param n_bonds_list List of numbers of mesh bonds stored on the GPU
     \param d_params K params packed as Scalar variables
-    \param n_bond_type number of mesh bond types
+    \param n_bond_type number of particle types
     \param block_size Block size to use when performing calculations
 
     \returns Any error code resulting from the kernel launch

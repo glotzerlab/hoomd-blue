@@ -30,8 +30,7 @@ HelfrichMeshForceComputeGPU::HelfrichMeshForceComputeGPU(std::shared_ptr<SystemD
         }
 
     // allocate and zero device memory
-    GPUArray<Scalar> params(this->m_mesh_data->getMeshTriangleData()->getNTypes(),
-                            this->m_exec_conf);
+    GPUArray<Scalar> params(this->m_pdata->getNTypes(), this->m_exec_conf);
     m_params.swap(params);
 
     m_tuner_force.reset(new Autotuner<1>({AutotunerBase::makeBlockSizeRange(m_exec_conf)},
@@ -122,7 +121,7 @@ void HelfrichMeshForceComputeGPU::computeForces(uint64_t timestep)
                                        d_gpu_meshbond_pos_list.data,
                                        d_gpu_n_meshbond.data,
                                        d_params.data,
-                                       m_mesh_data->getMeshBondData()->getNTypes(),
+                                       m_pdata->getNTypes(),
                                        m_tuner_force->getParam()[0]);
 
     if (this->m_exec_conf->isCUDAErrorCheckingEnabled())
