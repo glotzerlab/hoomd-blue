@@ -72,7 +72,9 @@ HelfrichMeshForceComputeGPU::HelfrichMeshForceComputeGPU(std::shared_ptr<SystemD
  */
 void HelfrichMeshForceComputeGPU::computeForces(uint64_t timestep)
     {
+    resizeSigmaArrays();
     precomputeParameter();
+    communicateSigma();
 
     // access the particle data arrays
     ArrayHandle<Scalar4> d_pos(m_pdata->getPositions(), access_location::device, access_mode::read);

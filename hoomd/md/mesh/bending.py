@@ -27,7 +27,6 @@ See Also:
 from hoomd.md.mesh.potential import MeshPotential
 from hoomd.data.typeparam import TypeParameter
 from hoomd.data.parameterdicts import TypeParameterDict
-from hoomd.error import MPINotAvailableError
 import inspect
 
 
@@ -109,12 +108,7 @@ class Helfrich(MeshPotential):
         * `Gompper and Kroll 1996 <https://doi.org/10.1051/jp1:1996246>`__
         * `Helfrich 1973 <https://doi.org/10.1515/znc-1973-11-1209>`__
 
-    Attention:
-        `Helfrich` is NOT implemented for MPI parallel execution!
-
     .. rubric:: Example:
-
-    .. skip: next if(hoomd.version.mpi_enabled)
 
     .. code-block:: python
 
@@ -149,12 +143,6 @@ class Helfrich(MeshPotential):
         self._add_typeparam(params)
 
         super().__init__(mesh)
-
-    def _attach_hook(self):
-        if self._simulation.device.communicator.num_ranks == 1:
-            super()._attach_hook()
-        else:
-            raise MPINotAvailableError("Helfrich is not implemented for MPI")
 
 
 __all__ = [
