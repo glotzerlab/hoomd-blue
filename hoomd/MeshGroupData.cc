@@ -158,10 +158,10 @@ void MeshGroupData<group_size, Group, name>::initializeFromTriangleSnapshot(
                 bonds[j].tag[0] = bonds1;
                 bonds[j].tag[1] = bonds0;
 
-		switched[j] = true;
+                switched[j] = true;
                 }
-	    else
-		switched[j] = false;
+            else
+                switched[j] = false;
             }
 
         // Remove any duplicate bonds.
@@ -173,10 +173,10 @@ void MeshGroupData<group_size, Group, name>::initializeFromTriangleSnapshot(
                     && bonds[j].tag[1] == all_helper[i].tag[1])
                     {
                     unsigned int find_idx = all_helper[i].tag[2];
-		    if(switched[j])
-                    	all_groups[find_idx].tag[3] = bonds[j].tag[2];
-		    else
-                    	all_groups[find_idx].tag[2] = bonds[j].tag[2];
+                    if (switched[j])
+                        all_groups[find_idx].tag[3] = bonds[j].tag[2];
+                    else
+                        all_groups[find_idx].tag[2] = bonds[j].tag[2];
 
                     all_helper.erase(all_helper.begin() + i);
                     i -= 1;

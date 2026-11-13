@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2025 The Regents of the University of Michigan.
+// Copyright (c) 2009-2026 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #include "HelfrichMeshForceCompute.h"
@@ -11,7 +11,6 @@ using namespace std;
 
 // SMALL a relatively small number
 #define SMALL Scalar(0.001)
-
 
 /*! \file HelfrichMeshForceCompute.cc
     \brief Contains code for the HelfrichMeshForceCompute class
@@ -63,9 +62,7 @@ HelfrichMeshForceCompute::~HelfrichMeshForceCompute()
 */
 void HelfrichMeshForceCompute::setParams(unsigned int type, const helfrich_param_t& params)
     {
-    ArrayHandle<helfrich_param_t> h_params(m_params,
-                                                             access_location::host,
-                                                             access_mode::readwrite);
+    ArrayHandle<helfrich_param_t> h_params(m_params, access_location::host, access_mode::readwrite);
     h_params.data[type] = params;
 
     m_has_spontaneous_curvature = false;
@@ -93,12 +90,9 @@ pybind11::dict HelfrichMeshForceCompute::getParams(std::string type)
         m_exec_conf->msg->error() << "mesh.helfrich: Invalid particle type specified" << endl;
         throw runtime_error("Error setting parameters in HelfrichMeshForceCompute");
         }
-    ArrayHandle<helfrich_param_t> h_params(m_params,
-                                                             access_location::host,
-                                                             access_mode::read);
+    ArrayHandle<helfrich_param_t> h_params(m_params, access_location::host, access_mode::read);
     return h_params.data[typ].asDict();
     }
-
 
 pybind11::object HelfrichMeshForceCompute::getCurvaturesPython()
     {
@@ -119,8 +113,7 @@ pybind11::object HelfrichMeshForceCompute::getCurvaturesPython()
         }
     std::vector<double> global_curvature(dims[0]);
 
-
-    // normals need to be calculated if H0=0 to calculate the correct sign 
+    // normals need to be calculated if H0=0 to calculate the correct sign
     if (!m_has_spontaneous_curvature)
         {
         m_force_normals = true;
@@ -139,14 +132,14 @@ pybind11::object HelfrichMeshForceCompute::getCurvaturesPython()
     ArrayHandle<Scalar4> h_normal(m_normal, access_location::host, access_mode::read);
     for (unsigned int i = 0; i < m_pdata->getN(); i++)
         {
-	unsigned int idx = h_rtag.data[m_local_tag[i]];
+        unsigned int idx = h_rtag.data[m_local_tag[i]];
         Scalar3 sigma_dash = h_sigma_dash.data[idx];
 
         Scalar sigma = h_sigma.data[idx];
-					      
-	Scalar sigma_dash2 = dot(sigma_dash,sigma_dash);
 
-	Scalar factor =  h_normal.data[idx].w;
+        Scalar sigma_dash2 = dot(sigma_dash, sigma_dash);
+
+        Scalar factor = h_normal.data[idx].w;
         local_curvature.push_back(factor * sqrt(sigma_dash2) / (2 * sigma));
         }
 
@@ -164,9 +157,10 @@ pybind11::object HelfrichMeshForceCompute::getCurvaturesPython()
 
     if (root)
         {
-	pybind11::array_t<double> arr(global_curvature.size());
-	std::memcpy(arr.mutable_data(), global_curvature.data(),
-            global_curvature.size() * sizeof(double));
+        pybind11::array_t<double> arr(global_curvature.size());
+        std::memcpy(arr.mutable_data(),
+                    global_curvature.data(),
+                    global_curvature.size() * sizeof(double));
         return arr;
         }
     return pybind11::none();
@@ -272,10 +266,10 @@ void HelfrichMeshForceCompute::computeForces(uint64_t timestep)
         dbd.y = h_pos.data[idx_b].y - h_pos.data[idx_d].y;
         dbd.z = h_pos.data[idx_b].z - h_pos.data[idx_d].z;
 
-	unsigned int type_a = __scalar_as_int(h_pos.data[idx_a].w);
-	unsigned int type_b = __scalar_as_int(h_pos.data[idx_b].w);
-	unsigned int type_c = __scalar_as_int(h_pos.data[idx_c].w);
-	unsigned int type_d = __scalar_as_int(h_pos.data[idx_d].w);
+        unsigned int type_a = __scalar_as_int(h_pos.data[idx_a].w);
+        unsigned int type_b = __scalar_as_int(h_pos.data[idx_b].w);
+        unsigned int type_c = __scalar_as_int(h_pos.data[idx_c].w);
+        unsigned int type_d = __scalar_as_int(h_pos.data[idx_d].w);
 
         dab = box.minImage(dab);
         dac = box.minImage(dac);
@@ -382,7 +376,7 @@ void HelfrichMeshForceCompute::computeForces(uint64_t timestep)
         Scalar sigma_b = h_sigma.data[idx_b]; // precomputed
         Scalar sigma_c = h_sigma.data[idx_c]; // precomputed
         Scalar sigma_d = h_sigma.data[idx_d]; // precomputed
-					      //
+                                              //
         Scalar3 dc_abbc, dc_abbd, dc_baac, dc_baad;
         dc_abbc = -nbc / rab - c_abbc / rab * nab;
         dc_abbd = -nbd / rab - c_abbd / rab * nab;
@@ -405,8 +399,10 @@ void HelfrichMeshForceCompute::computeForces(uint64_t timestep)
                       + dot(sigma_dash_a, dad) * dsigma_hat_ad;
         Scalar3 g_b = -sigma_hat_ab * sigma_dash_b + dot(sigma_dash_b, dbc) * dsigma_hat_bc
                       + dot(sigma_dash_b, dbd) * dsigma_hat_bd;
-        Scalar3 g_c = -dot(sigma_dash_c, dac) * dsigma_hat_ac - dot(sigma_dash_c, dbc) * dsigma_hat_bc;
-        Scalar3 g_d = -dot(sigma_dash_d, dad) * dsigma_hat_ad - dot(sigma_dash_d, dbd) * dsigma_hat_bd;
+        Scalar3 g_c
+            = -dot(sigma_dash_c, dac) * dsigma_hat_ac - dot(sigma_dash_c, dbc) * dsigma_hat_bc;
+        Scalar3 g_d
+            = -dot(sigma_dash_d, dad) * dsigma_hat_ad - dot(sigma_dash_d, dbd) * dsigma_hat_bd;
 
         Scalar inv_sigma_a = 1.0 / sigma_a;
         Scalar inv_sigma_b = 1.0 / sigma_b;
@@ -503,7 +499,6 @@ void HelfrichMeshForceCompute::computeForces(uint64_t timestep)
         // do not update ghost particles
         if (idx_a < m_pdata->getN())
             {
-	    
             h_force.data[idx_a].x += Fa.x;
             h_force.data[idx_a].y += Fa.y;
             h_force.data[idx_a].z += Fa.z;
@@ -626,14 +621,14 @@ void HelfrichMeshForceCompute::precomputeParameter()
         nbc = dbc / rbc;
         nbd = dbd / rbd;
 
-	Scalar3 normal_abcd = make_scalar3(0, 0, 0);
+        Scalar3 normal_abcd = make_scalar3(0, 0, 0);
 
-	if (compute_normals)
-		{
-		normal_abcd.x = 0.5*(nac.y*nab.z - nac.z*nab.y + nab.y*nad.z - nab.z*nad.y);
-		normal_abcd.y = 0.5*(nac.z*nab.x - nac.x*nab.z + nab.z*nad.x - nab.x*nad.z);
-		normal_abcd.z = 0.5*(nac.x*nab.y - nac.y*nab.x + nab.x*nad.y - nab.y*nad.x);
-		}
+        if (compute_normals)
+            {
+            normal_abcd.x = 0.5 * (nac.y * nab.z - nac.z * nab.y + nab.y * nad.z - nab.z * nad.y);
+            normal_abcd.y = 0.5 * (nac.z * nab.x - nac.x * nab.z + nab.z * nad.x - nab.x * nad.z);
+            normal_abcd.z = 0.5 * (nac.x * nab.y - nac.y * nab.x + nab.x * nad.y - nab.y * nad.x);
+            }
 
         Scalar c_accb = nac.x * nbc.x + nac.y * nbc.y + nac.z * nbc.z;
         if (c_accb > 1.0)
@@ -697,13 +692,14 @@ void HelfrichMeshForceCompute::precomputeParameter()
         {
         for (unsigned int i = 0; i < m_pdata->getN(); i++)
             {
-    		if( h_normal.data[i].x *h_sigma_dash.data[i].x + 
-    				h_normal.data[i].y * h_sigma_dash.data[i].y + 
-    				h_normal.data[i].z * h_sigma_dash.data[i].z < 0)
-    			h_normal.data[i].w = -1;
-    		else
-    			h_normal.data[i].w = 1;
-    	    }
+            if (h_normal.data[i].x * h_sigma_dash.data[i].x
+                    + h_normal.data[i].y * h_sigma_dash.data[i].y
+                    + h_normal.data[i].z * h_sigma_dash.data[i].z
+                < 0)
+                h_normal.data[i].w = -1;
+            else
+                h_normal.data[i].w = 1;
+            }
         }
     }
 
@@ -791,21 +787,21 @@ Scalar HelfrichMeshForceCompute::energyDiff(unsigned int idx_a,
 
     Scalar3 normal_cdb, normal_cda, normal_abc, normal_abd;
 
-    normal_abc.x = nac.y*nab.z - nac.z*nab.y;
-    normal_abc.y = nac.z*nab.x - nac.x*nab.z;
-    normal_abc.z = nac.x*nab.y - nac.y*nab.x;
+    normal_abc.x = nac.y * nab.z - nac.z * nab.y;
+    normal_abc.y = nac.z * nab.x - nac.x * nab.z;
+    normal_abc.z = nac.x * nab.y - nac.y * nab.x;
 
-    normal_abd.x = nab.y*nad.z - nab.z*nad.y;
-    normal_abd.y = nab.z*nad.x - nab.x*nad.z;
-    normal_abd.z = nab.x*nad.y - nab.y*nad.x;
+    normal_abd.x = nab.y * nad.z - nab.z * nad.y;
+    normal_abd.y = nab.z * nad.x - nab.x * nad.z;
+    normal_abd.z = nab.x * nad.y - nab.y * nad.x;
 
-    normal_cdb.x = ncd.y*nbc.z - ncd.z*nbc.y;
-    normal_cdb.y = ncd.z*nbc.x - ncd.x*nbc.z;
-    normal_cdb.z = ncd.x*nbc.y - ncd.y*nbc.x;
+    normal_cdb.x = ncd.y * nbc.z - ncd.z * nbc.y;
+    normal_cdb.y = ncd.z * nbc.x - ncd.x * nbc.z;
+    normal_cdb.z = ncd.x * nbc.y - ncd.y * nbc.x;
 
-    normal_cda.x = nac.y*ncd.z - nac.z*ncd.y;
-    normal_cda.y = nac.z*ncd.x - nac.x*ncd.z;
-    normal_cda.z = nac.x*ncd.y - nac.y*ncd.x;
+    normal_cda.x = nac.y * ncd.z - nac.z * ncd.y;
+    normal_cda.y = nac.z * ncd.x - nac.x * ncd.z;
+    normal_cda.z = nac.x * ncd.y - nac.y * ncd.x;
 
     Scalar c_accb = nac.x * nbc.x + nac.y * nbc.y + nac.z * nbc.z;
     if (c_accb > 1.0)
@@ -980,15 +976,15 @@ Scalar HelfrichMeshForceCompute::energyDiff(unsigned int idx_a,
     Scalar3 sigma_dash_c = h_sigma_dash.data[idx_c]; // precomputed
     Scalar3 sigma_dash_d = h_sigma_dash.data[idx_d]; // precomputed
 
-    Scalar sigma_dash_a2 = dot(sigma_dash_a,sigma_dash_a);
-    Scalar sigma_dash_b2 = dot(sigma_dash_b,sigma_dash_b);
-    Scalar sigma_dash_c2 = dot(sigma_dash_c,sigma_dash_c);
-    Scalar sigma_dash_d2 = dot(sigma_dash_d,sigma_dash_d);
-    
-    Scalar H0_a = 2*h_params.data[type_a].H0;
-    Scalar H0_b = 2*h_params.data[type_b].H0;
-    Scalar H0_c = 2*h_params.data[type_c].H0;
-    Scalar H0_d = 2*h_params.data[type_d].H0;
+    Scalar sigma_dash_a2 = dot(sigma_dash_a, sigma_dash_a);
+    Scalar sigma_dash_b2 = dot(sigma_dash_b, sigma_dash_b);
+    Scalar sigma_dash_c2 = dot(sigma_dash_c, sigma_dash_c);
+    Scalar sigma_dash_d2 = dot(sigma_dash_d, sigma_dash_d);
+
+    Scalar H0_a = 2 * h_params.data[type_a].H0;
+    Scalar H0_b = 2 * h_params.data[type_b].H0;
+    Scalar H0_c = 2 * h_params.data[type_c].H0;
+    Scalar H0_d = 2 * h_params.data[type_d].H0;
 
     Scalar K_a = h_params.data[type_a].k;
     Scalar K_b = h_params.data[type_b].k;
@@ -999,14 +995,12 @@ Scalar HelfrichMeshForceCompute::energyDiff(unsigned int idx_a,
     Scalar factor_b = h_normal.data[idx_b].w;
     Scalar factor_c = h_normal.data[idx_c].w;
     Scalar factor_d = h_normal.data[idx_d].w;
-    
-    
-    Scalar Curv_a = factor_a*sqrt(sigma_dash_a2)-H0_a*sigma_a;
-    Scalar Curv_b = factor_b*sqrt(sigma_dash_b2)-H0_b*sigma_b;
-    Scalar Curv_c = factor_c*sqrt(sigma_dash_c2)-H0_c*sigma_c;
-    Scalar Curv_d = factor_d*sqrt(sigma_dash_d2)-H0_d*sigma_d;
-    
-    
+
+    Scalar Curv_a = factor_a * sqrt(sigma_dash_a2) - H0_a * sigma_a;
+    Scalar Curv_b = factor_b * sqrt(sigma_dash_b2) - H0_b * sigma_b;
+    Scalar Curv_c = factor_c * sqrt(sigma_dash_c2) - H0_c * sigma_c;
+    Scalar Curv_d = factor_d * sqrt(sigma_dash_d2) - H0_d * sigma_d;
+
     m_sigma_dash_diff_a = sigma_hat_ab * dab + sigma_hat_ac * dac + sigma_hat_ad * dad;
     m_sigma_dash_diff_b = -sigma_hat_ab * dab + sigma_hat_bc * dbc + sigma_hat_bd * dbd;
     m_sigma_dash_diff_c = -sigma_hat_ac * dac - sigma_hat_bc * dbc + sigma_hat_cd * dcd;
@@ -1017,10 +1011,10 @@ Scalar HelfrichMeshForceCompute::energyDiff(unsigned int idx_a,
     Scalar3 sigma_dash_c_n = sigma_dash_c + m_sigma_dash_diff_c;
     Scalar3 sigma_dash_d_n = sigma_dash_d + m_sigma_dash_diff_d;
 
-    Scalar sigma_dash_a2_n = dot(sigma_dash_a_n,sigma_dash_a_n);
-    Scalar sigma_dash_b2_n = dot(sigma_dash_b_n,sigma_dash_b_n);
-    Scalar sigma_dash_c2_n = dot(sigma_dash_c_n,sigma_dash_c_n);
-    Scalar sigma_dash_d2_n = dot(sigma_dash_d_n,sigma_dash_d_n);
+    Scalar sigma_dash_a2_n = dot(sigma_dash_a_n, sigma_dash_a_n);
+    Scalar sigma_dash_b2_n = dot(sigma_dash_b_n, sigma_dash_b_n);
+    Scalar sigma_dash_c2_n = dot(sigma_dash_c_n, sigma_dash_c_n);
+    Scalar sigma_dash_d2_n = dot(sigma_dash_d_n, sigma_dash_d_n);
 
     if (!m_has_spontaneous_curvature)
         {
@@ -1060,7 +1054,7 @@ Scalar HelfrichMeshForceCompute::energyDiff(unsigned int idx_a,
     m_normal_diff_d.z = normal_cda.z + normal_cdb.z - normal_abd.z;
     m_normal_diff_d.w = 1;
 
-    Scalar3 normal_a_n,normal_b_n,normal_c_n,normal_d_n;
+    Scalar3 normal_a_n, normal_b_n, normal_c_n, normal_d_n;
 
     normal_a_n.x = h_normal.data[idx_a].x + m_normal_diff_a.x;
     normal_a_n.y = h_normal.data[idx_a].y + m_normal_diff_a.y;
@@ -1078,29 +1072,29 @@ Scalar HelfrichMeshForceCompute::energyDiff(unsigned int idx_a,
     normal_d_n.y = h_normal.data[idx_d].y + m_normal_diff_d.y;
     normal_d_n.z = h_normal.data[idx_d].z + m_normal_diff_d.z;
 
-    if( dot(sigma_dash_a_n,normal_a_n) < 0)
-    	m_normal_diff_a.w = -1;
-    
-    if( dot(sigma_dash_b_n,normal_b_n) < 0)
-    	m_normal_diff_b.w = -1;
-    
-    if( dot(sigma_dash_c_n,normal_c_n) < 0)
-    	m_normal_diff_c.w = -1;
-    
-    if( dot(sigma_dash_d_n,normal_d_n) < 0)
-    	m_normal_diff_d.w = -1;
+    if (dot(sigma_dash_a_n, normal_a_n) < 0)
+        m_normal_diff_a.w = -1;
 
-    Scalar Curv_a_n = m_normal_diff_a.w*sqrt(sigma_dash_a2_n)-H0_a*sigma_a_n;
-    Scalar Curv_b_n = m_normal_diff_b.w*sqrt(sigma_dash_b2_n)-H0_b*sigma_b_n;
-    Scalar Curv_c_n = m_normal_diff_c.w*sqrt(sigma_dash_c2_n)-H0_c*sigma_c_n;
-    Scalar Curv_d_n = m_normal_diff_d.w*sqrt(sigma_dash_d2_n)-H0_d*sigma_d_n;
+    if (dot(sigma_dash_b_n, normal_b_n) < 0)
+        m_normal_diff_b.w = -1;
 
-    Scalar energy_old = K_a * Curv_a*Curv_a / sigma_a;
+    if (dot(sigma_dash_c_n, normal_c_n) < 0)
+        m_normal_diff_c.w = -1;
+
+    if (dot(sigma_dash_d_n, normal_d_n) < 0)
+        m_normal_diff_d.w = -1;
+
+    Scalar Curv_a_n = m_normal_diff_a.w * sqrt(sigma_dash_a2_n) - H0_a * sigma_a_n;
+    Scalar Curv_b_n = m_normal_diff_b.w * sqrt(sigma_dash_b2_n) - H0_b * sigma_b_n;
+    Scalar Curv_c_n = m_normal_diff_c.w * sqrt(sigma_dash_c2_n) - H0_c * sigma_c_n;
+    Scalar Curv_d_n = m_normal_diff_d.w * sqrt(sigma_dash_d2_n) - H0_d * sigma_d_n;
+
+    Scalar energy_old = K_a * Curv_a * Curv_a / sigma_a;
     energy_old += K_b * (Curv_b * Curv_b) / sigma_b;
     energy_old += K_c * (Curv_c * Curv_c) / sigma_c;
     energy_old += K_d * (Curv_d * Curv_d) / sigma_d;
 
-    Scalar energy_new = K_a * Curv_a_n*Curv_a_n / sigma_a_n;
+    Scalar energy_new = K_a * Curv_a_n * Curv_a_n / sigma_a_n;
     energy_new += K_b * (Curv_b_n * Curv_b_n) / sigma_b_n;
     energy_new += K_c * (Curv_c_n * Curv_c_n) / sigma_c_n;
     energy_new += K_d * (Curv_d_n * Curv_d_n) / sigma_d_n;

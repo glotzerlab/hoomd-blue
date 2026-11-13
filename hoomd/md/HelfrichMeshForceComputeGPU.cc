@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2025 The Regents of the University of Michigan.
+// Copyright (c) 2009-2026 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #include "HelfrichMeshForceComputeGPU.h"
@@ -107,9 +107,7 @@ void HelfrichMeshForceComputeGPU::computeForces(uint64_t timestep)
 
     ArrayHandle<Scalar4> d_force(m_force, access_location::device, access_mode::overwrite);
     ArrayHandle<Scalar> d_virial(m_virial, access_location::device, access_mode::overwrite);
-    ArrayHandle<helfrich_param_t> d_params(m_params,
-                                                             access_location::device,
-                                                             access_mode::read);
+    ArrayHandle<helfrich_param_t> d_params(m_params, access_location::device, access_mode::read);
 
     m_tuner_force->begin();
     kernel::gpu_compute_helfrich_force(d_force.data,
@@ -154,9 +152,7 @@ void HelfrichMeshForceComputeGPU::precomputeParameter()
     ArrayHandle<Scalar3> d_sigma_dash(m_sigma_dash,
                                       access_location::device,
                                       access_mode::readwrite);
-    ArrayHandle<Scalar4> d_normal(m_normal,
-                                      access_location::device,
-                                      access_mode::readwrite);
+    ArrayHandle<Scalar4> d_normal(m_normal, access_location::device, access_mode::readwrite);
 
     BoxDim box = this->m_pdata->getGlobalBox();
 

@@ -1,8 +1,8 @@
-// Copyright (c) 2009-2025 The Regents of the University of Michigan.
+// Copyright (c) 2009-2026 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
-#include "MeshForceCompute.h"
 #include "HelfrichMeshParameters.h"
+#include "MeshForceCompute.h"
 #include "hoomd/PythonLocalDataAccess.h"
 
 #include <memory>
@@ -70,18 +70,19 @@ class PYBIND11_EXPORT HelfrichMeshForceCompute : public MeshForceCompute
     protected:
     GPUArray<helfrich_param_t> m_params; //!< Parameters
 
-    bool m_has_spontaneous_curvature = false; //! Check if any particle type has a non-zero spontaneous curvature H0
+    bool m_has_spontaneous_curvature
+        = false; //! Check if any particle type has a non-zero spontaneous curvature H0
 
-    bool m_force_normals = false; //! Compute the normals in precomputeParameter() even without a spontaneous curvature
+    bool m_force_normals = false; //! Compute the normals in precomputeParameter() even without a
+                                  //! spontaneous curvature
 
     GPUArray<Scalar3>
         m_sigma_dash; //! sum of the distances weighted by the bending angle over all neighbors
 
     GPUArray<Scalar>
         m_sigma; //! sum of the vectors weighted by the bending angle over all neighbors
-		 //
-    GPUArray<Scalar4>
-        m_normal; //! normal vector at each vertex
+                 //
+    GPUArray<Scalar4> m_normal; //! normal vector at each vertex
 
     Scalar m_sigma_diff_a;
     Scalar m_sigma_diff_b;

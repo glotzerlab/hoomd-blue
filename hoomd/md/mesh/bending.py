@@ -100,14 +100,14 @@ class Helfrich(MeshPotential):
         - 2 H_0 \sigma_i \right)^2
 
     with the mean curvature :math:`H_i = \left| \boldsymbol{\sigma}'_i
-    \right| / (2 \sigma_i)`, the vector :math:`\boldsymbol{\sigma}'_i 
-    = \sum_{j \in \mathrm{Neigh}(i)} \hat{\sigma}_{ij} (\mathbf{r}_i - 
-    \mathbf{r}_j)`, the area of the dual cell of vertex i 
-    :math:`\sigma_i = \frac{1}{4} \sum_{j \in \mathrm{Neigh}(i)} 
-    \hat{\sigma}_{ij} r_{ij}^2` and the weights :math:`\hat{\sigma}_{ij} 
-    = (\cot\theta_1 + \cot\theta_2)/2` with the angles :math:`\theta_1` 
-    and :math:`\theta_2` opposite to the shared bond of vertex :math:`i` 
-    and :math:`j`. The sign of :math:`H_i` is defined with respect to 
+    \right| / (2 \sigma_i)`, the vector :math:`\boldsymbol{\sigma}'_i
+    = \sum_{j \in \mathrm{Neigh}(i)} \hat{\sigma}_{ij} (\mathbf{r}_i -
+    \mathbf{r}_j)`, the area of the dual cell of vertex i
+    :math:`\sigma_i = \frac{1}{4} \sum_{j \in \mathrm{Neigh}(i)}
+    \hat{\sigma}_{ij} r_{ij}^2` and the weights :math:`\hat{\sigma}_{ij}
+    = (\cot\theta_1 + \cot\theta_2)/2` with the angles :math:`\theta_1`
+    and :math:`\theta_2` opposite to the shared bond of vertex :math:`i`
+    and :math:`j`. The sign of :math:`H_i` is defined with respect to
     the vertex normal.
 
     Attention:
@@ -175,6 +175,7 @@ class Helfrich(MeshPotential):
         """
         self._cpp_obj.compute(self._simulation.timestep)
         return self._cpp_obj.getCurvatures()
+
 
 __all__ = [
     "BendingRigidity",

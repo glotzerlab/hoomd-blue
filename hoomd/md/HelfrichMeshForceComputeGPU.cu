@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2025 The Regents of the University of Michigan.
+// Copyright (c) 2009-2026 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #include "hip/hip_runtime.h"
@@ -130,19 +130,19 @@ __global__ void gpu_compute_helfrich_sigma_kernel(Scalar* d_sigma,
         nbc = dbc / rbc;
         nbd = dbd / rbd;
 
-	if (compute_normals)
-		{
-		Scalar3 normal_abcd;
+        if (compute_normals)
+            {
+            Scalar3 normal_abcd;
 
-		normal_abcd.x = 0.5*(dac.y*dab.z - dac.z*dab.y + dab.y*dad.z - dab.z*dad.y);
-		normal_abcd.y = 0.5*(dac.z*dab.x - dac.x*dab.z + dab.z*dad.x - dab.x*dad.z);
-		normal_abcd.z = 0.5*(dac.x*dab.y - dac.y*dab.x + dab.x*dad.y - dab.y*dad.x);
+            normal_abcd.x = 0.5 * (dac.y * dab.z - dac.z * dab.y + dab.y * dad.z - dab.z * dad.y);
+            normal_abcd.y = 0.5 * (dac.z * dab.x - dac.x * dab.z + dab.z * dad.x - dab.x * dad.z);
+            normal_abcd.z = 0.5 * (dac.x * dab.y - dac.y * dab.x + dab.x * dad.y - dab.y * dad.x);
 
-		if (cur_bond_pos == 1)
-			normal_abcd *= -1;
+            if (cur_bond_pos == 1)
+                normal_abcd *= -1;
 
-		normal += normal_abcd;
-		}
+            normal += normal_abcd;
+            }
 
         Scalar c_accb = nac.x * nbc.x + nac.y * nbc.y + nac.z * nbc.z;
 
@@ -339,7 +339,6 @@ __global__ void gpu_compute_helfrich_force_kernel(Scalar4* d_force,
         force.w = K_a / 2.0 * sigma_dash_a2 * inv_sigma_a;
         }
 
-
     // initialize the virial to 0
     Scalar virial[6];
     for (int i = 0; i < 6; i++)
@@ -373,9 +372,9 @@ __global__ void gpu_compute_helfrich_force_kernel(Scalar4* d_force,
         Scalar4 dd_postype = d_pos[cur_idx_d];
         Scalar3 dd_pos = make_scalar3(dd_postype.x, dd_postype.y, dd_postype.z);
 
-    	unsigned int type_b = __scalar_as_int(bb_postype.w);
-    	unsigned int type_c = __scalar_as_int(cc_postype.w);
-    	unsigned int type_d = __scalar_as_int(dd_postype.w);
+        unsigned int type_b = __scalar_as_int(bb_postype.w);
+        unsigned int type_c = __scalar_as_int(cc_postype.w);
+        unsigned int type_d = __scalar_as_int(dd_postype.w);
 
         Scalar3 dab = pos - bb_pos;
         Scalar3 dac = pos - cc_pos;
@@ -496,10 +495,10 @@ __global__ void gpu_compute_helfrich_force_kernel(Scalar4* d_force,
         Scalar sigma_b = d_sigma[cur_bond_idx]; // precomputed
         Scalar sigma_c = d_sigma[cur_idx_c];    // precomputed
         Scalar sigma_d = d_sigma[cur_idx_d];    // precomputed
-						//
-	Scalar sigma_dash_b2 = dot(sigma_dash_b,sigma_dash_b);
-        Scalar sigma_dash_c2 = dot(sigma_dash_c,sigma_dash_c);
-        Scalar sigma_dash_d2 = dot(sigma_dash_d,sigma_dash_d);
+                                                //
+        Scalar sigma_dash_b2 = dot(sigma_dash_b, sigma_dash_b);
+        Scalar sigma_dash_c2 = dot(sigma_dash_c, sigma_dash_c);
+        Scalar sigma_dash_d2 = dot(sigma_dash_d, sigma_dash_d);
 
         helfrich_param_t params_b = d_params[type_b];
         Scalar K_b = params_b.k;
@@ -532,8 +531,10 @@ __global__ void gpu_compute_helfrich_force_kernel(Scalar4* d_force,
                       + dot(sigma_dash_a, dad) * dsigma_hat_ad;
         Scalar3 g_b = -sigma_hat_ab * sigma_dash_b + dot(sigma_dash_b, dbc) * dsigma_hat_bc
                       + dot(sigma_dash_b, dbd) * dsigma_hat_bd;
-        Scalar3 g_c = -dot(sigma_dash_c, dac) * dsigma_hat_ac - dot(sigma_dash_c, dbc) * dsigma_hat_bc;
-        Scalar3 g_d = -dot(sigma_dash_d, dad) * dsigma_hat_ad - dot(sigma_dash_d, dbd) * dsigma_hat_bd;
+        Scalar3 g_c
+            = -dot(sigma_dash_c, dac) * dsigma_hat_ac - dot(sigma_dash_c, dbc) * dsigma_hat_bc;
+        Scalar3 g_d
+            = -dot(sigma_dash_d, dad) * dsigma_hat_ad - dot(sigma_dash_d, dbd) * dsigma_hat_bd;
 
         Scalar inv_sigma_b = 1.0 / sigma_b;
         Scalar inv_sigma_c = 1.0 / sigma_c;

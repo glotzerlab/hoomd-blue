@@ -407,7 +407,7 @@ def test_multiple_types(
     mesh_potential_cls,
     potential_kwargs,
 ):
-    snap = tetrahedron_snapshot_factory(d=0.969, L=5,particle_types=["A","B"])
+    snap = tetrahedron_snapshot_factory(d=0.969, L=5, particle_types=["A", "B"])
     sim = simulation_factory(snap)
 
     mesh = hoomd.mesh.Mesh()
@@ -432,8 +432,8 @@ def test_multiple_types(
     sim.operations.integrator = integrator
 
     sim.run(0)
-    
-    type_name = ["mesh","patch"]
+
+    type_name = ["mesh", "patch"]
 
     if issubclass(mesh_potential_cls, hoomd.md.mesh.bending.Helfrich):
         type_name = ["A", "B"]
