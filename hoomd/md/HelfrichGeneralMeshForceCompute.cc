@@ -119,6 +119,15 @@ pybind11::object HelfrichGeneralMeshForceCompute::getCurvaturesPython()
         }
     std::vector<double> global_curvature(dims[0]);
 
+
+    // normals need to be calculated if H0=0 to calculate the correct sign 
+    if (!m_has_spontaneous_curvature)
+        {
+        m_force_normals = true;
+        precomputeParameter();
+        m_force_normals = false;
+        }
+
     // sort energies by particle tag
     sortLocalTags();
     std::vector<double> local_curvature;
@@ -162,8 +171,6 @@ pybind11::object HelfrichGeneralMeshForceCompute::getCurvaturesPython()
         }
     return pybind11::none();
     }
-
-
 
 /*! Actually perform the force computation
     \param timestep Current time step
@@ -376,26 +383,6 @@ void HelfrichGeneralMeshForceCompute::computeForces(uint64_t timestep)
         Scalar sigma_c = h_sigma.data[idx_c]; // precomputed
         Scalar sigma_d = h_sigma.data[idx_d]; // precomputed
 					      //
-	Scalar sigma_dash_a2 = dot(sigma_dash_a,sigma_dash_a);
-	Scalar sigma_dash_b2 = dot(sigma_dash_b,sigma_dash_b);
-	Scalar sigma_dash_c2 = dot(sigma_dash_c,sigma_dash_c);
-	Scalar sigma_dash_d2 = dot(sigma_dash_d,sigma_dash_d);
-
-	Scalar H0_a = 2*h_params.data[type_a].H0;
-	Scalar H0_b = 2*h_params.data[type_b].H0;
-	Scalar H0_c = 2*h_params.data[type_c].H0;
-	Scalar H0_d = 2*h_params.data[type_d].H0;
-
-	Scalar factor_a =  h_normal.data[idx_a].w;
-	Scalar factor_b =  h_normal.data[idx_b].w;
-	Scalar factor_c =  h_normal.data[idx_c].w;
-	Scalar factor_d =  h_normal.data[idx_d].w;
-
-	Scalar Curv_a = factor_a*fast::sqrt(sigma_dash_a2)-H0_a*sigma_a;
-	Scalar Curv_b = factor_b*fast::sqrt(sigma_dash_b2)-H0_b*sigma_b;
-	Scalar Curv_c = factor_c*fast::sqrt(sigma_dash_c2)-H0_c*sigma_c;
-	Scalar Curv_d = factor_d*fast::sqrt(sigma_dash_d2)-H0_d*sigma_d;
-					      //
         Scalar3 dc_abbc, dc_abbd, dc_baac, dc_baad;
         dc_abbc = -nbc / rab - c_abbc / rab * nab;
         dc_abbd = -nbd / rab - c_abbd / rab * nab;
@@ -421,41 +408,87 @@ void HelfrichGeneralMeshForceCompute::computeForces(uint64_t timestep)
         Scalar3 g_c = -dot(sigma_dash_c, dac) * dsigma_hat_ac - dot(sigma_dash_c, dbc) * dsigma_hat_bc;
         Scalar3 g_d = -dot(sigma_dash_d, dad) * dsigma_hat_ad - dot(sigma_dash_d, dbd) * dsigma_hat_bd;
 
-	Scalar3 dCurv_a = -H0_a*dsigma_a;
-	Scalar3 dCurv_b = -H0_b*dsigma_b;
-	Scalar3 dCurv_c = -H0_c*dsigma_c;
-	Scalar3 dCurv_d = -H0_d*dsigma_d;
-
-	if(sigma_dash_a2 > 0 )
-		dCurv_a += factor_a*fast::rsqrt(sigma_dash_a2)*g_a;
-	if(sigma_dash_b2 > 0 )
-		dCurv_b += factor_b*fast::rsqrt(sigma_dash_b2)*g_b;
-	if(sigma_dash_c2 > 0 )
-		dCurv_c += factor_c*fast::rsqrt(sigma_dash_c2)*g_c;
-	if(sigma_dash_d2 > 0 )
-		dCurv_d += factor_d*fast::rsqrt(sigma_dash_d2)*g_d;
-
         Scalar inv_sigma_a = 1.0 / sigma_a;
         Scalar inv_sigma_b = 1.0 / sigma_b;
         Scalar inv_sigma_c = 1.0 / sigma_c;
         Scalar inv_sigma_d = 1.0 / sigma_d;
 
-        Scalar Curv_a2 = 0.5 * Curv_a * Curv_a * inv_sigma_a * inv_sigma_a;
-        Scalar Curv_b2 = 0.5 * Curv_b * Curv_b * inv_sigma_b * inv_sigma_b;
-        Scalar Curv_c2 = 0.5 * Curv_c * Curv_c * inv_sigma_c * inv_sigma_c;
-        Scalar Curv_d2 = 0.5 * Curv_d * Curv_d * inv_sigma_d * inv_sigma_d;
+        Scalar K_a = h_params.data[type_a].k;
+        Scalar K_b = h_params.data[type_b].k;
+        Scalar K_c = h_params.data[type_c].k;
+        Scalar K_d = h_params.data[type_d].k;
 
-	Scalar K_a = h_params.data[type_a].k;
-	Scalar K_b = h_params.data[type_b].k;
-	Scalar K_c = h_params.data[type_c].k;
-	Scalar K_d = h_params.data[type_d].k;
+        Scalar sigma_dash_a2 = dot(sigma_dash_a, sigma_dash_a);
+        Scalar sigma_dash_b2 = dot(sigma_dash_b, sigma_dash_b);
+        Scalar sigma_dash_c2 = dot(sigma_dash_c, sigma_dash_c);
+        Scalar sigma_dash_d2 = dot(sigma_dash_d, sigma_dash_d);
 
-        Scalar3 Fa = -K_a * (Curv_a * inv_sigma_a * dCurv_a - Curv_a2 * dsigma_a)
-                     - K_b * (Curv_b * inv_sigma_b * dCurv_b - Curv_b2 * dsigma_b)
-                     - K_c * (Curv_c * inv_sigma_c * dCurv_c - Curv_c2 * dsigma_c)
-                     - K_d * (Curv_d * inv_sigma_d * dCurv_d - Curv_d2 * dsigma_d);
+        Scalar3 Fa;
+        Scalar energy_a;
+        Scalar energy_b;
 
-        //Fa *= h_params.data[type_a].k;
+        if (m_has_spontaneous_curvature)
+            {
+            Scalar H0_a = 2 * h_params.data[type_a].H0;
+            Scalar H0_b = 2 * h_params.data[type_b].H0;
+            Scalar H0_c = 2 * h_params.data[type_c].H0;
+            Scalar H0_d = 2 * h_params.data[type_d].H0;
+
+            Scalar factor_a = h_normal.data[idx_a].w;
+            Scalar factor_b = h_normal.data[idx_b].w;
+            Scalar factor_c = h_normal.data[idx_c].w;
+            Scalar factor_d = h_normal.data[idx_d].w;
+
+            Scalar Curv_a = factor_a * fast::sqrt(sigma_dash_a2) - H0_a * sigma_a;
+            Scalar Curv_b = factor_b * fast::sqrt(sigma_dash_b2) - H0_b * sigma_b;
+            Scalar Curv_c = factor_c * fast::sqrt(sigma_dash_c2) - H0_c * sigma_c;
+            Scalar Curv_d = factor_d * fast::sqrt(sigma_dash_d2) - H0_d * sigma_d;
+
+            Scalar3 dCurv_a = -H0_a * dsigma_a;
+            Scalar3 dCurv_b = -H0_b * dsigma_b;
+            Scalar3 dCurv_c = -H0_c * dsigma_c;
+            Scalar3 dCurv_d = -H0_d * dsigma_d;
+
+            if (sigma_dash_a2 > 0)
+                dCurv_a += factor_a * fast::rsqrt(sigma_dash_a2) * g_a;
+            if (sigma_dash_b2 > 0)
+                dCurv_b += factor_b * fast::rsqrt(sigma_dash_b2) * g_b;
+            if (sigma_dash_c2 > 0)
+                dCurv_c += factor_c * fast::rsqrt(sigma_dash_c2) * g_c;
+            if (sigma_dash_d2 > 0)
+                dCurv_d += factor_d * fast::rsqrt(sigma_dash_d2) * g_d;
+
+            Scalar Curv_a2 = 0.5 * Curv_a * Curv_a * inv_sigma_a * inv_sigma_a;
+            Scalar Curv_b2 = 0.5 * Curv_b * Curv_b * inv_sigma_b * inv_sigma_b;
+            Scalar Curv_c2 = 0.5 * Curv_c * Curv_c * inv_sigma_c * inv_sigma_c;
+            Scalar Curv_d2 = 0.5 * Curv_d * Curv_d * inv_sigma_d * inv_sigma_d;
+
+            Fa = -K_a * (Curv_a * inv_sigma_a * dCurv_a - Curv_a2 * dsigma_a)
+                 - K_b * (Curv_b * inv_sigma_b * dCurv_b - Curv_b2 * dsigma_b)
+                 - K_c * (Curv_c * inv_sigma_c * dCurv_c - Curv_c2 * dsigma_c)
+                 - K_d * (Curv_d * inv_sigma_d * dCurv_d - Curv_d2 * dsigma_d);
+
+            energy_a = K_a * 0.5 * Curv_a * Curv_a * inv_sigma_a;
+            energy_b = K_b * 0.5 * Curv_b * Curv_b * inv_sigma_b;
+            }
+        else
+            {
+            // without spontaneous curvature the energy is k / 2 |sigma'|^2 / sigma, which needs
+            // neither the normals nor a square root
+            Scalar sigma_dash_a2_s = 0.5 * sigma_dash_a2 * inv_sigma_a * inv_sigma_a;
+            Scalar sigma_dash_b2_s = 0.5 * sigma_dash_b2 * inv_sigma_b * inv_sigma_b;
+            Scalar sigma_dash_c2_s = 0.5 * sigma_dash_c2 * inv_sigma_c * inv_sigma_c;
+            Scalar sigma_dash_d2_s = 0.5 * sigma_dash_d2 * inv_sigma_d * inv_sigma_d;
+
+            Fa = -K_a * (g_a * inv_sigma_a - sigma_dash_a2_s * dsigma_a)
+                 - K_b * (g_b * inv_sigma_b - sigma_dash_b2_s * dsigma_b)
+                 - K_c * (g_c * inv_sigma_c - sigma_dash_c2_s * dsigma_c)
+                 - K_d * (g_d * inv_sigma_d - sigma_dash_d2_s * dsigma_d);
+
+            energy_a = K_a * 0.5 * sigma_dash_a2 * inv_sigma_a;
+            energy_b = K_b * 0.5 * sigma_dash_b2 * inv_sigma_b;
+            }
+
         if (compute_virial)
             {
             helfrich_virial[0] = Scalar(1. / 2.) * dab.x * Fa.x; // xx
@@ -466,7 +499,7 @@ void HelfrichGeneralMeshForceCompute::computeForces(uint64_t timestep)
             helfrich_virial[5] = Scalar(1. / 2.) * dab.z * Fa.z; // zz
             }
 
-        // Now, apply the force to each individual atom a,b,c, and accumulate the energy/virial
+        // Now, apply the force to each individual atom a,b and accumulate the energy/virial
         // do not update ghost particles
         if (idx_a < m_pdata->getN())
             {
@@ -474,8 +507,7 @@ void HelfrichGeneralMeshForceCompute::computeForces(uint64_t timestep)
             h_force.data[idx_a].x += Fa.x;
             h_force.data[idx_a].y += Fa.y;
             h_force.data[idx_a].z += Fa.z;
-            h_force.data[idx_a].w = K_a * 0.5
-                                     * Curv_a * Curv_a * inv_sigma_a;
+            h_force.data[idx_a].w = energy_a;
             for (int j = 0; j < 6; j++)
                 h_virial.data[j * virial_pitch + idx_a] += helfrich_virial[j];
             }
@@ -485,8 +517,7 @@ void HelfrichGeneralMeshForceCompute::computeForces(uint64_t timestep)
             h_force.data[idx_b].x -= Fa.x;
             h_force.data[idx_b].y -= Fa.y;
             h_force.data[idx_b].z -= Fa.z;
-            h_force.data[idx_b].w = K_b * 0.5
-                                     * Curv_b * Curv_b * inv_sigma_b;
+            h_force.data[idx_b].w = energy_b;
             for (int j = 0; j < 6; j++)
                 h_virial.data[j * virial_pitch + idx_b] += helfrich_virial[j];
             }
@@ -510,8 +541,13 @@ void HelfrichGeneralMeshForceCompute::precomputeParameter()
     ArrayHandle<Scalar3> h_sigma_dash(m_sigma_dash, access_location::host, access_mode::overwrite);
     ArrayHandle<Scalar4> h_normal(m_normal, access_location::host, access_mode::overwrite);
 
+    // the normals are only needed with a spontaneous curvature H0 =/= 0
+    const bool compute_normals = m_has_spontaneous_curvature || m_force_normals;
+
     m_sigma.zeroFill();
     m_sigma_dash.zeroFill();
+    if (compute_normals)
+        m_normal.zeroFill();
 
     const unsigned int size = (unsigned int)m_mesh_data->getMeshBondData()->getN();
     for (unsigned int i = 0; i < size; i++)
@@ -590,11 +626,14 @@ void HelfrichGeneralMeshForceCompute::precomputeParameter()
         nbc = dbc / rbc;
         nbd = dbd / rbd;
 
-	Scalar3 normal_abcd;
+	Scalar3 normal_abcd = make_scalar3(0, 0, 0);
 
-	normal_abcd.x = 0.5*(nac.y*nab.z - nac.z*nab.y + nab.y*nad.z - nab.z*nad.y);
-	normal_abcd.y = 0.5*(nac.z*nab.x - nac.x*nab.z + nab.z*nad.x - nab.x*nad.z);
-	normal_abcd.z = 0.5*(nac.x*nab.y - nac.y*nab.x + nab.x*nad.y - nab.y*nad.x);
+	if (compute_normals)
+		{
+		normal_abcd.x = 0.5*(nac.y*nab.z - nac.z*nab.y + nab.y*nad.z - nab.z*nad.y);
+		normal_abcd.y = 0.5*(nac.z*nab.x - nac.x*nab.z + nab.z*nad.x - nab.x*nad.z);
+		normal_abcd.z = 0.5*(nac.x*nab.y - nac.y*nab.x + nab.x*nad.y - nab.y*nad.x);
+		}
 
         Scalar c_accb = nac.x * nbc.x + nac.y * nbc.y + nac.z * nbc.z;
         if (c_accb > 1.0)
@@ -628,9 +667,12 @@ void HelfrichGeneralMeshForceCompute::precomputeParameter()
         if (idx_a < m_pdata->getN())
             {
             h_sigma.data[idx_a] += sigma_a;
-            h_normal.data[idx_a].x += normal_abcd.x;
-            h_normal.data[idx_a].y += normal_abcd.y;
-            h_normal.data[idx_a].z += normal_abcd.z;
+            if (compute_normals)
+                {
+                h_normal.data[idx_a].x += normal_abcd.x;
+                h_normal.data[idx_a].y += normal_abcd.y;
+                h_normal.data[idx_a].z += normal_abcd.z;
+                }
             h_sigma_dash.data[idx_a].x += sigma_hat_ab * dab.x;
             h_sigma_dash.data[idx_a].y += sigma_hat_ab * dab.y;
             h_sigma_dash.data[idx_a].z += sigma_hat_ab * dab.z;
@@ -639,24 +681,30 @@ void HelfrichGeneralMeshForceCompute::precomputeParameter()
         if (idx_b < m_pdata->getN())
             {
             h_sigma.data[idx_b] += sigma_a;
-            h_normal.data[idx_b].x += normal_abcd.x;
-            h_normal.data[idx_b].y += normal_abcd.y;
-            h_normal.data[idx_b].z += normal_abcd.z;
+            if (compute_normals)
+                {
+                h_normal.data[idx_b].x += normal_abcd.x;
+                h_normal.data[idx_b].y += normal_abcd.y;
+                h_normal.data[idx_b].z += normal_abcd.z;
+                }
             h_sigma_dash.data[idx_b].x -= sigma_hat_ab * dab.x;
             h_sigma_dash.data[idx_b].y -= sigma_hat_ab * dab.y;
             h_sigma_dash.data[idx_b].z -= sigma_hat_ab * dab.z;
             }
         }
 
-    for (unsigned int i = 0; i < m_pdata->getN(); i++)
+    if (compute_normals)
         {
-		if( h_normal.data[i].x *h_sigma_dash.data[i].x + 
-				h_normal.data[i].y * h_sigma_dash.data[i].y + 
-				h_normal.data[i].z * h_sigma_dash.data[i].z < 0)
-			h_normal.data[i].w = -1;
-		else
-			h_normal.data[i].w = 1;
-	}
+        for (unsigned int i = 0; i < m_pdata->getN(); i++)
+            {
+    		if( h_normal.data[i].x *h_sigma_dash.data[i].x + 
+    				h_normal.data[i].y * h_sigma_dash.data[i].y + 
+    				h_normal.data[i].z * h_sigma_dash.data[i].z < 0)
+    			h_normal.data[i].w = -1;
+    		else
+    			h_normal.data[i].w = 1;
+    	    }
+        }
     }
 
 Scalar HelfrichGeneralMeshForceCompute::energyDiff(unsigned int idx_a,
@@ -974,6 +1022,24 @@ Scalar HelfrichGeneralMeshForceCompute::energyDiff(unsigned int idx_a,
     Scalar sigma_dash_c2_n = dot(sigma_dash_c_n,sigma_dash_c_n);
     Scalar sigma_dash_d2_n = dot(sigma_dash_d_n,sigma_dash_d_n);
 
+    if (!m_has_spontaneous_curvature)
+        {
+        Scalar energy_old_s = K_a * sigma_dash_a2 / sigma_a;
+        energy_old_s += K_b * sigma_dash_b2 / sigma_b;
+        energy_old_s += K_c * sigma_dash_c2 / sigma_c;
+        energy_old_s += K_d * sigma_dash_d2 / sigma_d;
+
+        Scalar energy_new_s = K_a * sigma_dash_a2_n / sigma_a_n;
+        energy_new_s += K_b * sigma_dash_b2_n / sigma_b_n;
+        energy_new_s += K_c * sigma_dash_c2_n / sigma_c_n;
+        energy_new_s += K_d * sigma_dash_d2_n / sigma_d_n;
+
+        if (energy_new_s < 0)
+            return DBL_MAX;
+
+        return 0.5 * (energy_new_s - energy_old_s);
+        }
+
     m_normal_diff_a.x = normal_cda.x - normal_abc.x - normal_abd.x;
     m_normal_diff_a.y = normal_cda.y - normal_abc.y - normal_abd.y;
     m_normal_diff_a.z = normal_cda.z - normal_abc.z - normal_abd.z;
@@ -1064,6 +1130,9 @@ void HelfrichGeneralMeshForceCompute::postcomputeParameter(unsigned int idx_a,
     h_sigma_dash.data[idx_b] += m_sigma_dash_diff_b;
     h_sigma_dash.data[idx_c] += m_sigma_dash_diff_c;
     h_sigma_dash.data[idx_d] += m_sigma_dash_diff_d;
+
+    if (!m_has_spontaneous_curvature)
+        return;
 
     h_normal.data[idx_a].x += m_normal_diff_a.x;
     h_normal.data[idx_a].y += m_normal_diff_a.y;

@@ -72,6 +72,8 @@ class PYBIND11_EXPORT HelfrichGeneralMeshForceCompute : public MeshForceCompute
 
     bool m_has_spontaneous_curvature = false; //! Check if any particle type has a non-zero spontaneous curvature H0
 
+    bool m_force_normals = false; //! Compute the normals in precomputeParameter() even without a spontaneous curvature
+
     GPUArray<Scalar3>
         m_sigma_dash; //! sum of the distances weighted by the bending angle over all neighbors
 
