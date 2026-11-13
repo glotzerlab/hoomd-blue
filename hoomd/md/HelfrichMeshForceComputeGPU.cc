@@ -38,34 +38,6 @@ HelfrichMeshForceComputeGPU::HelfrichMeshForceComputeGPU(std::shared_ptr<SystemD
                                          "helfrich_sigma"));
 
     m_autotuners.insert(m_autotuners.end(), {m_tuner_force, m_tuner_sigma});
-
-    GPUVector<Scalar3> tmp_sigma_dash(m_pdata->getN(), m_exec_conf);
-    GPUVector<Scalar4> tmp_normal(m_pdata->getN(), m_exec_conf);
-    GPUVector<Scalar> tmp_sigma(m_pdata->getN(), m_exec_conf);
-
-        {
-        ArrayHandle<Scalar3> old_sigma_dash(m_sigma_dash, access_location::host);
-        ArrayHandle<Scalar4> old_normal(m_normal, access_location::host);
-        ArrayHandle<Scalar> old_sigma(m_sigma, access_location::host);
-
-        ArrayHandle<Scalar3> sigma_dash(tmp_sigma_dash, access_location::host);
-        ArrayHandle<Scalar4> normal(tmp_normal, access_location::host);
-        ArrayHandle<Scalar> sigma(tmp_sigma, access_location::host);
-
-        // for each type of the particles in the group
-        for (unsigned int i = 0; i < m_pdata->getN(); i++)
-            {
-            sigma_dash.data[i] = old_sigma_dash.data[i];
-
-            normal.data[i] = old_normal.data[i];
-
-            sigma.data[i] = old_sigma.data[i];
-            }
-        }
-
-    m_sigma_dash.swap(tmp_sigma_dash);
-    m_normal.swap(tmp_normal);
-    m_sigma.swap(tmp_sigma);
     }
 
 /*! Actually perform the force computation
