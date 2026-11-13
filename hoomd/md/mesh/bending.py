@@ -218,8 +218,8 @@ class GeneralHelfrich(MeshPotential):
 
             * ``k`` (`float`, **required**) - bending stiffness
               :math:`[\mathrm{energy}]`
-            * ``H0`` (`float`, **required**) - spontaneous mean curvature
-              :math:`[\mathrm{length}^{-1}]`
+            * ``H0`` (`float`, *optional*) - spontaneous mean curvature
+              :math:`[\mathrm{length}^{-1}]` (default: 0.0)
 
     """
 
@@ -230,7 +230,7 @@ class GeneralHelfrich(MeshPotential):
 
     def __init__(self, mesh):
         params = TypeParameter(
-            "params", "particle_types", TypeParameterDict(k=float, H0=float, len_keys=1)
+            "params", "particle_types", TypeParameterDict(k=float, H0=0.0, len_keys=1)
         )
         self._add_typeparam(params)
 
