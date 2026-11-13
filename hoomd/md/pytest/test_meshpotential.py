@@ -700,7 +700,7 @@ def test_general_helfrich_curvatures(simulation_factory, tetrahedron_snapshot_fa
     sim.operations.integrator = integrator
     sim.run(0)
 
-    mean_curvature = 4 / (d * np.sqrt(6))
+    mean_curvature = 4 / (0.969 * np.sqrt(6))
     curvatures = helfrich.curvatures
 
     assert len(curvatures) == 4
