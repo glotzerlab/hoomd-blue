@@ -9,6 +9,8 @@ Next release
 
 *Added*
 
+* Make Helfrich mesh potential MPI executable (#2392).
+
 *Changed*
 
 * Convert all GPU kernels from HIP to CUDA (#2350).
