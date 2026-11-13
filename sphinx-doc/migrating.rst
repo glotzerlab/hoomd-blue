@@ -16,6 +16,16 @@ note that preprocessor defines and API calls may need to be updated as in `pull 
     in a job scheduler (such as SLURM), request more than default of 1 cpu per task (e.g.
     ``--cpus-per-task=4``). If you fail to do this, your simulations will run *very* slowly.
 
+Breaking changes to existing functionalities
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+* `hoomd.md.mesh.bending.Helfrich`
+
+  * The parameters are now set per *particle type* instead of per mesh type. Use
+    ``helfrich.params[particle type] = dict(k=10.0, H0=0)``.
+  * The new optional parameter ``H0`` (default ``0.0``) sets a spontaneous mean curvature.
+    With ``H0 = 0``, the energy is that of the previous version.
+
 Migrating to HOOMD-blue 7
 -------------------------
 
