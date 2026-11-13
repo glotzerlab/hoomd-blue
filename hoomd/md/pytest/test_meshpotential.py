@@ -304,7 +304,9 @@ def _skip_if_helfrich_mpi(sim, pair_potential):
 
 def _find_type_name(pair_potential):
     """Determines if particle or mesh type has to be used."""
-    if issubclass(pair_potential, hoomd.md.mesh.bending.GeneralHelfrich):
+    if issubclass(pair_potential, hoomd.md.mesh.bending.Helfrich) or issubclass(
+        pair_potential, hoomd.md.mesh.bending.GeneralHelfrich
+    ):
         return "A"
     else:
         return "mesh"
@@ -441,8 +443,10 @@ def test_multiple_types(
     
     type_name = ["mesh","patch"]
 
-    if issubclass(mesh_potential_cls, hoomd.md.mesh.bending.GeneralHelfrich):
-         type_name = ["A","B"]
+    if issubclass(mesh_potential_cls, hoomd.md.mesh.bending.Helfrich) or issubclass(
+        mesh_potential_cls, hoomd.md.mesh.bending.GeneralHelfrich
+    ):
+        type_name = ["A", "B"]
 
     for tn in type_name:
         for key in potential_kwargs:
@@ -565,7 +569,9 @@ def test_forces_and_energies(
     mesh.triangulation = dict(type_ids=type_ids, triangles=triangles)
 
     mesh_potential = mesh_potential_cls(mesh)
-    if issubclass(mesh_potential_cls, hoomd.md.mesh.bending.GeneralHelfrich):
+    if issubclass(mesh_potential_cls, hoomd.md.mesh.bending.Helfrich) or issubclass(
+        mesh_potential_cls, hoomd.md.mesh.bending.GeneralHelfrich
+    ):
         mesh_potential.params["A"] = potential_kwargs
     else:
         mesh_potential.params["mesh"] = potential_kwargs
@@ -681,7 +687,7 @@ def test_helfrich_mpi_error(simulation_factory, tetrahedron_snapshot_factory):
     mesh.triangulation = dict(type_ids=[0, 0], triangles=[[0, 1, 2], [0, 2, 3]])
 
     helfrich = hoomd.md.mesh.bending.Helfrich(mesh)
-    helfrich.params["mesh"] = dict(k=1)
+    helfrich.params["A"] = dict(k=1)
 
     integrator = hoomd.md.Integrator(dt=0.005, forces=[helfrich])
 
