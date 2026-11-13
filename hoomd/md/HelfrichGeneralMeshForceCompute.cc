@@ -68,6 +68,13 @@ void HelfrichGeneralMeshForceCompute::setParams(unsigned int type, const helfric
                                                              access_mode::readwrite);
     h_params.data[type] = params;
 
+    m_has_spontaneous_curvature = false;
+    for (unsigned int i = 0; i < m_pdata->getNTypes(); i++)
+        {
+        if (h_params.data[i].H0 != Scalar(0.0))
+            m_has_spontaneous_curvature = true;
+        }
+
     if (params.k <= 0)
         m_exec_conf->msg->warning() << "Helfrich: specified K <= 0" << endl;
     }
