@@ -681,6 +681,32 @@ def test_auto_detach_simulation(simulation_factory, tetrahedron_snapshot_factory
     assert mesh._cpp_obj is None
 
 
+def test_general_helfrich_curvatures(simulation_factory, tetrahedron_snapshot_factory):
+    sim = simulation_factory(tetrahedron_snapshot_factory(d=0.969, L=5))
+    mesh = hoomd.mesh.Mesh()
+    mesh.types = ["mesh"]
+    mesh.triangulation = dict(
+        type_ids=[0, 0, 0, 0], triangles=[[2, 1, 0], [0, 1, 3], [2, 0, 3], [1, 2, 3]]
+    )
+
+    helfrich = hoomd.md.mesh.bending.GeneralHelfrich(mesh)
+    helfrich.params["A"] = dict(k=1.0, H0=0.0)
+    _skip_if_helfrich_mpi(sim, hoomd.md.mesh.bending.GeneralHelfrich)
+
+    integrator = hoomd.md.Integrator(dt=0.005, forces=[helfrich])
+    integrator.methods.append(
+        hoomd.md.methods.Langevin(kT=1, filter=hoomd.filter.All())
+    )
+    sim.operations.integrator = integrator
+    sim.run(0)
+
+    mean_curvature = 4 / (d * np.sqrt(6))
+    curvatures = helfrich.curvatures
+
+    assert len(curvatures) == 4
+    np.testing.assert_allclose(curvatures, mean_curvature, rtol=1e-5)
+
+
 def test_helfrich_mpi_error(simulation_factory, tetrahedron_snapshot_factory):
     sim = simulation_factory(tetrahedron_snapshot_factory(d=0.969, L=5))
     mesh = hoomd.mesh.Mesh()
