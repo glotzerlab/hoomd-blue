@@ -95,11 +95,12 @@ class Helfrich(MeshPotential):
 
     .. math::
 
-        U(i) = \frac{1}{2} k \frac{1}{\sigma_i}\left( \sum_{j \in
+        U(i) = \frac{1}{2} k_i \frac{1}{\sigma_i}\left( \sum_{j \in
         \mathrm{Neigh}(i)} \frac{\sigma_{ij}}{l_{ij}} (\mathbf{r}_j
         - \mathbf{r}_i) \right)^2
 
-    with the area of the dual cell of vertex :math:`i`
+    with the stiffness :math:`k_i` of the particle type of vertex :math:`i`,
+    the area of the dual cell of vertex :math:`i`
     :math:`\sigma_i=(\sum_{j \in \mathrm{Neigh}(i)}\sigma_{ij}\cdot l_{ij})/4`,
     the length of the bond between :math:`i` and :math:`j` :math:`l_{ij}`, the length of
     the bond in the dual lattice  :math:`\sigma_{ij}=l_{ij}(\text{cot}\theta_1+
@@ -120,7 +121,7 @@ class Helfrich(MeshPotential):
     .. code-block:: python
 
         helfrich_potential = hoomd.md.mesh.bending.Helfrich(mesh)
-        helfrich_potential.params["mesh"] = dict(k=10.0)
+        helfrich_potential.params["A"] = dict(k=10.0)
 
     {inherited}
 
@@ -128,10 +129,9 @@ class Helfrich(MeshPotential):
     **Members defined in** `Helfrich`:
 
     Attributes:
-        params (TypeParameter[dict]):
-            The parameter of the Helfrich energy for the defined mesh.
-            As the mesh can only have one type a type name does not have
-            to be stated. The dictionary has the following keys:
+        params (TypeParameter[``particle type``, dict]):
+            The parameters of the Helfrich energy for each particle type.
+            The dictionary has the following keys:
 
             * ``k`` (`float`, **required**) - bending stiffness
               :math:`[\mathrm{energy}]`
@@ -145,11 +145,20 @@ class Helfrich(MeshPotential):
 
     def __init__(self, mesh):
         params = TypeParameter(
-            "params", "types", TypeParameterDict(k=float, len_keys=1)
+            "params", "particle_types", TypeParameterDict(k=float, len_keys=1)
         )
         self._add_typeparam(params)
 
         super().__init__(mesh)
+
+    def _apply_typeparam_dict(self, cpp_obj, simulation):
+        for typeparam in self._typeparam_dict.values():
+            try:
+                typeparam._attach(cpp_obj, simulation.state)
+            except ValueError as err:
+                raise err.__class__(
+                    f"For {type(self)} in TypeParameter {typeparam.name} {err!s}"
+                )
 
     def _attach_hook(self):
         if self._simulation.device.communicator.num_ranks == 1:
