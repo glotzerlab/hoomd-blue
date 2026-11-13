@@ -32,7 +32,7 @@ HelfrichMeshForceCompute::HelfrichMeshForceCompute(std::shared_ptr<SystemDefinit
     m_exec_conf->msg->notice(5) << "Constructing HelfrichMeshForceCompute" << endl;
 
     // allocate the parameters
-    GPUArray<Scalar> params(m_mesh_data->getMeshBondData()->getNTypes(), m_exec_conf);
+    GPUArray<Scalar> params(m_pdata->getNTypes(), m_exec_conf);
     m_params.swap(params);
 
     // allocate memory for the per-type normal verctors
@@ -68,17 +68,17 @@ void HelfrichMeshForceCompute::setParams(unsigned int type, Scalar K)
 
 void HelfrichMeshForceCompute::setParamsPython(std::string type, pybind11::dict params)
     {
-    auto typ = m_mesh_data->getMeshBondData()->getTypeByName(type);
+    auto typ = m_pdata->getTypeByName(type);
     auto _params = bending_params(params);
     setParams(typ, _params.k);
     }
 
 pybind11::dict HelfrichMeshForceCompute::getParams(std::string type)
     {
-    auto typ = m_mesh_data->getMeshBondData()->getTypeByName(type);
-    if (typ >= m_mesh_data->getMeshBondData()->getNTypes())
+    auto typ = m_pdata->getTypeByName(type);
+    if (typ >= m_pdata->getNTypes())
         {
-        m_exec_conf->msg->error() << "mesh.helfrich: Invalid mesh type specified" << endl;
+        m_exec_conf->msg->error() << "mesh.helfrich: Invalid particle type specified" << endl;
         throw runtime_error("Error setting parameters in HelfrichMeshForceCompute");
         }
     ArrayHandle<Scalar> h_params(m_params, access_location::host, access_mode::read);
@@ -184,6 +184,11 @@ void HelfrichMeshForceCompute::computeForces(uint64_t timestep)
         dbd.x = h_pos.data[idx_b].x - h_pos.data[idx_d].x;
         dbd.y = h_pos.data[idx_b].y - h_pos.data[idx_d].y;
         dbd.z = h_pos.data[idx_b].z - h_pos.data[idx_d].z;
+
+	unsigned int type_a = __scalar_as_int(h_pos.data[idx_a].w);
+	unsigned int type_b = __scalar_as_int(h_pos.data[idx_b].w);
+	unsigned int type_c = __scalar_as_int(h_pos.data[idx_c].w);
+	unsigned int type_d = __scalar_as_int(h_pos.data[idx_d].w);
 
         dab = box.minImage(dab);
         dac = box.minImage(dac);
@@ -332,14 +337,18 @@ void HelfrichMeshForceCompute::computeForces(uint64_t timestep)
         Scalar sigma_dash_c2 = 0.5 * dot(sigma_dash_c, sigma_dash_c) * inv_sigma_c * inv_sigma_c;
         Scalar sigma_dash_d2 = 0.5 * dot(sigma_dash_d, sigma_dash_d) * inv_sigma_d * inv_sigma_d;
 
-        Scalar3 Fa = -(g_a * inv_sigma_a - sigma_dash_a2 * dsigma_a)
-                     - (g_b * inv_sigma_b - sigma_dash_b2 * dsigma_b)
-                     - (g_c * inv_sigma_c - sigma_dash_c2 * dsigma_c)
-                     - (g_d * inv_sigma_d - sigma_dash_d2 * dsigma_d);
+        // the stiffness is a property of the vertex
+        Scalar K_a = h_params.data[type_a];
+        Scalar K_b = h_params.data[type_b];
+        Scalar K_c = h_params.data[type_c];
+        Scalar K_d = h_params.data[type_d];
 
-        unsigned int meshbond_type = m_mesh_data->getMeshBondData()->getTypeByIndex(i);
+        Scalar3 Fa = -K_a * (g_a * inv_sigma_a - sigma_dash_a2 * dsigma_a)
+                     - K_b * (g_b * inv_sigma_b - sigma_dash_b2 * dsigma_b)
+                     - K_c * (g_c * inv_sigma_c - sigma_dash_c2 * dsigma_c)
+                     - K_d * (g_d * inv_sigma_d - sigma_dash_d2 * dsigma_d);
 
-        Fa *= h_params.data[meshbond_type];
+
         if (compute_virial)
             {
             helfrich_virial[0] = Scalar(1. / 2.) * dab.x * Fa.x; // xx
@@ -357,7 +366,7 @@ void HelfrichMeshForceCompute::computeForces(uint64_t timestep)
             h_force.data[idx_a].x += Fa.x;
             h_force.data[idx_a].y += Fa.y;
             h_force.data[idx_a].z += Fa.z;
-            h_force.data[idx_a].w = h_params.data[meshbond_type] * 0.5
+            h_force.data[idx_a].w = K_a * 0.5
                                      * dot(sigma_dash_a, sigma_dash_a) * inv_sigma_a;
             for (int j = 0; j < 6; j++)
                 h_virial.data[j * virial_pitch + idx_a] += helfrich_virial[j];
@@ -368,7 +377,7 @@ void HelfrichMeshForceCompute::computeForces(uint64_t timestep)
             h_force.data[idx_b].x -= Fa.x;
             h_force.data[idx_b].y -= Fa.y;
             h_force.data[idx_b].z -= Fa.z;
-            h_force.data[idx_b].w = h_params.data[meshbond_type] * 0.5
+            h_force.data[idx_b].w = K_b * 0.5
                                      * dot(sigma_dash_b, sigma_dash_b) * inv_sigma_b;
             for (int j = 0; j < 6; j++)
                 h_virial.data[j * virial_pitch + idx_b] += helfrich_virial[j];
@@ -564,6 +573,11 @@ Scalar HelfrichMeshForceCompute::energyDiff(unsigned int idx_a,
     dcd.x = h_pos.data[idx_c].x - h_pos.data[idx_d].x;
     dcd.y = h_pos.data[idx_c].y - h_pos.data[idx_d].y;
     dcd.z = h_pos.data[idx_c].z - h_pos.data[idx_d].z;
+
+    unsigned int type_a = __scalar_as_int(h_pos.data[idx_a].w);
+    unsigned int type_b = __scalar_as_int(h_pos.data[idx_b].w);
+    unsigned int type_c = __scalar_as_int(h_pos.data[idx_c].w);
+    unsigned int type_d = __scalar_as_int(h_pos.data[idx_d].w);
 
     // apply minimum image conventions to all 3 vectors
     dab = box.minImage(dab);
@@ -778,20 +792,26 @@ Scalar HelfrichMeshForceCompute::energyDiff(unsigned int idx_a,
     Scalar3 sigma_dash_c_n = sigma_dash_c + m_sigma_dash_diff_c;
     Scalar3 sigma_dash_d_n = sigma_dash_d + m_sigma_dash_diff_d;
 
-    Scalar energy_old = dot(sigma_dash_a, sigma_dash_a) / sigma_a;
-    energy_old += (dot(sigma_dash_b, sigma_dash_b) / sigma_b);
-    energy_old += (dot(sigma_dash_c, sigma_dash_c) / sigma_c);
-    energy_old += (dot(sigma_dash_d, sigma_dash_d) / sigma_d);
+    // the stiffness is a property of the vertex
+    Scalar K_a = h_params.data[type_a];
+    Scalar K_b = h_params.data[type_b];
+    Scalar K_c = h_params.data[type_c];
+    Scalar K_d = h_params.data[type_d];
 
-    Scalar energy_new = dot(sigma_dash_a_n, sigma_dash_a_n) / sigma_a_n;
-    energy_new += (dot(sigma_dash_b_n, sigma_dash_b_n) / sigma_b_n);
-    energy_new += (dot(sigma_dash_c_n, sigma_dash_c_n) / sigma_c_n);
-    energy_new += (dot(sigma_dash_d_n, sigma_dash_d_n) / sigma_d_n);
+    Scalar energy_old = K_a * dot(sigma_dash_a, sigma_dash_a) / sigma_a;
+    energy_old += K_b * dot(sigma_dash_b, sigma_dash_b) / sigma_b;
+    energy_old += K_c * dot(sigma_dash_c, sigma_dash_c) / sigma_c;
+    energy_old += K_d * dot(sigma_dash_d, sigma_dash_d) / sigma_d;
+
+    Scalar energy_new = K_a * dot(sigma_dash_a_n, sigma_dash_a_n) / sigma_a_n;
+    energy_new += K_b * dot(sigma_dash_b_n, sigma_dash_b_n) / sigma_b_n;
+    energy_new += K_c * dot(sigma_dash_c_n, sigma_dash_c_n) / sigma_c_n;
+    energy_new += K_d * dot(sigma_dash_d_n, sigma_dash_d_n) / sigma_d_n;
 
     if (energy_new < 0)
         return DBL_MAX;
 
-    return h_params.data[type_id] * 0.5 * (energy_new - energy_old);
+    return 0.5 * (energy_new - energy_old);
     }
 
 void HelfrichMeshForceCompute::postcomputeParameter(unsigned int idx_a,
