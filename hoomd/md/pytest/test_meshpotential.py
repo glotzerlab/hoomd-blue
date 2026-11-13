@@ -676,5 +676,9 @@ def test_helfrich_curvatures(simulation_factory, tetrahedron_snapshot_factory):
     mean_curvature = 4 / (0.969 * np.sqrt(6))
     curvatures = helfrich.curvatures
 
-    assert len(curvatures) == 4
-    np.testing.assert_allclose(curvatures, mean_curvature, rtol=1e-5)
+    # curvatures are gathered on the root rank, other ranks get None
+    if sim.device.communicator.rank == 0:
+        assert len(curvatures) == 4
+        np.testing.assert_allclose(curvatures, mean_curvature, rtol=1e-5)
+    else:
+        assert curvatures is None
