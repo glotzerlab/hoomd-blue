@@ -14,6 +14,7 @@ Next release
 *Changed*
 
 * Convert all GPU kernels from HIP to CUDA (#2350).
+* Helfrich mesh potential is now defined per particel type and takes a local spontaneous curvature (#???).
 
 *Deprecated*
 
