@@ -109,6 +109,10 @@ class Helfrich(MeshPotential):
     and :math:`j`. The sign of :math:`H_i` is defined with respect to
     the vertex normal.
 
+    See Also:
+        * `Gompper and Kroll 1996 <https://doi.org/10.1051/jp1:1996246>`__
+        * `Helfrich 1973 <https://doi.org/10.1515/znc-1973-11-1209>`__
+
     .. rubric:: Example:
 
     .. code-block:: python
