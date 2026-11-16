@@ -140,7 +140,7 @@ six==1.17.0
     # via python-dateutil
 snowballstemmer==3.1.1
     # via sphinx
-soupsieve==3.0.4
+soupsieve==4.0
     # via beautifulsoup4
 sphinx==9.2.0
     # via
@@ -180,7 +180,7 @@ stack-data==0.6.3
     # via ipython
 tinycss2==1.5.1
     # via bleach
-tornado==6.6
+tornado==6.6.1
     # via
     #   -r sphinx-doc/requirements.in
     #   jupyter-client
