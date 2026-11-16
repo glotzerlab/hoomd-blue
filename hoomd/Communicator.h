@@ -334,6 +334,13 @@ class PYBIND11_EXPORT Communicator
      */
     virtual void updateNetForce(uint64_t timestep);
 
+    /*! This will be needed to communicate Array type properties (like sigma_dash in Helfrich)
+     *
+     * \param data Array indexed like the particle data, with at least N + NGhosts entries.
+     *             Entries [0, N) are sent, entries [N, N + NGhosts) are overwritten.
+     */
+    virtual void updateGhostArray(GPUArray<Scalar4>& data);
+
     /*! This methods finds all the particles that are no longer inside the domain
      * boundaries and transfers them to neighboring processors.
      *
@@ -490,6 +497,7 @@ class PYBIND11_EXPORT Communicator
     GPUArray<unsigned int> m_end;              //!< End index for every neighbor in send buf
 
     GPUVector<Scalar4> m_pos_copybuf;         //!< Buffer for particle positions to be copied
+    GPUVector<Scalar4> m_ghost_array_sendbuf; //!< Send buffer for updateGhostArray()
     GPUVector<Scalar> m_charge_copybuf;       //!< Buffer for particle charges to be copied
     GPUVector<Scalar> m_diameter_copybuf;     //!< Buffer for particle diameters to be copied
     GPUVector<unsigned int> m_body_copybuf;   //!< Buffer for particle body ids to be copied

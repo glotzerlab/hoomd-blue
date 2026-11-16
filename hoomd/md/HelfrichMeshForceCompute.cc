@@ -43,6 +43,15 @@ HelfrichMeshForceCompute::HelfrichMeshForceCompute(std::shared_ptr<SystemDefinit
     GPUArray<Scalar> tmp_sigma(m_pdata->getMaxN(), m_exec_conf);
 
     m_sigma.swap(tmp_sigma);
+
+#ifdef ENABLE_MPI
+    if (m_sysdef->isDomainDecomposed())
+        {
+        auto comm_weak = m_sysdef->getCommunicator();
+        assert(comm_weak.lock());
+        m_comm = comm_weak.lock();
+        }
+#endif
     }
 
 HelfrichMeshForceCompute::~HelfrichMeshForceCompute()
@@ -86,12 +95,83 @@ pybind11::dict HelfrichMeshForceCompute::getParams(std::string type)
     return params;
     }
 
+void HelfrichMeshForceCompute::resizeSigmaArrays()
+    {
+    const size_t n_tot = m_pdata->getN() + m_pdata->getNGhosts();
+
+    // sigma is recomputed in every time step, so the old values can be discarded
+    if (m_sigma.getNumElements() < n_tot)
+        {
+        GPUArray<Scalar> tmp_sigma(m_pdata->getMaxN(), m_exec_conf);
+        m_sigma.swap(tmp_sigma);
+        }
+
+    if (m_sigma_dash.getNumElements() < n_tot)
+        {
+        GPUArray<Scalar3> tmp_sigma_dash(m_pdata->getMaxN(), m_exec_conf);
+        m_sigma_dash.swap(tmp_sigma_dash);
+        }
+    }
+
+void HelfrichMeshForceCompute::communicateSigma()
+    {
+#ifdef ENABLE_MPI
+    if (!m_comm)
+        return;
+
+    const unsigned int n_local = m_pdata->getN();
+    const unsigned int n_tot = n_local + m_pdata->getNGhosts();
+
+    if (m_sigma_comm.getNumElements() < n_tot)
+        {
+        GPUArray<Scalar4> tmp_sigma_comm(m_pdata->getMaxN(), m_exec_conf);
+        m_sigma_comm.swap(tmp_sigma_comm);
+        }
+
+        {
+        ArrayHandle<Scalar> h_sigma(m_sigma, access_location::host, access_mode::read);
+        ArrayHandle<Scalar3> h_sigma_dash(m_sigma_dash, access_location::host, access_mode::read);
+        ArrayHandle<Scalar4> h_sigma_comm(m_sigma_comm,
+                                          access_location::host,
+                                          access_mode::overwrite);
+
+        for (unsigned int i = 0; i < n_local; i++)
+            {
+            h_sigma_comm.data[i] = make_scalar4(h_sigma_dash.data[i].x,
+                                                h_sigma_dash.data[i].y,
+                                                h_sigma_dash.data[i].z,
+                                                h_sigma.data[i]);
+            }
+        }
+
+    m_comm->updateGhostArray(m_sigma_comm);
+
+        {
+        ArrayHandle<Scalar> h_sigma(m_sigma, access_location::host, access_mode::readwrite);
+        ArrayHandle<Scalar3> h_sigma_dash(m_sigma_dash,
+                                          access_location::host,
+                                          access_mode::readwrite);
+        ArrayHandle<Scalar4> h_sigma_comm(m_sigma_comm, access_location::host, access_mode::read);
+
+        for (unsigned int i = n_local; i < n_tot; i++)
+            {
+            h_sigma_dash.data[i] = make_scalar3(h_sigma_comm.data[i].x,
+                                                h_sigma_comm.data[i].y,
+                                                h_sigma_comm.data[i].z);
+            h_sigma.data[i] = h_sigma_comm.data[i].w;
+            }
+        }
+#endif
+    }
+
 /*! Actually perform the force computation
     \param timestep Current time step
  */
 void HelfrichMeshForceCompute::computeForces(uint64_t timestep)
     {
+    resizeSigmaArrays();
     precomputeParameter();
+    communicateSigma();
 
     assert(m_pdata);
     // access the particle data arrays
