@@ -188,35 +188,9 @@ void MeshDynamicBondUpdater::update(uint64_t timestep)
                 }
             }
 
-        // typename Angle::members_t& triangle1 = h_triangles.data[tr_idx1];
-
-        // unsigned int iterator = 0;
-
-        // bool a_before_b = false;
-
-        // while (tag_a != triangle1.tag[iterator])
-        //     iterator++;
-
-        // iterator = (iterator + 1) % 3;
-
-        // if (tag_b == triangle1.tag[iterator])
-        //     {
-        //     a_before_b = true;
-        //     iterator = (iterator + 1) % 3;
-        //     }
-
         unsigned int type_id = h_typeval.data[i].type;
 
         Scalar energyDifference = 0;
-
-        // unsigned int idx_cc = idx_d;
-        // unsigned int idx_dd = idx_c;
-
-        // if (a_before_b)
-        //     {
-        //     idx_cc = idx_c;
-        //     idx_dd = idx_d;
-        //     }
 
         bool have_to_check_surrounding = false;
         for (auto& force : m_forces)
@@ -243,21 +217,13 @@ void MeshDynamicBondUpdater::update(uint64_t timestep)
 
         if (have_to_check_surrounding || part_func > rand_number)
             {
-            // tr_idx[1] = tr_idx1;
-            // tr_idx[0] = tr_idx2;
-
             v_idx[0] = tag_a;
             v_idx[1] = tag_b;
-            // v_idx[2] = tag_d;
-            // v_idx[3] = tag_c;
 
-            // if (a_before_b)
-            //     {
             tr_idx[0] = tr_idx1;
             tr_idx[1] = tr_idx2;
             v_idx[2] = tag_c;
             v_idx[3] = tag_d;
-            //     }
 
             unsigned int counter = 4;
 
@@ -353,8 +319,6 @@ void MeshDynamicBondUpdater::update(uint64_t timestep)
                 h_bonds.data[i].tag[2] = v_idx[1];
                 h_bonds.data[i].tag[3] = v_idx[0];
                 }
-            // h_bonds.data[i].tag[2] = v_idx[0];
-            // h_bonds.data[i].tag[3] = v_idx[1];
 
             // Update triagles asociated with the bond
             h_triangles.data[tr_idx[0]].tag[0] = v_idx[0];
