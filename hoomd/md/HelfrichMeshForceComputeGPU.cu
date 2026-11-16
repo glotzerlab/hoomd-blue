@@ -55,10 +55,10 @@ __global__ void gpu_compute_helfrich_sigma_kernel(Scalar* d_sigma,
     if (idx >= N)
         return;
 
-    // load in the length of the list for this thread (MEM TRANSFER: 4 bytes)
+    // load in the length of the list for this thread
     int n_bonds = n_bonds_list[idx];
 
-    // read in the position of our b-particle from the a-b-c triplet. (MEM TRANSFER: 16 bytes)
+    // read in the position of our particle
     Scalar4 postype = __ldg(d_pos + idx);
     Scalar3 pos = make_scalar3(postype.x, postype.y, postype.z);
 
@@ -87,13 +87,13 @@ __global__ void gpu_compute_helfrich_sigma_kernel(Scalar* d_sigma,
 
         unsigned int cur_bond_idx = cur_bond.idx[0];
 
-        // get the b-particle's position (MEM TRANSFER: 16 bytes)
+        // get the position of the neighbor b
         Scalar4 bb_postype = d_pos[cur_bond_idx];
         Scalar3 bb_pos = make_scalar3(bb_postype.x, bb_postype.y, bb_postype.z);
-        // get the c-particle's position (MEM TRANSFER: 16 bytes)
+        // get the position of the vertex c
         Scalar4 cc_postype = d_pos[cur_idx_c];
         Scalar3 cc_pos = make_scalar3(cc_postype.x, cc_postype.y, cc_postype.z);
-        // get the c-particle's position (MEM TRANSFER: 16 bytes)
+        // get the position of the vertex d
         Scalar4 dd_postype = d_pos[cur_idx_d];
         Scalar3 dd_pos = make_scalar3(dd_postype.x, dd_postype.y, dd_postype.z);
 
@@ -109,10 +109,6 @@ __global__ void gpu_compute_helfrich_sigma_kernel(Scalar* d_sigma,
         dbc = box.minImage(dbc);
         dbd = box.minImage(dbd);
 
-        // on paper, the formula turns out to be: F = K*\vec{r} * (r_0/r - 1)
-        // FLOPS: 14 / MEM TRANSFER: 2 Scalars
-
-        // FLOPS: 42 / MEM TRANSFER: 6 Scalars
         Scalar rsqab = dab.x * dab.x + dab.y * dab.y + dab.z * dab.z;
         Scalar rac = dac.x * dac.x + dac.y * dac.y + dac.z * dac.z;
         rac = sqrt(rac);
@@ -194,7 +190,7 @@ __global__ void gpu_compute_helfrich_sigma_kernel(Scalar* d_sigma,
         d_normal[idx].z = normal.z;
         }
 
-    // now that the force calculation is complete, write out the result (MEM TRANSFER: 20 bytes)
+    // now that the force calculation is complete, write out the result
     d_sigma[idx] = sigma;
     d_sigma_dash[idx] = sigma_dash;
     }
@@ -294,10 +290,10 @@ __global__ void gpu_compute_helfrich_force_kernel(Scalar4* d_force,
     if (idx >= N)
         return;
 
-    // load in the length of the list for this thread (MEM TRANSFER: 4 bytes)
+    // load in the length of the list for this thread
     int n_bonds = n_bonds_list[idx];
 
-    // read in the position of our b-particle from the a-b-c triplet. (MEM TRANSFER: 16 bytes)
+    // read in the position of our particle
     Scalar4 postype = __ldg(d_pos + idx);
     Scalar3 pos = make_scalar3(postype.x, postype.y, postype.z);
 
@@ -353,13 +349,13 @@ __global__ void gpu_compute_helfrich_force_kernel(Scalar4* d_force,
 
         int cur_bond_idx = cur_bond.idx[0];
 
-        // get the b-particle's position (MEM TRANSFER: 16 bytes)
+        // get the position of the neighbor b
         Scalar4 bb_postype = d_pos[cur_bond_idx];
         Scalar3 bb_pos = make_scalar3(bb_postype.x, bb_postype.y, bb_postype.z);
-        // get the c-particle's position (MEM TRANSFER: 16 bytes)
+        // get the position of the vertex c
         Scalar4 cc_postype = d_pos[cur_idx_c];
         Scalar3 cc_pos = make_scalar3(cc_postype.x, cc_postype.y, cc_postype.z);
-        // get the c-particle's position (MEM TRANSFER: 16 bytes)
+        // get the position of the vertex d
         Scalar4 dd_postype = d_pos[cur_idx_d];
         Scalar3 dd_pos = make_scalar3(dd_postype.x, dd_postype.y, dd_postype.z);
 
@@ -379,10 +375,6 @@ __global__ void gpu_compute_helfrich_force_kernel(Scalar4* d_force,
         dbc = box.minImage(dbc);
         dbd = box.minImage(dbd);
 
-        // on paper, the formula turns out to be: F = K*\vec{r} * (r_0/r - 1)
-        // FLOPS: 14 / MEM TRANSFER: 2 Scalars
-
-        // FLOPS: 42 / MEM TRANSFER: 6 Scalars
         Scalar rsqab = dab.x * dab.x + dab.y * dab.y + dab.z * dab.z;
         Scalar rab = sqrt(rsqab);
         Scalar rsqac = dac.x * dac.x + dac.y * dac.y + dac.z * dac.z;
@@ -596,7 +588,7 @@ __global__ void gpu_compute_helfrich_force_kernel(Scalar4* d_force,
         virial[5] += Scalar(1. / 2.) * dab.z * Fa.z; // zz
         }
 
-    // now that the force calculation is complete, write out the result (MEM TRANSFER: 20 bytes)
+    // now that the force calculation is complete, write out the result
     d_force[idx] = force;
 
     for (unsigned int i = 0; i < 6; i++)
