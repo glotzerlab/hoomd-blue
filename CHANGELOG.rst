@@ -10,11 +10,12 @@ Next release
 *Added*
 
 * Make Helfrich mesh potential MPI executable (#2392).
+* Added an option to set a local spontaneous curvature to the Helfrich mesh potential (#2398).
 
 *Changed*
 
 * Convert all GPU kernels from HIP to CUDA (#2350).
-* Helfrich mesh potential is now defined per particel type and takes a local spontaneous curvature (#???).
+* Helfrich mesh potential is now defined per particel type and takes a local spontaneous curvature (#2398).
 
 *Deprecated*
 
