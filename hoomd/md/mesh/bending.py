@@ -122,8 +122,6 @@ class Helfrich(MeshPotential):
 
     {inherited}
 
-    ----------
-
     **Members defined in** `Helfrich`:
 
     Attributes:
