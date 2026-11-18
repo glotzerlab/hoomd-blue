@@ -29,11 +29,6 @@ HelfrichMeshForceComputeGPU::HelfrichMeshForceComputeGPU(std::shared_ptr<SystemD
         throw std::runtime_error("Error initializing HelfrichMeshForceComputeGPU");
         }
 
-    // allocate and zero device memory
-    GPUArray<Scalar> params(this->m_mesh_data->getMeshTriangleData()->getNTypes(),
-                            this->m_exec_conf);
-    m_params.swap(params);
-
     m_tuner_force.reset(new Autotuner<1>({AutotunerBase::makeBlockSizeRange(m_exec_conf)},
                                          m_exec_conf,
                                          "helfrich_force"));
@@ -43,28 +38,6 @@ HelfrichMeshForceComputeGPU::HelfrichMeshForceComputeGPU(std::shared_ptr<SystemD
                                          "helfrich_sigma"));
 
     m_autotuners.insert(m_autotuners.end(), {m_tuner_force, m_tuner_sigma});
-
-    GPUVector<Scalar3> tmp_sigma_dash(m_pdata->getN(), m_exec_conf);
-    GPUVector<Scalar> tmp_sigma(m_pdata->getN(), m_exec_conf);
-
-        {
-        ArrayHandle<Scalar3> old_sigma_dash(m_sigma_dash, access_location::host);
-        ArrayHandle<Scalar> old_sigma(m_sigma, access_location::host);
-
-        ArrayHandle<Scalar3> sigma_dash(tmp_sigma_dash, access_location::host);
-        ArrayHandle<Scalar> sigma(tmp_sigma, access_location::host);
-
-        // for each type of the particles in the group
-        for (unsigned int i = 0; i < m_pdata->getN(); i++)
-            {
-            sigma_dash.data[i] = old_sigma_dash.data[i];
-
-            sigma.data[i] = old_sigma.data[i];
-            }
-        }
-
-    m_sigma_dash.swap(tmp_sigma_dash);
-    m_sigma.swap(tmp_sigma);
     }
 
 /*! Actually perform the force computation
@@ -72,7 +45,9 @@ HelfrichMeshForceComputeGPU::HelfrichMeshForceComputeGPU(std::shared_ptr<SystemD
  */
 void HelfrichMeshForceComputeGPU::computeForces(uint64_t timestep)
     {
+    resizeSigmaArrays();
     precomputeParameter();
+    communicateSigma();
 
     // access the particle data arrays
     ArrayHandle<Scalar4> d_pos(m_pdata->getPositions(), access_location::device, access_mode::read);
@@ -82,6 +57,7 @@ void HelfrichMeshForceComputeGPU::computeForces(uint64_t timestep)
 
     ArrayHandle<Scalar> d_sigma(m_sigma, access_location::device, access_mode::read);
     ArrayHandle<Scalar3> d_sigma_dash(m_sigma_dash, access_location::device, access_mode::read);
+    ArrayHandle<Scalar4> d_normal(m_normal, access_location::device, access_mode::read);
 
     BoxDim box = this->m_pdata->getGlobalBox();
 
@@ -105,7 +81,7 @@ void HelfrichMeshForceComputeGPU::computeForces(uint64_t timestep)
 
     ArrayHandle<Scalar4> d_force(m_force, access_location::device, access_mode::overwrite);
     ArrayHandle<Scalar> d_virial(m_virial, access_location::device, access_mode::overwrite);
-    ArrayHandle<Scalar> d_params(m_params, access_location::device, access_mode::read);
+    ArrayHandle<helfrich_param_t> d_params(m_params, access_location::device, access_mode::read);
 
     m_tuner_force->begin();
     kernel::gpu_compute_helfrich_force(d_force.data,
@@ -117,12 +93,14 @@ void HelfrichMeshForceComputeGPU::computeForces(uint64_t timestep)
                                        box,
                                        d_sigma.data,
                                        d_sigma_dash.data,
+                                       d_normal.data,
                                        d_gpu_meshbondlist.data,
                                        gpu_table_indexer,
                                        d_gpu_meshbond_pos_list.data,
                                        d_gpu_n_meshbond.data,
                                        d_params.data,
                                        m_mesh_data->getMeshBondData()->getNTypes(),
+                                       m_has_spontaneous_curvature,
                                        m_tuner_force->getParam()[0]);
 
     if (this->m_exec_conf->isCUDAErrorCheckingEnabled())
@@ -148,6 +126,7 @@ void HelfrichMeshForceComputeGPU::precomputeParameter()
     ArrayHandle<Scalar3> d_sigma_dash(m_sigma_dash,
                                       access_location::device,
                                       access_mode::readwrite);
+    ArrayHandle<Scalar4> d_normal(m_normal, access_location::device, access_mode::readwrite);
 
     BoxDim box = this->m_pdata->getGlobalBox();
 
@@ -170,6 +149,7 @@ void HelfrichMeshForceComputeGPU::precomputeParameter()
     m_tuner_sigma->begin();
     kernel::gpu_compute_helfrich_sigma(d_sigma.data,
                                        d_sigma_dash.data,
+                                       d_normal.data,
                                        m_pdata->getN(),
                                        d_pos.data,
                                        d_rtag.data,
@@ -178,6 +158,7 @@ void HelfrichMeshForceComputeGPU::precomputeParameter()
                                        gpu_table_indexer,
                                        d_gpu_meshbond_pos_list.data,
                                        d_gpu_n_meshbond.data,
+                                       m_has_spontaneous_curvature || m_force_normals,
                                        m_tuner_sigma->getParam()[0]);
 
     if (this->m_exec_conf->isCUDAErrorCheckingEnabled())

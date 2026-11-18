@@ -1,7 +1,9 @@
 // Copyright (c) 2009-2026 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
+#include "HelfrichMeshParameters.h"
 #include "MeshForceCompute.h"
+#include "hoomd/PythonLocalDataAccess.h"
 
 #include <memory>
 
@@ -39,7 +41,7 @@ class PYBIND11_EXPORT HelfrichMeshForceCompute : public MeshForceCompute
     virtual ~HelfrichMeshForceCompute();
 
     //! Set the parameters
-    virtual void setParams(unsigned int type, Scalar K);
+    virtual void setParams(unsigned int type, const helfrich_param_t& params);
 
     virtual void setParamsPython(std::string type, pybind11::dict params);
 
@@ -59,24 +61,58 @@ class PYBIND11_EXPORT HelfrichMeshForceCompute : public MeshForceCompute
         }
 #endif
 
+    /** Get per particle energies
+
+        @returns a Numpy array with per particle energies in increasing tag order.
+    */
+    pybind11::object getCurvaturesPython();
+
     protected:
-    GPUArray<Scalar> m_params; //!< Parameters
+    GPUArray<helfrich_param_t> m_params; //!< Parameters
+
+    bool m_has_spontaneous_curvature
+        = false; //! Check if any particle type has a non-zero spontaneous curvature H0
+
+    bool m_force_normals = false; //! Compute the normals in precomputeParameter() even without a
+                                  //! spontaneous curvature
 
     GPUArray<Scalar3>
         m_sigma_dash; //! sum of the distances weighted by the bending angle over all neighbors
 
     GPUArray<Scalar>
         m_sigma; //! sum of the vectors weighted by the bending angle over all neighbors
+                 //
+    GPUArray<Scalar4> m_normal; //! normal vector at each vertex
 
     Scalar m_sigma_diff_a;
     Scalar m_sigma_diff_b;
     Scalar m_sigma_diff_c;
     Scalar m_sigma_diff_d;
 
+    Scalar4 m_normal_diff_a;
+    Scalar4 m_normal_diff_b;
+    Scalar4 m_normal_diff_c;
+    Scalar4 m_normal_diff_d;
+
     Scalar3 m_sigma_dash_diff_a;
     Scalar3 m_sigma_dash_diff_b;
     Scalar3 m_sigma_dash_diff_c;
     Scalar3 m_sigma_dash_diff_d;
+
+    //! Make sure the per-particle sigma arrays hold the local and the ghost particles
+    void resizeSigmaArrays();
+
+    //! Forward sigma and sigma_dash of the local particles to their ghost copies (MPI only)
+    /*! The force on a particle needs sigma of the particles opposite to its bonds, which are
+        ghosts when they belong to another rank. Their sigma depends on bonds that are not stored
+        on this rank, so it is computed by the owning rank and communicated.
+    */
+    void communicateSigma();
+
+#ifdef ENABLE_MPI
+    std::shared_ptr<Communicator> m_comm; //!< The communicator, set if domain decomposed
+    GPUArray<Scalar4> m_sigma_comm;       //!< Buffer holding (sigma_dash, sigma) for communication
+#endif
 
     //! Actually compute the forces
     void computeForces(uint64_t timestep) override;

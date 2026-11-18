@@ -43,12 +43,14 @@ _BendingRigidity_arg_list = [
     for val in zip(*_BendingRigidity_args.values())
 ]
 _Helfrich_args = {
-    "k": [1.0, 20.0, 100.0],
+    "k": [1.0, 20.0, 100.0, 1.0, 100.0],
+    "H0": [0.0, 0.0, 0.0, 1.685235, 2.0],
 }
 _Helfrich_arg_list = [
     (hoomd.md.mesh.bending.Helfrich, dict(zip(_Helfrich_args, val)))
     for val in zip(*_Helfrich_args.values())
 ]
+
 
 _AreaConservation_args = {
     "k": [1.0, 20.0, 100.0],
@@ -156,9 +158,39 @@ def get_mesh_potential_args_forces_and_energies():
         [[0.0, 0.0, 0.0], [0.0, 0.0, 0.0], [0.0, 0.0, 0.0], [0.0, 0.0, 0.0]],
     ]
     BendingRigidity_energies = [8, 40, 1200]
-    Helfrich_forces = [[[0.0, 0.0, 0.0]] * 4] * 3
-    Helfrich_energies = [9.237604, 184.752086, 923.760431]
-
+    Helfrich_forces = [
+        [
+            [0.0, 0.0, 0.0],
+            [0.0, 0.0, 0.0],
+            [0.0, 0.0, 0.0],
+            [0.0, 0.0, 0.0],
+        ],
+        [
+            [0.0, 0.0, 0.0],
+            [0.0, 0.0, 0.0],
+            [0.0, 0.0, 0.0],
+            [0.0, 0.0, 0.0],
+        ],
+        [
+            [0.0, 0.0, 0.0],
+            [0.0, 0.0, 0.0],
+            [0.0, 0.0, 0.0],
+            [0.0, 0.0, 0.0],
+        ],
+        [
+            [0.0, 0.0, 0.0],
+            [0.0, 0.0, 0.0],
+            [0.0, 0.0, 0.0],
+            [0.0, 0.0, 0.0],
+        ],
+        [
+            [-140.876624, 0.0, 99.614816],
+            [140.876624, 0.0, 99.614816],
+            [0.0, -140.876624, -99.614816],
+            [0.0, 140.876624, -99.614816],
+        ],
+    ]
+    Helfrich_energies = [9.237604, 184.752086, 923.760431, 0, 32.22625]
     AreaConservation_forces = [
         [
             [0.94380349, 0.0, -0.66736985],
@@ -223,9 +255,6 @@ def get_mesh_potential_args_forces_and_energies():
                 BendingRigidity_energies[i],
             )
         )
-        Helfrich_args_and_vals.append(
-            (*_Helfrich_arg_list[i], Helfrich_forces[i], Helfrich_energies[i])
-        )
         AreaConservation_args_and_vals.append(
             (
                 *_AreaConservation_arg_list[i],
@@ -243,6 +272,10 @@ def get_mesh_potential_args_forces_and_energies():
         Volume_args_and_vals.append(
             (*_Volume_arg_list[i], Volume_forces[i], Volume_energies[i])
         )
+    for i in range(len(_Helfrich_arg_list)):
+        Helfrich_args_and_vals.append(
+            (*_Helfrich_arg_list[i], Helfrich_forces[i], Helfrich_energies[i])
+        )
     return (
         harmonic_args_and_vals
         + FENE_args_and_vals
@@ -255,12 +288,12 @@ def get_mesh_potential_args_forces_and_energies():
     )
 
 
-def _skip_if_helfrich_mpi(sim, pair_potential):
-    """Determines if the simulation is able to run this pair potential."""
-    if sim.device.communicator.num_ranks > 1 and issubclass(
-        pair_potential, hoomd.md.mesh.bending.Helfrich
-    ):
-        pytest.skip("Cannot run Helfrich with MPI")
+def _find_type_name(pair_potential):
+    """Determines if particle or mesh type has to be used."""
+    if issubclass(pair_potential, hoomd.md.mesh.bending.Helfrich):
+        return "A"
+    else:
+        return "mesh"
 
 
 @pytest.fixture(scope="session")
@@ -294,13 +327,15 @@ def tetrahedron_snapshot_factory(device):
     "mesh_potential_cls, potential_kwargs", get_mesh_potential_and_args()
 )
 def test_before_attaching(mesh_potential_cls, potential_kwargs):
+    type_name = _find_type_name(mesh_potential_cls)
+
     mesh = hoomd.mesh.Mesh()
     mesh_potential = mesh_potential_cls(mesh)
-    mesh_potential.params["mesh"] = potential_kwargs
+    mesh_potential.params[type_name] = potential_kwargs
 
     assert mesh is mesh_potential.mesh
     for key in potential_kwargs:
-        assert mesh_potential.params["mesh"][key] == pytest.approx(
+        assert mesh_potential.params[type_name][key] == pytest.approx(
             potential_kwargs[key], rel=1e-6
         )
 
@@ -326,10 +361,10 @@ def test_after_attaching(
     triangles = [[2, 1, 0], [0, 1, 3], [2, 0, 3], [1, 2, 3]]
     mesh.triangulation = dict(type_ids=type_ids, triangles=triangles)
 
-    mesh_potential = mesh_potential_cls(mesh)
-    mesh_potential.params["mesh"] = potential_kwargs
+    type_name = _find_type_name(mesh_potential_cls)
 
-    _skip_if_helfrich_mpi(sim, mesh_potential_cls)
+    mesh_potential = mesh_potential_cls(mesh)
+    mesh_potential.params[type_name] = potential_kwargs
 
     integrator = hoomd.md.Integrator(dt=0.005)
 
@@ -344,7 +379,7 @@ def test_after_attaching(
 
     sim.run(0)
     for key in potential_kwargs:
-        assert mesh_potential.params["mesh"][key] == pytest.approx(
+        assert mesh_potential.params[type_name][key] == pytest.approx(
             potential_kwargs[key], rel=1e-6
         )
 
@@ -362,7 +397,7 @@ def test_multiple_types(
     mesh_potential_cls,
     potential_kwargs,
 ):
-    snap = tetrahedron_snapshot_factory(d=0.969, L=5)
+    snap = tetrahedron_snapshot_factory(d=0.969, L=5, particle_types=["A", "B"])
     sim = simulation_factory(snap)
 
     mesh = hoomd.mesh.Mesh()
@@ -373,8 +408,6 @@ def test_multiple_types(
 
     mesh_potential = mesh_potential_cls(mesh)
     mesh_potential.params.default = potential_kwargs
-
-    _skip_if_helfrich_mpi(sim, mesh_potential_cls)
 
     integrator = hoomd.md.Integrator(dt=0.005)
 
@@ -387,13 +420,17 @@ def test_multiple_types(
     sim.operations.integrator = integrator
 
     sim.run(0)
-    for key in potential_kwargs:
-        assert mesh_potential.params["mesh"][key] == pytest.approx(
-            potential_kwargs[key], rel=1e-6
-        )
-        assert mesh_potential.params["patch"][key] == pytest.approx(
-            potential_kwargs[key], rel=1e-6
-        )
+
+    type_name = ["mesh", "patch"]
+
+    if issubclass(mesh_potential_cls, hoomd.md.mesh.bending.Helfrich):
+        type_name = ["A", "B"]
+
+    for tn in type_name:
+        for key in potential_kwargs:
+            assert mesh_potential.params[tn][key] == pytest.approx(
+                potential_kwargs[key], rel=1e-6
+            )
 
 
 def test_area(simulation_factory, tetrahedron_snapshot_factory):
@@ -510,10 +547,11 @@ def test_forces_and_energies(
     mesh.triangulation = dict(type_ids=type_ids, triangles=triangles)
 
     mesh_potential = mesh_potential_cls(mesh)
-    mesh_potential.params["mesh"] = potential_kwargs
-    mesh_potential.params["patch"] = potential_kwargs
-
-    _skip_if_helfrich_mpi(sim, mesh_potential_cls)
+    if issubclass(mesh_potential_cls, hoomd.md.mesh.bending.Helfrich):
+        mesh_potential.params["A"] = potential_kwargs
+    else:
+        mesh_potential.params["mesh"] = potential_kwargs
+        mesh_potential.params["patch"] = potential_kwargs
 
     integrator = hoomd.md.Integrator(dt=0.005)
 
@@ -617,21 +655,30 @@ def test_auto_detach_simulation(simulation_factory, tetrahedron_snapshot_factory
     assert mesh._cpp_obj is None
 
 
-def test_helfrich_mpi_error(simulation_factory, tetrahedron_snapshot_factory):
+def test_helfrich_curvatures(simulation_factory, tetrahedron_snapshot_factory):
     sim = simulation_factory(tetrahedron_snapshot_factory(d=0.969, L=5))
     mesh = hoomd.mesh.Mesh()
-    mesh.triangulation = dict(type_ids=[0, 0], triangles=[[0, 1, 2], [0, 2, 3]])
+    mesh.types = ["mesh"]
+    mesh.triangulation = dict(
+        type_ids=[0, 0, 0, 0], triangles=[[2, 1, 0], [0, 1, 3], [2, 0, 3], [1, 2, 3]]
+    )
 
     helfrich = hoomd.md.mesh.bending.Helfrich(mesh)
-    helfrich.params["mesh"] = dict(k=1)
+    helfrich.params["A"] = dict(k=1.0, H0=0.0)
 
     integrator = hoomd.md.Integrator(dt=0.005, forces=[helfrich])
-
     integrator.methods.append(
         hoomd.md.methods.Langevin(kT=1, filter=hoomd.filter.All())
     )
     sim.operations.integrator = integrator
+    sim.run(0)
 
-    if sim.device.communicator.num_ranks > 1:
-        with pytest.raises(NotImplementedError):
-            sim.run(0)
+    mean_curvature = 4 / (0.969 * np.sqrt(6))
+    curvatures = helfrich.curvatures
+
+    # curvatures are gathered on the root rank, other ranks get None
+    if sim.device.communicator.rank == 0:
+        assert len(curvatures) == 4
+        np.testing.assert_allclose(curvatures, mean_curvature, rtol=1e-5)
+    else:
+        assert curvatures is None

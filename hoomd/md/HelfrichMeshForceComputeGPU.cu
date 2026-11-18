@@ -15,7 +15,7 @@
 
 /*! \file HelfrichMeshForceComputeGPU.cu
     \brief Defines GPU kernel code for calculating the helfrich forces. Used by
-   HelfrichMeshForceComputeComputeGPU.
+   HelfrichMeshForceComputeGPU.
 */
 
 namespace hoomd
@@ -27,6 +27,7 @@ namespace kernel
 //! Kernel for calculating helfrich sigmas on the GPU
 /*! \param d_sigma Device memory to write per paricle sigma
     \param d_sigma_dash Device memory to write per particle sigma_dash
+    \param d_normal Device memory to write per particle normal
     \param N number of particles
     \param d_pos device array of particle positions
     \param d_rtag device array of particle reverse tags
@@ -37,6 +38,7 @@ namespace kernel
 */
 __global__ void gpu_compute_helfrich_sigma_kernel(Scalar* d_sigma,
                                                   Scalar3* d_sigma_dash,
+                                                  Scalar4* d_normal,
                                                   const unsigned int N,
                                                   const Scalar4* d_pos,
                                                   const unsigned int* d_rtag,
@@ -44,7 +46,8 @@ __global__ void gpu_compute_helfrich_sigma_kernel(Scalar* d_sigma,
                                                   const group_storage<4>* blist,
                                                   const Index2D blist_idx,
                                                   const unsigned int* bpos_list,
-                                                  const unsigned int* n_bonds_list)
+                                                  const unsigned int* n_bonds_list,
+                                                  const bool compute_normals)
     {
     // start by identifying which particle we are to handle
     int idx = blockIdx.x * blockDim.x + threadIdx.x;
@@ -52,10 +55,10 @@ __global__ void gpu_compute_helfrich_sigma_kernel(Scalar* d_sigma,
     if (idx >= N)
         return;
 
-    // load in the length of the list for this thread (MEM TRANSFER: 4 bytes)
+    // load in the length of the list for this thread
     int n_bonds = n_bonds_list[idx];
 
-    // read in the position of our b-particle from the a-b-c triplet. (MEM TRANSFER: 16 bytes)
+    // read in the position of our particle
     Scalar4 postype = __ldg(d_pos + idx);
     Scalar3 pos = make_scalar3(postype.x, postype.y, postype.z);
 
@@ -63,6 +66,8 @@ __global__ void gpu_compute_helfrich_sigma_kernel(Scalar* d_sigma,
     Scalar3 sigma_dash = make_scalar3(Scalar(0.0), Scalar(0.0), Scalar(0.0));
 
     Scalar sigma = 0.0;
+
+    Scalar3 normal = make_scalar3(Scalar(0.0), Scalar(0.0), Scalar(0.0));
 
     // loop over all angles
     for (int bond_idx = 0; bond_idx < n_bonds; bond_idx++)
@@ -82,13 +87,13 @@ __global__ void gpu_compute_helfrich_sigma_kernel(Scalar* d_sigma,
 
         unsigned int cur_bond_idx = cur_bond.idx[0];
 
-        // get the b-particle's position (MEM TRANSFER: 16 bytes)
+        // get the position of the neighbor b
         Scalar4 bb_postype = d_pos[cur_bond_idx];
         Scalar3 bb_pos = make_scalar3(bb_postype.x, bb_postype.y, bb_postype.z);
-        // get the c-particle's position (MEM TRANSFER: 16 bytes)
+        // get the position of the vertex c
         Scalar4 cc_postype = d_pos[cur_idx_c];
         Scalar3 cc_pos = make_scalar3(cc_postype.x, cc_postype.y, cc_postype.z);
-        // get the c-particle's position (MEM TRANSFER: 16 bytes)
+        // get the position of the vertex d
         Scalar4 dd_postype = d_pos[cur_idx_d];
         Scalar3 dd_pos = make_scalar3(dd_postype.x, dd_postype.y, dd_postype.z);
 
@@ -104,10 +109,6 @@ __global__ void gpu_compute_helfrich_sigma_kernel(Scalar* d_sigma,
         dbc = box.minImage(dbc);
         dbd = box.minImage(dbd);
 
-        // on paper, the formula turns out to be: F = K*\vec{r} * (r_0/r - 1)
-        // FLOPS: 14 / MEM TRANSFER: 2 Scalars
-
-        // FLOPS: 42 / MEM TRANSFER: 6 Scalars
         Scalar rsqab = dab.x * dab.x + dab.y * dab.y + dab.z * dab.z;
         Scalar rac = dac.x * dac.x + dac.y * dac.y + dac.z * dac.z;
         rac = sqrt(rac);
@@ -124,6 +125,20 @@ __global__ void gpu_compute_helfrich_sigma_kernel(Scalar* d_sigma,
         nad = dad / rad;
         nbc = dbc / rbc;
         nbd = dbd / rbd;
+
+        if (compute_normals)
+            {
+            Scalar3 normal_abcd;
+
+            normal_abcd.x = 0.5 * (dac.y * dab.z - dac.z * dab.y + dab.y * dad.z - dab.z * dad.y);
+            normal_abcd.y = 0.5 * (dac.z * dab.x - dac.x * dab.z + dab.z * dad.x - dab.x * dad.z);
+            normal_abcd.z = 0.5 * (dac.x * dab.y - dac.y * dab.x + dab.x * dad.y - dab.y * dad.x);
+
+            if (cur_bond_pos == 1)
+                normal_abcd *= -1;
+
+            normal += normal_abcd;
+            }
 
         Scalar c_accb = nac.x * nbc.x + nac.y * nbc.y + nac.z * nbc.z;
 
@@ -162,13 +177,27 @@ __global__ void gpu_compute_helfrich_sigma_kernel(Scalar* d_sigma,
         sigma_dash += sigma_dash_a;
         }
 
-    // now that the force calculation is complete, write out the result (MEM TRANSFER: 20 bytes)
+    if (compute_normals)
+        {
+        Scalar factor = dot(normal, sigma_dash);
+
+        if (factor < 0)
+            d_normal[idx].w = -1;
+        else
+            d_normal[idx].w = 1;
+        d_normal[idx].x = normal.x;
+        d_normal[idx].y = normal.y;
+        d_normal[idx].z = normal.z;
+        }
+
+    // now that the force calculation is complete, write out the result
     d_sigma[idx] = sigma;
     d_sigma_dash[idx] = sigma_dash;
     }
 
 /*! \param d_sigma Device memory to write per paricle sigma
     \param d_sigma_dash Device memory to write per particle sigma_dash
+    \param d_normal Device memory to write per particle normal
     \param N number of particles
     \param d_pos device array of particle positions
     \param d_rtag device array of particle reverse tags
@@ -184,6 +213,7 @@ __global__ void gpu_compute_helfrich_sigma_kernel(Scalar* d_sigma,
 */
 cudaError_t gpu_compute_helfrich_sigma(Scalar* d_sigma,
                                        Scalar3* d_sigma_dash,
+                                       Scalar4* d_normal,
                                        const unsigned int N,
                                        const Scalar4* d_pos,
                                        const unsigned int* d_rtag,
@@ -192,6 +222,7 @@ cudaError_t gpu_compute_helfrich_sigma(Scalar* d_sigma,
                                        const Index2D blist_idx,
                                        const unsigned int* bpos_list,
                                        const unsigned int* n_bonds_list,
+                                       const bool compute_normals,
                                        int block_size)
     {
     unsigned int max_block_size;
@@ -204,6 +235,7 @@ cudaError_t gpu_compute_helfrich_sigma(Scalar* d_sigma,
     // run the kernel
     gpu_compute_helfrich_sigma_kernel<<<N / run_block_size + 1, run_block_size>>>(d_sigma,
                                                                                   d_sigma_dash,
+                                                                                  d_normal,
                                                                                   N,
                                                                                   d_pos,
                                                                                   d_rtag,
@@ -211,7 +243,8 @@ cudaError_t gpu_compute_helfrich_sigma(Scalar* d_sigma,
                                                                                   blist,
                                                                                   blist_idx,
                                                                                   bpos_list,
-                                                                                  n_bonds_list);
+                                                                                  n_bonds_list,
+                                                                                  compute_normals);
 
     return cudaSuccess;
     }
@@ -226,6 +259,7 @@ cudaError_t gpu_compute_helfrich_sigma(Scalar* d_sigma,
     \param box Box dimensions (in GPU format) to use for periodic boundary conditions
     \param d_sigma Device memory to write per paricle sigma
     \param d_sigma_dash Device memory to write per particle sigma_dash
+    \param d_normal Device memory to write per particle normal
     \param blist List of mesh bonds stored on the GPU
     \param bpos_list Position of current index in list of mesh bonds stored on the GPU
     \param n_bonds_list List of numbers of mesh bonds stored on the GPU
@@ -241,12 +275,14 @@ __global__ void gpu_compute_helfrich_force_kernel(Scalar4* d_force,
                                                   BoxDim box,
                                                   const Scalar* d_sigma,
                                                   const Scalar3* d_sigma_dash,
+                                                  const Scalar4* d_normal,
                                                   const group_storage<4>* blist,
                                                   const Index2D blist_idx,
                                                   const unsigned int* bpos_list,
                                                   const unsigned int* n_bonds_list,
-                                                  Scalar* d_params,
-                                                  const unsigned int n_bond_type)
+                                                  helfrich_param_t* d_params,
+                                                  const unsigned int n_bond_type,
+                                                  const bool has_spontaneous_curvature)
     {
     // start by identifying which particle we are to handle
     int idx = blockIdx.x * blockDim.x + threadIdx.x;
@@ -254,19 +290,41 @@ __global__ void gpu_compute_helfrich_force_kernel(Scalar4* d_force,
     if (idx >= N)
         return;
 
-    // load in the length of the list for this thread (MEM TRANSFER: 4 bytes)
+    // load in the length of the list for this thread
     int n_bonds = n_bonds_list[idx];
 
-    // read in the position of our b-particle from the a-b-c triplet. (MEM TRANSFER: 16 bytes)
+    // read in the position of our particle
     Scalar4 postype = __ldg(d_pos + idx);
     Scalar3 pos = make_scalar3(postype.x, postype.y, postype.z);
+
+    unsigned int type_a = __scalar_as_int(postype.w);
 
     Scalar3 sigma_dash_a = d_sigma_dash[idx]; // precomputed
     Scalar sigma_a = d_sigma[idx];            // precomputed
     Scalar inv_sigma_a = 1.0 / sigma_a;
-    Scalar sigma_dash_a2 = 0.5 * dot(sigma_dash_a, sigma_dash_a) * inv_sigma_a * inv_sigma_a;
+    Scalar sigma_dash_a2 = dot(sigma_dash_a, sigma_dash_a);
+
+    helfrich_param_t params_a = d_params[type_a];
+    Scalar K_a = params_a.k;
 
     Scalar4 force = make_scalar4(Scalar(0.0), Scalar(0.0), Scalar(0.0), Scalar(0.0));
+
+    // without a spontaneous curvature the energy is k / 2 |sigma'|^2 / sigma, which needs neither
+    // the normals nor a square root
+    Scalar factor_a = Scalar(1.0);
+    Scalar H0_a = Scalar(0.0);
+    Scalar Curv_a = Scalar(0.0);
+    if (has_spontaneous_curvature)
+        {
+        factor_a = d_normal[idx].w;
+        H0_a = 2 * params_a.H0;
+        Curv_a = factor_a * sqrt(sigma_dash_a2) - H0_a * sigma_a;
+        force.w = K_a / 2.0 * Curv_a * Curv_a * inv_sigma_a;
+        }
+    else
+        {
+        force.w = K_a / 2.0 * sigma_dash_a2 * inv_sigma_a;
+        }
 
     // initialize the virial to 0
     Scalar virial[6];
@@ -290,17 +348,20 @@ __global__ void gpu_compute_helfrich_force_kernel(Scalar4* d_force,
             continue;
 
         int cur_bond_idx = cur_bond.idx[0];
-        int cur_bond_type = cur_bond.idx[3];
 
-        // get the b-particle's position (MEM TRANSFER: 16 bytes)
+        // get the position of the neighbor b
         Scalar4 bb_postype = d_pos[cur_bond_idx];
         Scalar3 bb_pos = make_scalar3(bb_postype.x, bb_postype.y, bb_postype.z);
-        // get the c-particle's position (MEM TRANSFER: 16 bytes)
+        // get the position of the vertex c
         Scalar4 cc_postype = d_pos[cur_idx_c];
         Scalar3 cc_pos = make_scalar3(cc_postype.x, cc_postype.y, cc_postype.z);
-        // get the c-particle's position (MEM TRANSFER: 16 bytes)
+        // get the position of the vertex d
         Scalar4 dd_postype = d_pos[cur_idx_d];
         Scalar3 dd_pos = make_scalar3(dd_postype.x, dd_postype.y, dd_postype.z);
+
+        unsigned int type_b = __scalar_as_int(bb_postype.w);
+        unsigned int type_c = __scalar_as_int(cc_postype.w);
+        unsigned int type_d = __scalar_as_int(dd_postype.w);
 
         Scalar3 dab = pos - bb_pos;
         Scalar3 dac = pos - cc_pos;
@@ -314,10 +375,6 @@ __global__ void gpu_compute_helfrich_force_kernel(Scalar4* d_force,
         dbc = box.minImage(dbc);
         dbd = box.minImage(dbd);
 
-        // on paper, the formula turns out to be: F = K*\vec{r} * (r_0/r - 1)
-        // FLOPS: 14 / MEM TRANSFER: 2 Scalars
-
-        // FLOPS: 42 / MEM TRANSFER: 6 Scalars
         Scalar rsqab = dab.x * dab.x + dab.y * dab.y + dab.z * dab.z;
         Scalar rab = sqrt(rsqab);
         Scalar rsqac = dac.x * dac.x + dac.y * dac.y + dac.z * dac.z;
@@ -421,6 +478,19 @@ __global__ void gpu_compute_helfrich_force_kernel(Scalar4* d_force,
         Scalar sigma_b = d_sigma[cur_bond_idx]; // precomputed
         Scalar sigma_c = d_sigma[cur_idx_c];    // precomputed
         Scalar sigma_d = d_sigma[cur_idx_d];    // precomputed
+                                                //
+        Scalar sigma_dash_b2 = dot(sigma_dash_b, sigma_dash_b);
+        Scalar sigma_dash_c2 = dot(sigma_dash_c, sigma_dash_c);
+        Scalar sigma_dash_d2 = dot(sigma_dash_d, sigma_dash_d);
+
+        helfrich_param_t params_b = d_params[type_b];
+        Scalar K_b = params_b.k;
+
+        helfrich_param_t params_c = d_params[type_c];
+        Scalar K_c = params_c.k;
+
+        helfrich_param_t params_d = d_params[type_d];
+        Scalar K_d = params_d.k;
 
         Scalar3 dc_abbc, dc_abbd, dc_baac, dc_baad;
         dc_abbc = -nbc / rab - c_abbc / rab * nab;
@@ -449,27 +519,66 @@ __global__ void gpu_compute_helfrich_force_kernel(Scalar4* d_force,
         Scalar3 g_d
             = -dot(sigma_dash_d, dad) * dsigma_hat_ad - dot(sigma_dash_d, dbd) * dsigma_hat_bd;
 
-        Scalar K = __ldg(d_params + cur_bond_type);
-
         Scalar inv_sigma_b = 1.0 / sigma_b;
         Scalar inv_sigma_c = 1.0 / sigma_c;
         Scalar inv_sigma_d = 1.0 / sigma_d;
 
-        Scalar sigma_dash_b2 = 0.5 * dot(sigma_dash_b, sigma_dash_b) * inv_sigma_b * inv_sigma_b;
-        Scalar sigma_dash_c2 = 0.5 * dot(sigma_dash_c, sigma_dash_c) * inv_sigma_c * inv_sigma_c;
-        Scalar sigma_dash_d2 = 0.5 * dot(sigma_dash_d, sigma_dash_d) * inv_sigma_d * inv_sigma_d;
+        Scalar3 Fa;
 
-        Scalar3 Fa = -(g_a * inv_sigma_a - sigma_dash_a2 * dsigma_a)
-                     - (g_b * inv_sigma_b - sigma_dash_b2 * dsigma_b)
-                     - (g_c * inv_sigma_c - sigma_dash_c2 * dsigma_c)
-                     - (g_d * inv_sigma_d - sigma_dash_d2 * dsigma_d);
+        if (has_spontaneous_curvature)
+            {
+            Scalar H0_b = 2 * params_b.H0;
+            Scalar H0_c = 2 * params_c.H0;
+            Scalar H0_d = 2 * params_d.H0;
 
-        Fa *= K;
+            Scalar factor_b = d_normal[cur_bond_idx].w;
+            Scalar factor_c = d_normal[cur_idx_c].w;
+            Scalar factor_d = d_normal[cur_idx_d].w;
+
+            Scalar Curv_b = factor_b * sqrt(sigma_dash_b2) - H0_b * sigma_b;
+            Scalar Curv_c = factor_c * sqrt(sigma_dash_c2) - H0_c * sigma_c;
+            Scalar Curv_d = factor_d * sqrt(sigma_dash_d2) - H0_d * sigma_d;
+
+            Scalar3 dCurv_a = -H0_a * dsigma_a;
+            Scalar3 dCurv_b = -H0_b * dsigma_b;
+            Scalar3 dCurv_c = -H0_c * dsigma_c;
+            Scalar3 dCurv_d = -H0_d * dsigma_d;
+
+            if (sigma_dash_a2 > 0)
+                dCurv_a += factor_a * rsqrt(sigma_dash_a2) * g_a;
+            if (sigma_dash_b2 > 0)
+                dCurv_b += factor_b * rsqrt(sigma_dash_b2) * g_b;
+            if (sigma_dash_c2 > 0)
+                dCurv_c += factor_c * rsqrt(sigma_dash_c2) * g_c;
+            if (sigma_dash_d2 > 0)
+                dCurv_d += factor_d * rsqrt(sigma_dash_d2) * g_d;
+
+            Scalar Curv_a2 = 0.5 * Curv_a * Curv_a * inv_sigma_a * inv_sigma_a;
+            Scalar Curv_b2 = 0.5 * Curv_b * Curv_b * inv_sigma_b * inv_sigma_b;
+            Scalar Curv_c2 = 0.5 * Curv_c * Curv_c * inv_sigma_c * inv_sigma_c;
+            Scalar Curv_d2 = 0.5 * Curv_d * Curv_d * inv_sigma_d * inv_sigma_d;
+
+            Fa = -K_a * (Curv_a * inv_sigma_a * dCurv_a - Curv_a2 * dsigma_a)
+                 - K_b * (Curv_b * inv_sigma_b * dCurv_b - Curv_b2 * dsigma_b)
+                 - K_c * (Curv_c * inv_sigma_c * dCurv_c - Curv_c2 * dsigma_c)
+                 - K_d * (Curv_d * inv_sigma_d * dCurv_d - Curv_d2 * dsigma_d);
+            }
+        else
+            {
+            Scalar sigma_dash_a2_s = 0.5 * sigma_dash_a2 * inv_sigma_a * inv_sigma_a;
+            Scalar sigma_dash_b2_s = 0.5 * sigma_dash_b2 * inv_sigma_b * inv_sigma_b;
+            Scalar sigma_dash_c2_s = 0.5 * sigma_dash_c2 * inv_sigma_c * inv_sigma_c;
+            Scalar sigma_dash_d2_s = 0.5 * sigma_dash_d2 * inv_sigma_d * inv_sigma_d;
+
+            Fa = -K_a * (g_a * inv_sigma_a - sigma_dash_a2_s * dsigma_a)
+                 - K_b * (g_b * inv_sigma_b - sigma_dash_b2_s * dsigma_b)
+                 - K_c * (g_c * inv_sigma_c - sigma_dash_c2_s * dsigma_c)
+                 - K_d * (g_d * inv_sigma_d - sigma_dash_d2_s * dsigma_d);
+            }
 
         force.x += Fa.x;
         force.y += Fa.y;
         force.z += Fa.z;
-        force.w = K / 2.0 * dot(sigma_dash_a, sigma_dash_a) * inv_sigma_a;
 
         virial[0] += Scalar(1. / 2.) * dab.x * Fa.x; // xx
         virial[1] += Scalar(1. / 2.) * dab.y * Fa.x; // xy
@@ -479,7 +588,7 @@ __global__ void gpu_compute_helfrich_force_kernel(Scalar4* d_force,
         virial[5] += Scalar(1. / 2.) * dab.z * Fa.z; // zz
         }
 
-    // now that the force calculation is complete, write out the result (MEM TRANSFER: 20 bytes)
+    // now that the force calculation is complete, write out the result
     d_force[idx] = force;
 
     for (unsigned int i = 0; i < 6; i++)
@@ -495,6 +604,7 @@ __global__ void gpu_compute_helfrich_force_kernel(Scalar4* d_force,
     \param box Box dimensions (in GPU format) to use for periodic boundary conditions
     \param d_sigma Device memory to write per paricle sigma
     \param d_sigma_dash Device memory to write per particle sigma_dash
+    \param d_normal Device memory to write per particle normal
     \param blist List of mesh bonds stored on the GPU
     \param bpos_list Position of current index in list of mesh bonds stored on the GPU
     \param n_bonds_list List of numbers of mesh bonds stored on the GPU
@@ -514,12 +624,14 @@ cudaError_t gpu_compute_helfrich_force(Scalar4* d_force,
                                        const BoxDim& box,
                                        const Scalar* d_sigma,
                                        const Scalar3* d_sigma_dash,
+                                       const Scalar4* d_normal,
                                        const group_storage<4>* blist,
                                        const Index2D blist_idx,
                                        const unsigned int* bpos_list,
                                        const unsigned int* n_bonds_list,
-                                       Scalar* d_params,
+                                       helfrich_param_t* d_params,
                                        const unsigned int n_bond_type,
+                                       const bool has_spontaneous_curvature,
                                        int block_size)
     {
     unsigned int max_block_size;
@@ -530,22 +642,24 @@ cudaError_t gpu_compute_helfrich_force(Scalar4* d_force,
     unsigned int run_block_size = min(block_size, max_block_size);
 
     // run the kernel
-    gpu_compute_helfrich_force_kernel<<<N / run_block_size + 1, run_block_size>>>(d_force,
-                                                                                  d_virial,
-                                                                                  virial_pitch,
-                                                                                  N,
-                                                                                  d_pos,
-                                                                                  d_rtag,
-                                                                                  box,
-                                                                                  d_sigma,
-                                                                                  d_sigma_dash,
-                                                                                  blist,
-                                                                                  blist_idx,
-                                                                                  bpos_list,
-                                                                                  n_bonds_list,
-                                                                                  d_params,
-                                                                                  n_bond_type);
-
+    gpu_compute_helfrich_force_kernel<<<N / run_block_size + 1, run_block_size>>>(
+        d_force,
+        d_virial,
+        virial_pitch,
+        N,
+        d_pos,
+        d_rtag,
+        box,
+        d_sigma,
+        d_sigma_dash,
+        d_normal,
+        blist,
+        blist_idx,
+        bpos_list,
+        n_bonds_list,
+        d_params,
+        n_bond_type,
+        has_spontaneous_curvature);
     return cudaSuccess;
     }
 

@@ -197,7 +197,10 @@ _Tether_arg_list = [
     (hoomd.md.mesh.bond.Tether, dict(k_b=10, l_min=0.5, l_c1=0.9, l_c0=1.1, l_max=2.0))
 ]
 _BendingRigidity_arg_list = [(hoomd.md.mesh.bending.BendingRigidity, dict(k=300.0))]
-_Helfrich_arg_list = [(hoomd.md.mesh.bending.Helfrich, dict(k=100.0))]
+_Helfrich_arg_list = [
+    (hoomd.md.mesh.bending.Helfrich, dict(k=100.0)),
+    (hoomd.md.mesh.bending.Helfrich, dict(k=100.0, H0=0.5)),
+]
 _AreaConservation_arg_list = [
     (hoomd.md.mesh.conservation.Area, dict(k=100.0, A0=8 * np.sqrt(3)))
 ]
@@ -239,7 +242,10 @@ def test_reduce_energy(
     )
 
     mesh_potential = mesh_potential_cls(mesh)
-    mesh_potential.params["mesh"] = potential_kwargs
+    if issubclass(mesh_potential_cls, hoomd.md.mesh.bending.Helfrich):
+        mesh_potential.params["A"] = potential_kwargs
+    else:
+        mesh_potential.params["mesh"] = potential_kwargs
 
     integrator = hoomd.md.Integrator(dt=0.01)
     integrator.forces.append(mesh_potential)

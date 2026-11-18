@@ -25,9 +25,9 @@ See Also:
 """
 
 from hoomd.md.mesh.potential import MeshPotential
+from hoomd.logging import log
 from hoomd.data.typeparam import TypeParameter
 from hoomd.data.parameterdicts import TypeParameterDict
-from hoomd.error import MPINotAvailableError
 import inspect
 
 
@@ -84,56 +84,55 @@ class BendingRigidity(MeshPotential):
 
 
 class Helfrich(MeshPotential):
-    r"""Helfrich bending potential.
+    r"""Helfrich bending potential with spontaneous curvature.
 
     Args:
         mesh (:py:mod:`hoomd.mesh.Mesh`): Mesh data structure constraint.
 
-    `Helfrich` specifies a Helfrich bending energy applied to
-    all particles within the mesh.
+    `Helfrich` specifies a Helfrich bending energy with a spontaneous
+    mean curvature :math:`H_0` applied to all particles within the mesh.
 
     .. math::
 
-        U(i) = \frac{1}{2} k \frac{1}{\sigma_i}\left( \sum_{j \in
-        \mathrm{Neigh}(i)} \frac{\sigma_{ij}}{l_{ij}} (\mathbf{r}_j
-        - \mathbf{r}_i) \right)^2
+        U(i) = \frac{1}{2} k \, \sigma_i \left( 2 H_i - 2 H_0 \right)^2
+        = \frac{k}{2 \sigma_i} \left( \left| \boldsymbol{\sigma}'_i \right|
+        - 2 H_0 \sigma_i \right)^2
 
-    with the area of the dual cell of vertex :math:`i`
-    :math:`\sigma_i=(\sum_{j \in \mathrm{Neigh}(i)}\sigma_{ij}\cdot l_{ij})/4`,
-    the length of the bond between :math:`i` and :math:`j` :math:`l_{ij}`, the length of
-    the bond in the dual lattice  :math:`\sigma_{ij}=l_{ij}(\text{cot}\theta_1+
-    \text{cot}\theta_2)/2` and the angles :math:`\theta_1` and :math:`\theta_2` opposite
-    to the shared bond of vertex :math:`i` and :math:`j`.
+    with the mean curvature :math:`H_i = \left| \boldsymbol{\sigma}'_i
+    \right| / (2 \sigma_i)`, the vector :math:`\boldsymbol{\sigma}'_i
+    = \sum_{j \in \mathrm{Neigh}(i)} \hat{\sigma}_{ij} (\mathbf{r}_i -
+    \mathbf{r}_j)`, the area of the dual cell of vertex i
+    :math:`\sigma_i = \frac{1}{4} \sum_{j \in \mathrm{Neigh}(i)}
+    \hat{\sigma}_{ij} r_{ij}^2` and the weights :math:`\hat{\sigma}_{ij}
+    = (\cot\theta_1 + \cot\theta_2)/2` with the angles :math:`\theta_1`
+    and :math:`\theta_2` opposite to the shared bond of vertex :math:`i`
+    and :math:`j`. The sign of :math:`H_i` is defined with respect to
+    the vertex normal.
 
     See Also:
         * `Gompper and Kroll 1996 <https://doi.org/10.1051/jp1:1996246>`__
         * `Helfrich 1973 <https://doi.org/10.1515/znc-1973-11-1209>`__
 
-    Attention:
-        `Helfrich` is NOT implemented for MPI parallel execution!
-
     .. rubric:: Example:
-
-    .. skip: next if(hoomd.version.mpi_enabled)
 
     .. code-block:: python
 
         helfrich_potential = hoomd.md.mesh.bending.Helfrich(mesh)
-        helfrich_potential.params["mesh"] = dict(k=10.0)
+        helfrich_potential.params["A"] = dict(k=10.0, H0=0.5)
 
     {inherited}
-
 
     **Members defined in** `Helfrich`:
 
     Attributes:
-        params (TypeParameter[dict]):
-            The parameter of the Helfrich energy for the defined mesh.
-            As the mesh can only have one type a type name does not have
-            to be stated. The dictionary has the following keys:
+        params (TypeParameter[``particle type``, dict]):
+            The parameters of the Helfrich energy for each particle type.
+            The dictionary has the following keys:
 
             * ``k`` (`float`, **required**) - bending stiffness
               :math:`[\mathrm{energy}]`
+            * ``H0`` (`float`, *optional*) - spontaneous mean curvature
+              :math:`[\mathrm{length}^{-1}]` (default: 0.0)
 
     """
 
@@ -144,17 +143,28 @@ class Helfrich(MeshPotential):
 
     def __init__(self, mesh):
         params = TypeParameter(
-            "params", "types", TypeParameterDict(k=float, len_keys=1)
+            "params", "particle_types", TypeParameterDict(k=float, H0=0.0, len_keys=1)
         )
         self._add_typeparam(params)
 
         super().__init__(mesh)
 
-    def _attach_hook(self):
-        if self._simulation.device.communicator.num_ranks == 1:
-            super()._attach_hook()
-        else:
-            raise MPINotAvailableError("Helfrich is not implemented for MPI")
+    def _apply_typeparam_dict(self, cpp_obj, simulation):
+        for typeparam in self._typeparam_dict.values():
+            try:
+                typeparam._attach(cpp_obj, simulation.state)
+            except ValueError as err:
+                raise err.__class__(
+                    f"For {type(self)} in TypeParameter {typeparam.name} {err!s}"
+                )
+
+    @log(category="particle", requires_run=True)
+    def curvatures(self):
+        """(*N_particles*, ) `numpy.ndarray` of ``float``: Curvature \
+        Mean curvature at each particle :math:`[\\mathrm{length^{-1}}]`.
+        """
+        self._cpp_obj.compute(self._simulation.timestep)
+        return self._cpp_obj.getCurvatures()
 
 
 __all__ = [
