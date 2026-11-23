@@ -12,6 +12,7 @@ Next release
 *Changed*
 
 * Convert all GPU kernels from HIP to CUDA (#2350).
+* ``hoomd.md.pair.DPD`` now computes the virial from total pair force (conservative, dissipative, and random) (#2393).
 
 *Deprecated*
 
