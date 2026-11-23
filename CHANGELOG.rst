@@ -22,6 +22,7 @@ Next release
 * Fix use of uninitialized memory in ``nlist.Tree`` on the GPU (#2350).
 * Prevent out of bounds shared memory access when using ``FIRE`` on the GPU (#2350).
 * Prevent out of bounds shared memory access when using ``Langevin`` on the GPU (#2350).
+* Prevent particles from being lost when using ``hoomd.md.deform.LeesEdwardsBoxDeformer`` with MPI domain decomposition (#2399).
 
 7.x
 ---
