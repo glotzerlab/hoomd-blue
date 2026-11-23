@@ -231,3 +231,96 @@ class TestLeesEdwardsBoxDeformer:
             # Confirm that unwrapped coordinates after and before are the same
             unwrapped_after = self._unwrap(positions_after, images_after, box_after)
             assert np.allclose(unwrapped_after, unwrapped_before)
+
+    @pytest.mark.parametrize("direction", [0, 1, 2])
+    def test_mpi_wrap(self, device, simulation_factory, direction):
+        """test that particles are not lost during MPI simulations"""
+
+        # ranks needs to >3 in direction so the test catches it
+        n_ranks = device.communicator.num_ranks
+        if n_ranks < 3:
+            pytest.skip("requires >= 3 MPI ranks")
+
+        # split all ranks along direction
+        decomposition = [1, 1, 1]
+        decomposition[direction] = n_ranks
+
+        # cubic box size
+        L = 20.0
+        initial_box = np.array([L, L, L, 0.0, 0.0, 0.0], dtype=float)
+
+        # set particle to edge of box
+        fractional = np.array([[0.5, 0.5, 0.5]])
+        fractional[0, direction] = 0.999
+        positions = self._coordinates_from_fraction(fractional, initial_box)
+
+        # velocity carries it across the edge
+        v = 2.0
+        velocity = np.zeros((1, 3))
+        velocity[0, direction] = v
+
+        snap = hoomd.Snapshot()
+        if snap.communicator.rank == 0:
+            snap.particles.N = 1
+            snap.particles.types = ["A"]
+            snap.configuration.box = initial_box
+            snap.particles.position[:] = positions
+            snap.particles.velocity[:] = velocity
+            snap.particles.image[:] = [[0, 0, 0]]
+
+        # create simulation with domain deocomposition
+        sim = simulation_factory(snap, domain_decomposition=decomposition)
+
+        # neighbour list to ensure deformer wraps before migration
+        # no force needed; but hoomd needs a force for nlist (epsilon =0)
+        nlist = md.nlist.Cell(buffer=0.4)
+        lj = md.pair.LJ(nlist=nlist, default_r_cut=1.0)
+        lj.params[("A", "A")] = dict(epsilon=0.0, sigma=1.0)
+
+        # set defomer and method
+        dt = 0.005
+        nve = md.methods.ConstantVolume(filter=hoomd.filter.All())
+        deformer = md.deform.LeesEdwardsBoxDeformer(shear_rate=0.01)
+
+        # Add to integrator
+        sim.operations.integrator = md.Integrator(
+            dt=dt, deformer=deformer, methods=[nve], forces=[lj]
+        )
+
+        # state before
+        snap_before = sim.state.get_snapshot()
+        if snap_before.communicator.rank == 0:
+            unwrapped_before = self._unwrap(
+                np.asarray(snap_before.particles.position, dtype=float),
+                np.asarray(snap_before.particles.image, dtype=np.int32),
+                np.asarray(snap_before.configuration.box, dtype=float),
+            )
+
+        # the simulation should fail here if global box is wrapping particles
+        steps = 10
+        sim.run(steps)
+
+        # state after
+        snap_after = sim.state.get_snapshot()
+        if snap_after.communicator.rank == 0:
+            positions_after = np.asarray(snap_after.particles.position, dtype=float)
+            images_after = np.asarray(snap_after.particles.image, dtype=np.int32)
+            box_after = np.asarray(snap_after.configuration.box, dtype=float)
+
+            # check particles count
+            assert snap_after.particles.N == 1
+
+            # check fractional coordinates are inside box
+            fractional_after = self._fractional_coordinates(positions_after, box_after)
+            assert np.all(fractional_after >= -1e-6)
+            assert np.all(fractional_after < 1.0 + 1e-6)
+
+            # check that particle crossed boundary
+            assert images_after[0, direction] == 1
+
+            # confirm particle unwrapped position
+            unwrapped_after = self._unwrap(positions_after, images_after, box_after)
+            assert np.isclose(
+                unwrapped_after[0, direction],
+                unwrapped_before[0, direction] + v * dt * steps,
+            )

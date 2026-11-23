@@ -74,6 +74,7 @@ void BoxDeformer::processAfterDeformation(const BoxDim& old_box, const BoxDim& n
     {
     if (old_box == new_box)
         return;
+    const BoxDim& local_box = m_pdata->getBox();
 
 #ifdef ENABLE_GPU
     if (m_exec_conf->isCUDAEnabled())
@@ -96,7 +97,7 @@ void BoxDeformer::processAfterDeformation(const BoxDim& old_box, const BoxDim& n
                                      d_pos.data,
                                      d_vel.data,
                                      d_image.data,
-                                     new_box,
+                                     local_box,
                                      m_tuner_wrap->getParam()[0]);
         if (m_exec_conf->isCUDAErrorCheckingEnabled())
             CHECK_CUDA_ERROR();
@@ -118,7 +119,7 @@ void BoxDeformer::processAfterDeformation(const BoxDim& old_box, const BoxDim& n
 
         for (unsigned int i = 0; i < m_pdata->getN(); i++)
             {
-            new_box.wrap(h_pos.data[i], h_vel.data[i], h_image.data[i]);
+            local_box.wrap(h_pos.data[i], h_vel.data[i], h_image.data[i]);
             }
         }
     }
