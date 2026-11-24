@@ -12,7 +12,7 @@ Next release
 *Changed*
 
 * Convert all GPU kernels from HIP to CUDA (#2350).
-* ``hoomd.md.pair.DPD`` now computes the virial from total pair force (conservative, dissipative, and random) (#2393).
+
 
 *Deprecated*
 
@@ -23,6 +23,7 @@ Next release
 * Fix use of uninitialized memory in ``nlist.Tree`` on the GPU (#2350).
 * Prevent out of bounds shared memory access when using ``FIRE`` on the GPU (#2350).
 * Prevent out of bounds shared memory access when using ``Langevin`` on the GPU (#2350).
+* ``hoomd.md.pair.DPD`` now computes the virial from total pair force (conservative, dissipative, and random) (#2400).
 
 7.x
 ---
