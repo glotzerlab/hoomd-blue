@@ -45,64 +45,51 @@ __global__ void gpu_box_resize_wrap_kernel(unsigned int N,
         }
     }
 
-hipError_t gpu_box_resize_scale(Scalar4* d_pos,
-                                const BoxDim& cur_box,
+cudaError_t gpu_box_resize_scale(Scalar4* d_pos,
+                                 const BoxDim& cur_box,
+                                 const BoxDim& new_box,
+                                 const unsigned int* d_group_members,
+                                 const unsigned int group_size,
+                                 unsigned int block_size)
+    {
+    unsigned int max_block_size;
+    cudaFuncAttributes attr;
+    cudaFuncGetAttributes(&attr, (const void*)gpu_box_resize_wrap_kernel);
+    max_block_size = attr.maxThreadsPerBlock;
+
+    unsigned int run_block_size = min(block_size, max_block_size);
+
+    gpu_box_resize_scale_kernel<<<(group_size / run_block_size) + 1, run_block_size>>>(
+        d_pos,
+        cur_box,
+        new_box,
+        d_group_members,
+        group_size);
+
+    return cudaSuccess;
+    }
+
+cudaError_t gpu_box_resize_wrap(const unsigned int N,
+                                Scalar4* d_pos,
+                                Scalar4* d_vel,
+                                int3* d_image,
                                 const BoxDim& new_box,
-                                const unsigned int* d_group_members,
-                                const unsigned int group_size,
                                 unsigned int block_size)
     {
     unsigned int max_block_size;
-    hipFuncAttributes attr;
-    hipFuncGetAttributes(&attr, (const void*)gpu_box_resize_wrap_kernel);
+    cudaFuncAttributes attr;
+    cudaFuncGetAttributes(&attr, (const void*)gpu_box_resize_wrap_kernel);
     max_block_size = attr.maxThreadsPerBlock;
 
     unsigned int run_block_size = min(block_size, max_block_size);
-    dim3 grid((group_size / run_block_size) + 1, 1, 1);
-    dim3 threads(run_block_size, 1, 1);
 
-    hipLaunchKernelGGL((gpu_box_resize_scale_kernel),
-                       grid,
-                       threads,
-                       0,
-                       0,
-                       d_pos,
-                       cur_box,
-                       new_box,
-                       d_group_members,
-                       group_size);
+    gpu_box_resize_wrap_kernel<<<(N / run_block_size) + 1, run_block_size>>>(N,
+                                                                             d_pos,
+                                                                             d_vel,
+                                                                             d_image,
+                                                                             new_box);
 
-    return hipSuccess;
-    }
-
-hipError_t gpu_box_resize_wrap(const unsigned int N,
-                               Scalar4* d_pos,
-                               Scalar4* d_vel,
-                               int3* d_image,
-                               const BoxDim& new_box,
-                               unsigned int block_size)
-    {
-    unsigned int max_block_size;
-    hipFuncAttributes attr;
-    hipFuncGetAttributes(&attr, (const void*)gpu_box_resize_wrap_kernel);
-    max_block_size = attr.maxThreadsPerBlock;
-
-    unsigned int run_block_size = min(block_size, max_block_size);
-    dim3 grid((N / run_block_size) + 1, 1, 1);
-    dim3 threads(run_block_size, 1, 1);
-
-    hipLaunchKernelGGL((gpu_box_resize_wrap_kernel),
-                       grid,
-                       threads,
-                       0,
-                       0,
-                       N,
-                       d_pos,
-                       d_vel,
-                       d_image,
-                       new_box);
-
-    return hipSuccess;
+    return cudaSuccess;
     }
 
     } // end namespace kernel

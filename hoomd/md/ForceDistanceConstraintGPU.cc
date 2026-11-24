@@ -4,7 +4,7 @@
 #include "ForceDistanceConstraintGPU.h"
 #include "ForceDistanceConstraintGPU.cuh"
 
-#include <hip/hip_runtime.h>
+#include <cuda_runtime.h>
 
 #include <string.h>
 
@@ -207,10 +207,10 @@ void ForceDistanceConstraintGPU::solveConstraints(uint64_t timestep)
         {
         // copy new sparse values to host sparse matrix
         ArrayHandle<double> h_sparse_val(m_sparse_val, access_location::device, access_mode::read);
-        hipMemcpy(m_sparse.valuePtr(),
-                  h_sparse_val.data,
-                  sizeof(double) * m_sparse.data().size(),
-                  hipMemcpyDeviceToHost);
+        cudaMemcpy(m_sparse.valuePtr(),
+                   h_sparse_val.data,
+                   sizeof(double) * m_sparse.data().size(),
+                   cudaMemcpyDeviceToHost);
         }
 
     // solve on CPU
@@ -238,7 +238,6 @@ void ForceDistanceConstraintGPU::solveConstraints(uint64_t timestep)
         m_condition.resetFlags(0);
 
         m_csr_rowptr.resize(n_constraint + 1);
-#ifdef CUSPARSE_NEW_API
             {
             ArrayHandle<int> d_csr_rowptr(m_csr_rowptr,
                                           access_location::device,
@@ -301,62 +300,7 @@ void ForceDistanceConstraintGPU::solveConstraints(uint64_t timestep)
             cusparseDestroySpMat(csr_descr);
             cudaFree(d_buffer);
             }
-#else
-            {
-            // access matrix and vector
-            ArrayHandle<double> d_cmatrix(m_cmatrix, access_location::device, access_mode::read);
-            ArrayHandle<double> d_cvec(m_cvec, access_location::device, access_mode::read);
 
-            // access sparse matrix structural data
-            ArrayHandle<int> d_nnz(m_nnz, access_location::device, access_mode::overwrite);
-
-            m_nnz_tot = 0;
-
-            // count non zeros
-            kernel::gpu_count_nnz(n_constraint,
-                                  d_cmatrix.data,
-                                  d_nnz.data,
-                                  m_nnz_tot,
-                                  m_cusparse_handle,
-                                  m_cusparse_mat_descr);
-
-            if (m_exec_conf->isCUDAErrorCheckingEnabled())
-                CHECK_CUDA_ERROR();
-            }
-        m_csr_colind.resize(m_nnz_tot);
-        m_sparse_val.resize(m_nnz_tot);
-            {
-            // access matrix and vector
-            ArrayHandle<double> d_cmatrix(m_cmatrix, access_location::device, access_mode::read);
-            ArrayHandle<double> d_cvec(m_cvec, access_location::device, access_mode::read);
-
-            // access sparse matrix structural data
-            ArrayHandle<int> d_nnz(m_nnz, access_location::device, access_mode::overwrite);
-            ArrayHandle<int> d_csr_colind(m_csr_colind,
-                                          access_location::device,
-                                          access_mode::overwrite);
-            ArrayHandle<int> d_csr_rowptr(m_csr_rowptr,
-                                          access_location::device,
-                                          access_mode::overwrite);
-            ArrayHandle<double> d_sparse_val(m_sparse_val,
-                                             access_location::device,
-                                             access_mode::overwrite);
-
-            // count zeros and convert matrix
-            kernel::gpu_dense2sparse(n_constraint,
-                                     d_cmatrix.data,
-                                     d_nnz.data,
-                                     m_cusparse_handle,
-                                     m_cusparse_mat_descr,
-                                     d_csr_rowptr.data,
-                                     d_csr_colind.data,
-                                     d_sparse_val.data);
-
-            if (m_exec_conf->isCUDAErrorCheckingEnabled())
-                CHECK_CUDA_ERROR();
-            }
-
-#endif
             {
             ArrayHandle<int> h_sparse_idxlookup(m_sparse_idxlookup,
                                                 access_location::host,
@@ -414,7 +358,7 @@ void ForceDistanceConstraintGPU::solveConstraints(uint64_t timestep)
                                  m_cusparse_mat_descr,
                                  h_csr_rowptr.data,
                                  h_csr_colind.data,
-                                 &m_Qreorder.front());
+                                 m_Qreorder.data());
 
         // get size of scratch space for permutation B=Q*A*Q^T
         size_t size_perm = 0;
@@ -425,8 +369,8 @@ void ForceDistanceConstraintGPU::solveConstraints(uint64_t timestep)
                                           m_cusparse_mat_descr,
                                           h_csr_rowptr.data,
                                           h_csr_colind.data,
-                                          &m_Qreorder.front(),
-                                          &m_Qreorder.front(),
+                                          m_Qreorder.data(),
+                                          m_Qreorder.data(),
                                           &size_perm);
 
         // identity mapping
@@ -445,8 +389,8 @@ void ForceDistanceConstraintGPU::solveConstraints(uint64_t timestep)
         m_csr_val_B.resize(m_nnz_tot);
 
         // copy over A values
-        memcpy(&m_csr_rowptr_B.front(), h_csr_rowptr.data, sizeof(int) * (n_constraint + 1));
-        memcpy(&m_csr_colind_B.front(), h_csr_colind.data, sizeof(int) * m_nnz_tot);
+        memcpy(m_csr_rowptr_B.data(), h_csr_rowptr.data, sizeof(int) * (n_constraint + 1));
+        memcpy(m_csr_colind_B.data(), h_csr_colind.data, sizeof(int) * m_nnz_tot);
 
         // apply permutation
         cusolverSpXcsrpermHost(m_cusolver_sp_handle,
@@ -454,12 +398,12 @@ void ForceDistanceConstraintGPU::solveConstraints(uint64_t timestep)
                                n_constraint,
                                m_nnz_tot,
                                m_cusparse_mat_descr,
-                               &m_csr_rowptr_B.front(),
-                               &m_csr_colind_B.front(),
-                               &m_Qreorder.front(),
-                               &m_Qreorder.front(),
-                               &m_mapBfromA.front(),
-                               &m_reorder_work.front());
+                               m_csr_rowptr_B.data(),
+                               m_csr_colind_B.data(),
+                               m_Qreorder.data(),
+                               m_Qreorder.data(),
+                               m_mapBfromA.data(),
+                               m_reorder_work.data());
 
         // B = A(mapBfromA)
         for (int i = 0; i < m_nnz_tot; ++i)
@@ -479,8 +423,8 @@ void ForceDistanceConstraintGPU::solveConstraints(uint64_t timestep)
                                      n_constraint,
                                      m_nnz_tot,
                                      m_cusparse_mat_descr,
-                                     &m_csr_rowptr_B.front(),
-                                     &m_csr_colind_B.front(),
+                                     m_csr_rowptr_B.data(),
+                                     m_csr_colind_B.data(),
                                      m_cusolver_csrlu_info);
 
         size_t size_internal = 0;
@@ -491,9 +435,9 @@ void ForceDistanceConstraintGPU::solveConstraints(uint64_t timestep)
                                        n_constraint,
                                        m_nnz_tot,
                                        m_cusparse_mat_descr,
-                                       &m_csr_val_B.front(),
-                                       &m_csr_rowptr_B.front(),
-                                       &m_csr_colind_B.front(),
+                                       m_csr_val_B.data(),
+                                       m_csr_rowptr_B.data(),
+                                       m_csr_colind_B.data(),
                                        m_cusolver_csrlu_info,
                                        &size_internal,
                                        &size_lu);
@@ -508,12 +452,12 @@ void ForceDistanceConstraintGPU::solveConstraints(uint64_t timestep)
                                    n_constraint,
                                    m_nnz_tot,
                                    m_cusparse_mat_descr,
-                                   &m_csr_val_B.front(),
-                                   &m_csr_rowptr_B.front(),
-                                   &m_csr_colind_B.front(),
+                                   m_csr_val_B.data(),
+                                   m_csr_rowptr_B.data(),
+                                   m_csr_colind_B.data(),
                                    m_cusolver_csrlu_info,
                                    pivot_thresh,
-                                   &m_lu_work.front());
+                                   m_lu_work.data());
 
         // check for singularity
         const double tol(1e-14);
@@ -569,8 +513,8 @@ void ForceDistanceConstraintGPU::solveConstraints(uint64_t timestep)
 
         // extract
         cusolverSpDcsrluExtractHost(m_cusolver_sp_handle,
-                                    &m_Plu.front(),
-                                    &m_Qlu.front(),
+                                    m_Plu.data(),
+                                    m_Qlu.data(),
                                     m_cusparse_mat_descr_L,
                                     h_csr_val_L.data,
                                     h_csr_rowptr_L.data,
@@ -580,7 +524,7 @@ void ForceDistanceConstraintGPU::solveConstraints(uint64_t timestep)
                                     h_csr_rowptr_U.data,
                                     h_csr_colind_U.data,
                                     m_cusolver_csrlu_info,
-                                    &m_lu_work.front());
+                                    m_lu_work.data());
 
         // clean up cusolverSp
         cusolverSpDestroyCsrluInfoHost(m_cusolver_csrlu_info);
@@ -701,7 +645,10 @@ void ForceDistanceConstraintGPU::solveConstraints(uint64_t timestep)
 
     // copy RHS into solution vector
     ArrayHandle<double> d_vec(m_cvec, access_location::device, access_mode::read);
-    hipMemcpy(d_lagrange.data, d_vec.data, sizeof(double) * n_constraint, hipMemcpyDeviceToDevice);
+    cudaMemcpy(d_lagrange.data,
+               d_vec.data,
+               sizeof(double) * n_constraint,
+               cudaMemcpyDeviceToDevice);
 
     int nrhs = 1;
     // solve

@@ -14,7 +14,7 @@
     \brief Declares a base class for all computes
 */
 
-#ifdef __HIPCC__
+#ifdef __NVCC__
 #error This header cannot be compiled by nvcc
 #endif
 
@@ -104,7 +104,7 @@ class PYBIND11_EXPORT Compute : public Action
 namespace detail
     {
 //! Exports the Compute class to python
-#ifndef __HIPCC__
+#ifndef __NVCC__
 void export_Compute(pybind11::module& m);
 #endif
     } // end namespace detail

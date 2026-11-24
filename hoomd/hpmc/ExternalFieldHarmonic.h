@@ -9,7 +9,7 @@
 
 #include "ExternalPotential.h"
 
-#ifndef __HIPCC__
+#ifndef __NVCC__
 #include <pybind11/pybind11.h>
 #endif
 

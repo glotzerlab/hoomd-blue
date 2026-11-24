@@ -12,7 +12,7 @@
     \brief Declares a class for computing harmonic dihedrals
 */
 
-#ifdef __HIPCC__
+#ifdef __NVCC__
 #error This header cannot be compiled by nvcc
 #endif
 
@@ -32,7 +32,7 @@ struct dihedral_harmonic_params
     int n;
     Scalar phi_0;
 
-#ifndef __HIPCC__
+#ifndef __NVCC__
     dihedral_harmonic_params() : k(0.), d(0.), n(0), phi_0(0.) { }
 
     dihedral_harmonic_params(pybind11::dict v)

@@ -2,7 +2,7 @@
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #include "Integrator.cuh"
-#include <hip/hip_runtime.h>
+#include <cuda_runtime.h>
 
 #include <assert.h>
 
@@ -165,14 +165,14 @@ __global__ void gpu_integrator_sum_net_force_kernel(Scalar4* d_net_force,
         }
     }
 
-hipError_t gpu_integrator_sum_net_force(Scalar4* d_net_force,
-                                        Scalar* d_net_virial,
-                                        size_t net_virial_pitch,
-                                        Scalar4* d_net_torque,
-                                        const gpu_force_list& force_list,
-                                        unsigned int nparticles,
-                                        bool clear,
-                                        bool compute_virial)
+cudaError_t gpu_integrator_sum_net_force(Scalar4* d_net_force,
+                                         Scalar* d_net_virial,
+                                         size_t net_virial_pitch,
+                                         Scalar4* d_net_torque,
+                                         const gpu_force_list& force_list,
+                                         unsigned int nparticles,
+                                         bool clear,
+                                         bool compute_virial)
     {
     // sanity check
     assert(d_net_force);
@@ -185,36 +185,28 @@ hipError_t gpu_integrator_sum_net_force(Scalar4* d_net_force,
 
     if (compute_virial)
         {
-        hipLaunchKernelGGL(HIP_KERNEL_NAME(gpu_integrator_sum_net_force_kernel<1>),
-                           dim3(nwork / block_size + 1),
-                           dim3(block_size),
-                           0,
-                           0,
-                           d_net_force,
-                           d_net_virial,
-                           net_virial_pitch,
-                           d_net_torque,
-                           force_list,
-                           nwork,
-                           clear);
+        gpu_integrator_sum_net_force_kernel<1>
+            <<<nwork / block_size + 1, block_size>>>(d_net_force,
+                                                     d_net_virial,
+                                                     net_virial_pitch,
+                                                     d_net_torque,
+                                                     force_list,
+                                                     nwork,
+                                                     clear);
         }
     else
         {
-        hipLaunchKernelGGL(HIP_KERNEL_NAME(gpu_integrator_sum_net_force_kernel<0>),
-                           dim3(nwork / block_size + 1),
-                           dim3(block_size),
-                           0,
-                           0,
-                           d_net_force,
-                           d_net_virial,
-                           net_virial_pitch,
-                           d_net_torque,
-                           force_list,
-                           nwork,
-                           clear);
+        gpu_integrator_sum_net_force_kernel<0>
+            <<<nwork / block_size + 1, block_size>>>(d_net_force,
+                                                     d_net_virial,
+                                                     net_virial_pitch,
+                                                     d_net_torque,
+                                                     force_list,
+                                                     nwork,
+                                                     clear);
         }
 
-    return hipSuccess;
+    return cudaSuccess;
     }
 
     } // end namespace kernel

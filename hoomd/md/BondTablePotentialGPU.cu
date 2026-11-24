@@ -1,7 +1,7 @@
 // Copyright (c) 2009-2026 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
-#include "hip/hip_runtime.h"
+#include <cuda_runtime.h>
 // Copyright (c) 2009-2021 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
@@ -56,7 +56,7 @@ __global__ void gpu_compute_bondtable_forces_kernel(Scalar4* d_force,
                                                     unsigned int* d_flags)
     {
     // read in params for easy and fast access in the kernel
-    HIP_DYNAMIC_SHARED(Scalar4, s_params)
+    extern __shared__ Scalar4 s_params[];
     for (unsigned int cur_offset = 0; cur_offset < n_bond_type; cur_offset += blockDim.x)
         {
         if (cur_offset + threadIdx.x < n_bond_type)
@@ -189,23 +189,23 @@ __global__ void gpu_compute_bondtable_forces_kernel(Scalar4* d_force,
     \note This is just a kernel driver. See gpu_compute_bondtable_forces_kernel for full
    documentation.
 */
-hipError_t gpu_compute_bondtable_forces(Scalar4* d_force,
-                                        Scalar* d_virial,
-                                        size_t virial_pitch,
-                                        const unsigned int N,
-                                        const Scalar4* d_pos,
-                                        const BoxDim& box,
-                                        const group_storage<2>* blist,
-                                        const unsigned int pitch,
-                                        const unsigned int* n_bonds_list,
-                                        const unsigned int n_bond_type,
-                                        const Scalar2* d_tables,
-                                        const Scalar4* d_params,
-                                        const unsigned int table_width,
-                                        const Index2D& table_value,
-                                        unsigned int* d_flags,
-                                        const unsigned int block_size,
-                                        const hipDeviceProp_t& devprop)
+cudaError_t gpu_compute_bondtable_forces(Scalar4* d_force,
+                                         Scalar* d_virial,
+                                         size_t virial_pitch,
+                                         const unsigned int N,
+                                         const Scalar4* d_pos,
+                                         const BoxDim& box,
+                                         const group_storage<2>* blist,
+                                         const unsigned int pitch,
+                                         const unsigned int* n_bonds_list,
+                                         const unsigned int n_bond_type,
+                                         const Scalar2* d_tables,
+                                         const Scalar4* d_params,
+                                         const unsigned int table_width,
+                                         const Index2D& table_value,
+                                         unsigned int* d_flags,
+                                         const unsigned int block_size,
+                                         const cudaDeviceProp& devprop)
     {
     assert(d_params);
     assert(d_tables);
@@ -213,15 +213,11 @@ hipError_t gpu_compute_bondtable_forces(Scalar4* d_force,
     assert(table_width > 1);
 
     unsigned int max_block_size;
-    hipFuncAttributes attr;
-    hipFuncGetAttributes(&attr, (const void*)gpu_compute_bondtable_forces_kernel);
+    cudaFuncAttributes attr;
+    cudaFuncGetAttributes(&attr, (const void*)gpu_compute_bondtable_forces_kernel);
     max_block_size = attr.maxThreadsPerBlock;
 
     unsigned int run_block_size = min(block_size, max_block_size);
-
-    // setup the grid to run the kernel
-    dim3 grid(N / run_block_size + 1, 1, 1);
-    dim3 threads(run_block_size, 1, 1);
 
     size_t shared_bytes = sizeof(Scalar4) * n_bond_type;
     if (shared_bytes > devprop.sharedMemPerBlock)
@@ -230,27 +226,23 @@ hipError_t gpu_compute_bondtable_forces(Scalar4* d_force,
                                  "block.");
         }
 
-    hipLaunchKernelGGL((gpu_compute_bondtable_forces_kernel),
-                       dim3(grid),
-                       dim3(threads),
-                       shared_bytes,
-                       0,
-                       d_force,
-                       d_virial,
-                       virial_pitch,
-                       N,
-                       d_pos,
-                       box,
-                       blist,
-                       pitch,
-                       n_bonds_list,
-                       n_bond_type,
-                       d_tables,
-                       d_params,
-                       table_value,
-                       d_flags);
+    gpu_compute_bondtable_forces_kernel<<<N / run_block_size + 1, run_block_size, shared_bytes>>>(
+        d_force,
+        d_virial,
+        virial_pitch,
+        N,
+        d_pos,
+        box,
+        blist,
+        pitch,
+        n_bonds_list,
+        n_bond_type,
+        d_tables,
+        d_params,
+        table_value,
+        d_flags);
 
-    return hipSuccess;
+    return cudaSuccess;
     }
 
     } // end namespace kernel

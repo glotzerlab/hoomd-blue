@@ -250,7 +250,7 @@ _constructor_args = [
 
 @pytest.mark.parametrize(
     "constructor, args",
-    zip(_filter_classes, _constructor_args),
+    list(zip(_filter_classes, _constructor_args)),
     ids=lambda x: None if isinstance(x, tuple) else x.__name__,
 )
 def test_pickling(constructor, args):

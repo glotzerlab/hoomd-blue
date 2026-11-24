@@ -16,7 +16,7 @@
 
 namespace hoomd
     {
-#ifdef __HIPCC__
+#ifdef __NVCC__
 //! The flags used for indicating the itinerary of a particle
 enum gpu_send_flags
     {

@@ -18,12 +18,12 @@ namespace md
 namespace kernel
     {
 //! Kernel driver for pbc wrapping after box deformation
-hipError_t gpu_boxdeformer_wrap(const unsigned int N,
-                                Scalar4* d_pos,
-                                Scalar4* d_vel,
-                                int3* d_image,
-                                const BoxDim& new_box,
-                                unsigned int block_size);
+cudaError_t gpu_boxdeformer_wrap(const unsigned int N,
+                                 Scalar4* d_pos,
+                                 Scalar4* d_vel,
+                                 int3* d_image,
+                                 const BoxDim& new_box,
+                                 unsigned int block_size);
 
     } // end namespace kernel
     } // end namespace md

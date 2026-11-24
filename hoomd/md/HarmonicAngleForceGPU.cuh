@@ -20,19 +20,19 @@ namespace md
 namespace kernel
     {
 //! Kernel driver that computes harmonic angle forces for HarmonicAngleForceComputeGPU
-hipError_t gpu_compute_harmonic_angle_forces(Scalar4* d_force,
-                                             Scalar* d_virial,
-                                             const size_t virial_pitch,
-                                             const unsigned int N,
-                                             const Scalar4* d_pos,
-                                             const BoxDim& box,
-                                             const group_storage<3>* atable,
-                                             const unsigned int* apos_list,
-                                             const unsigned int pitch,
-                                             const unsigned int* n_angles_list,
-                                             Scalar2* d_params,
-                                             unsigned int n_angle_types,
-                                             int block_size);
+cudaError_t gpu_compute_harmonic_angle_forces(Scalar4* d_force,
+                                              Scalar* d_virial,
+                                              const size_t virial_pitch,
+                                              const unsigned int N,
+                                              const Scalar4* d_pos,
+                                              const BoxDim& box,
+                                              const group_storage<3>* atable,
+                                              const unsigned int* apos_list,
+                                              const unsigned int pitch,
+                                              const unsigned int* n_angles_list,
+                                              Scalar2* d_params,
+                                              unsigned int n_angle_types,
+                                              int block_size);
 
     } // end namespace kernel
     } // end namespace md

@@ -1,7 +1,7 @@
 // Copyright (c) 2009-2026 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
-#ifdef ENABLE_HIP
+#ifdef ENABLE_GPU
 
 #include "TwoStepRATTLEBD.h"
 #include "TwoStepRATTLEBDGPU.cuh"
@@ -14,7 +14,7 @@
 
 #include <pybind11/pybind11.h>
 
-#ifdef __HIPCC__
+#ifdef __NVCC__
 #error This header cannot be compiled by nvcc
 #endif
 
@@ -240,4 +240,4 @@ void export_TwoStepRATTLEBDGPU(pybind11::module& m, const std::string& name)
     } // end namespace md
     } // end namespace hoomd
 
-#endif // ENABLE_HIP
+#endif // ENABLE_GPU

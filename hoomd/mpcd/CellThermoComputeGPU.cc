@@ -43,7 +43,9 @@ mpcd::CellThermoComputeGPU::~CellThermoComputeGPU() { }
 #ifdef ENABLE_MPI
 void mpcd::CellThermoComputeGPU::beginOuterCellProperties()
     {
-    ArrayHandle<double4> d_cell_vel(m_cell_vel, access_location::device, access_mode::overwrite);
+    ArrayHandle<RequiredDouble4> d_cell_vel(m_cell_vel,
+                                            access_location::device,
+                                            access_mode::overwrite);
     ArrayHandle<double3> d_cell_energy(m_cell_energy,
                                        access_location::device,
                                        access_mode::overwrite);
@@ -120,7 +122,9 @@ void mpcd::CellThermoComputeGPU::beginOuterCellProperties()
 
 void mpcd::CellThermoComputeGPU::finishOuterCellProperties()
     {
-    ArrayHandle<double4> d_cell_vel(m_cell_vel, access_location::device, access_mode::readwrite);
+    ArrayHandle<RequiredDouble4> d_cell_vel(m_cell_vel,
+                                            access_location::device,
+                                            access_mode::readwrite);
     ArrayHandle<double3> d_cell_energy(m_cell_energy,
                                        access_location::device,
                                        access_mode::readwrite);
@@ -143,7 +147,9 @@ void mpcd::CellThermoComputeGPU::finishOuterCellProperties()
 
 void mpcd::CellThermoComputeGPU::calcInnerCellProperties()
     {
-    ArrayHandle<double4> d_cell_vel(m_cell_vel, access_location::device, access_mode::overwrite);
+    ArrayHandle<RequiredDouble4> d_cell_vel(m_cell_vel,
+                                            access_location::device,
+                                            access_mode::overwrite);
     ArrayHandle<double3> d_cell_energy(m_cell_energy,
                                        access_location::device,
                                        access_mode::overwrite);
@@ -266,7 +272,9 @@ void mpcd::CellThermoComputeGPU::computeNetProperties()
         ArrayHandle<mpcd::detail::cell_thermo_element> d_tmp_thermo(m_tmp_thermo,
                                                                     access_location::device,
                                                                     access_mode::overwrite);
-        ArrayHandle<double4> d_cell_vel(m_cell_vel, access_location::device, access_mode::read);
+        ArrayHandle<RequiredDouble4> d_cell_vel(m_cell_vel,
+                                                access_location::device,
+                                                access_mode::read);
         ArrayHandle<double3> d_cell_energy(m_cell_energy,
                                            access_location::device,
                                            access_mode::read);

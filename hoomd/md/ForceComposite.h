@@ -52,7 +52,7 @@
     constituent is the maximum distance for any particle of that type to its central particle.
 */
 
-#ifdef __HIPCC__
+#ifdef __NVCC__
 #error This header cannot be compiled by nvcc
 #endif
 

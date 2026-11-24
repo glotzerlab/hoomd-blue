@@ -16,7 +16,7 @@ namespace md
     {
 namespace kernel
     {
-template hipError_t __attribute__((visibility("default")))
+template cudaError_t __attribute__((visibility("default")))
 gpu_compute_pair_aniso_forces<PairModulator<EVALUATOR_CLASS, PatchEnvelope>>(
     const a_pair_args_t& pair_args,
     const PairModulator<EVALUATOR_CLASS, PatchEnvelope>::param_type* d_param,

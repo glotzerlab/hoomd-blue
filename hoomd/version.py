@@ -31,9 +31,6 @@ Attributes:
 
     gpu_enabled (bool): ``True`` when this build supports GPUs.
 
-    gpu_platform (str): Name of the GPU platform this build was compiled
-        against.
-
     hpmc_built (bool): ``True`` when the ``hpmc`` component is built.
 
     install_dir (str): The installation directory.
@@ -65,7 +62,6 @@ version = _hoomd.BuildInfo.getVersion()
 compile_flags = _hoomd.BuildInfo.getCompileFlags()
 gpu_enabled = _hoomd.BuildInfo.getEnableGPU()
 gpu_api_version = _hoomd.BuildInfo.getGPUAPIVersion()
-gpu_platform = _hoomd.BuildInfo.getGPUPlatform()
 cxx_compiler = _hoomd.BuildInfo.getCXXCompiler()
 mpi_enabled = _hoomd.BuildInfo.getEnableMPI()
 source_dir = _hoomd.BuildInfo.getSourceDir()
@@ -82,7 +78,6 @@ __all__ = [
     "git_sha1",
     "gpu_api_version",
     "gpu_enabled",
-    "gpu_platform",
     "hpmc_built",
     "install_dir",
     "md_built",

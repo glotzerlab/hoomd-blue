@@ -188,13 +188,13 @@ struct CellPropertySum
      * \param cell Index of cell to evaluate
      * \param energy If true, then the kinetic energy is evaluated into \a ke
      */
-    inline void compute(double4& momentum,
+    inline void compute(RequiredDouble4& momentum,
                         double& ke,
                         unsigned int& np,
                         const unsigned int cell,
                         const bool energy)
         {
-        momentum = make_double4(0.0, 0.0, 0.0, 0.0);
+        momentum = make_RequiredDouble4(0.0, 0.0, 0.0, 0.0);
         ke = 0.0;
         np = cell_np[cell];
 
@@ -276,7 +276,9 @@ void mpcd::CellThermoCompute::beginOuterCellProperties()
         }
 
     // Cell properties
-    ArrayHandle<double4> h_cell_vel(m_cell_vel, access_location::host, access_mode::overwrite);
+    ArrayHandle<RequiredDouble4> h_cell_vel(m_cell_vel,
+                                            access_location::host,
+                                            access_mode::overwrite);
     ArrayHandle<double3> h_cell_energy(m_cell_energy,
                                        access_location::host,
                                        access_mode::overwrite);
@@ -300,12 +302,13 @@ void mpcd::CellThermoCompute::beginOuterCellProperties()
         const unsigned int cur_cell = h_cells.data[idx];
 
         // compute the cell properties
-        double4 momentum;
+        RequiredDouble4 momentum;
         double ke(0.0);
         unsigned int np(0);
         summer.compute(momentum, ke, np, cur_cell, need_energy);
 
-        h_cell_vel.data[cur_cell] = make_double4(momentum.x, momentum.y, momentum.z, momentum.w);
+        h_cell_vel.data[cur_cell]
+            = make_RequiredDouble4(momentum.x, momentum.y, momentum.z, momentum.w);
         if (need_energy)
             h_cell_energy.data[cur_cell] = make_double3(ke, 0.0, __int_as_double(np));
         }
@@ -313,7 +316,9 @@ void mpcd::CellThermoCompute::beginOuterCellProperties()
 
 void mpcd::CellThermoCompute::finishOuterCellProperties()
     {
-    ArrayHandle<double4> h_cell_vel(m_cell_vel, access_location::host, access_mode::readwrite);
+    ArrayHandle<RequiredDouble4> h_cell_vel(m_cell_vel,
+                                            access_location::host,
+                                            access_mode::readwrite);
     ArrayHandle<double3> h_cell_energy(m_cell_energy,
                                        access_location::host,
                                        access_mode::readwrite);
@@ -328,7 +333,7 @@ void mpcd::CellThermoCompute::finishOuterCellProperties()
         const unsigned int cur_cell = h_cells.data[idx];
 
         // average cell properties if the cell has mass
-        const double4 cell_vel = h_cell_vel.data[cur_cell];
+        const RequiredDouble4 cell_vel = h_cell_vel.data[cur_cell];
         double3 vel_cm = make_double3(cell_vel.x, cell_vel.y, cell_vel.z);
         const double mass = cell_vel.w;
 
@@ -339,7 +344,7 @@ void mpcd::CellThermoCompute::finishOuterCellProperties()
             vel_cm.y /= mass;
             vel_cm.z /= mass;
             }
-        h_cell_vel.data[cur_cell] = make_double4(vel_cm.x, vel_cm.y, vel_cm.z, mass);
+        h_cell_vel.data[cur_cell] = make_RequiredDouble4(vel_cm.x, vel_cm.y, vel_cm.z, mass);
 
         if (need_energy)
             {
@@ -394,7 +399,9 @@ void mpcd::CellThermoCompute::calcInnerCellProperties()
         }
 
     // Cell properties
-    ArrayHandle<double4> h_cell_vel(m_cell_vel, access_location::host, access_mode::readwrite);
+    ArrayHandle<RequiredDouble4> h_cell_vel(m_cell_vel,
+                                            access_location::host,
+                                            access_mode::readwrite);
     ArrayHandle<double3> h_cell_energy(m_cell_energy,
                                        access_location::host,
                                        access_mode::readwrite);
@@ -441,7 +448,7 @@ void mpcd::CellThermoCompute::calcInnerCellProperties()
                 const unsigned int cur_cell = ci(i, j, k);
 
                 // compute the cell properties
-                double4 momentum;
+                RequiredDouble4 momentum;
                 double ke(0.0);
                 unsigned int np(0);
                 summer.compute(momentum, ke, np, cur_cell, need_energy);
@@ -455,7 +462,8 @@ void mpcd::CellThermoCompute::calcInnerCellProperties()
                     vel_cm.z = momentum.z / mass;
                     }
 
-                h_cell_vel.data[cur_cell] = make_double4(vel_cm.x, vel_cm.y, vel_cm.z, mass);
+                h_cell_vel.data[cur_cell]
+                    = make_RequiredDouble4(vel_cm.x, vel_cm.y, vel_cm.z, mass);
                 if (need_energy)
                     {
                     double temp(0.0);
@@ -491,7 +499,9 @@ void mpcd::CellThermoCompute::computeNetProperties()
             }
 #endif // ENABLE_MPI
 
-        ArrayHandle<double4> h_cell_vel(m_cell_vel, access_location::host, access_mode::read);
+        ArrayHandle<RequiredDouble4> h_cell_vel(m_cell_vel,
+                                                access_location::host,
+                                                access_mode::read);
         ArrayHandle<double3> h_cell_energy(m_cell_energy, access_location::host, access_mode::read);
 
         const bool need_energy = m_flags[mpcd::detail::thermo_options::energy];
@@ -506,7 +516,7 @@ void mpcd::CellThermoCompute::computeNetProperties()
                     {
                     const unsigned int idx = ci(i, j, k);
 
-                    const double4 cell_vel_mass = h_cell_vel.data[idx];
+                    const RequiredDouble4 cell_vel_mass = h_cell_vel.data[idx];
                     const double3 cell_vel
                         = make_double3(cell_vel_mass.x, cell_vel_mass.y, cell_vel_mass.z);
                     const double cell_mass = cell_vel_mass.w;

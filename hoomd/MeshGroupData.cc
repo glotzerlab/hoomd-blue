@@ -12,7 +12,7 @@
 
 #include <pybind11/numpy.h>
 
-#ifdef ENABLE_HIP
+#ifdef ENABLE_GPU
 #include "CachedAllocator.h"
 #endif
 

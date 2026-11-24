@@ -10,6 +10,7 @@
  */
 
 #include <cuda_runtime.h>
+#include <stdint.h>
 
 #include "ParallelPlateGeometry.h"
 #include "hoomd/BoxDim.h"

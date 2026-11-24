@@ -19,18 +19,18 @@
 #include <limits>
 #include <type_traits>
 
-#ifdef __HIPCC__
+#ifdef __NVCC__
 #define DEVICE __host__ __device__
 #else
 #define DEVICE
-#endif // __HIPCC__
+#endif // __NVCC__
 
 namespace util
     {
 using std::make_signed;
 using std::make_unsigned;
 
-#if defined(__HIPCC__) || defined(_LIBCPP_HAS_NO_CONSTEXPR)
+#if defined(__NVCC__) || defined(_LIBCPP_HAS_NO_CONSTEXPR)
 
 // Amazing! cuda thinks numeric_limits::max() is a __host__ function, so
 // we can't use it in a device function.
@@ -423,7 +423,7 @@ template<typename Real> class GammaDistribution
         {
         if (m_alpha <= 0)
             {
-#ifndef __HIPCC__
+#ifndef __NVCC__
             throw std::domain_error("alpha must be positive.");
 #else
             return 0;

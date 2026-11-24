@@ -10,7 +10,7 @@
     \brief Declares the TwoStepRATTLENVE class
 */
 
-#ifdef __HIPCC__
+#ifdef __NVCC__
 #error This header cannot be compiled by nvcc
 #endif
 

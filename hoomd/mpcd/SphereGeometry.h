@@ -12,12 +12,12 @@
 #include "hoomd/BoxDim.h"
 #include "hoomd/HOOMDMath.h"
 
-#ifdef __HIPCC__
+#ifdef __NVCC__
 #define HOSTDEVICE __host__ __device__ inline
 #else
 #define HOSTDEVICE inline __attribute__((always_inline))
 #include <string>
-#endif // __HIPCC__
+#endif // __NVCC__
 
 namespace hoomd
     {
@@ -131,13 +131,13 @@ class __attribute__((visibility("default"))) SphereGeometry
         return m_no_slip;
         }
 
-#ifndef __HIPCC__
+#ifndef __NVCC__
     //! Get the unique name of this geometry
     static std::string getName()
         {
         return std::string("Sphere");
         }
-#endif // __HIPCC__
+#endif // __NVCC__
 
     private:
     const Scalar m_R2;    //!< Square of sphere radius

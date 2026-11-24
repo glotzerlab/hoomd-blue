@@ -9,7 +9,7 @@
     \brief Declares a class for computing active forces and torques
 */
 
-#ifdef __HIPCC__
+#ifdef __NVCC__
 #error This header cannot be compiled by nvcc
 #endif
 
@@ -209,7 +209,7 @@ void ActiveForceConstraintCompute<Manifold>::computeForces(uint64_t timestep)
 
     setForces(); // set forces for particles
 
-#ifdef ENABLE_HIP
+#ifdef ENABLE_GPU
     if (m_exec_conf->isCUDAErrorCheckingEnabled())
         CHECK_CUDA_ERROR();
 #endif

@@ -9,7 +9,7 @@
 #include <functional>
 
 #include "hoomd/md/TableDihedralForceCompute.h"
-#ifdef ENABLE_HIP
+#ifdef ENABLE_GPU
 #include "hoomd/md/TableDihedralForceComputeGPU.h"
 #endif
 
@@ -407,7 +407,7 @@ base_class_tf_creator(std::shared_ptr<SystemDefinition> sysdef, unsigned int wid
     return std::shared_ptr<TableDihedralForceCompute>(new TableDihedralForceCompute(sysdef, width));
     }
 
-#ifdef ENABLE_HIP
+#ifdef ENABLE_GPU
 //! DihedralForceCompute creator for bond_force_basic_tests()
 std::shared_ptr<TableDihedralForceCompute> gpu_tf_creator(std::shared_ptr<SystemDefinition> sysdef,
                                                           unsigned int width)
@@ -427,7 +427,7 @@ UP_TEST(TableDihedralForceCompute_basic)
                                    new ExecutionConfiguration(ExecutionConfiguration::CPU)));
     }
 
-#ifdef ENABLE_HIP
+#ifdef ENABLE_GPU
 //! test case for dihedral forces on the GPU
 UP_TEST(TableDihedralForceComputeGPU_basic)
     {

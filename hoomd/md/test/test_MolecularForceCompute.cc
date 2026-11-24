@@ -240,7 +240,7 @@ UP_TEST(MolecularForceCompute_basic)
         new ExecutionConfiguration(ExecutionConfiguration::CPU)));
     }
 
-#ifdef ENABLE_HIP
+#ifdef ENABLE_GPU
 //! test case for particle test on GPU
 UP_TEST(MolecularForceCompute_basic_GPU)
     {

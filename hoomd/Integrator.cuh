@@ -61,14 +61,14 @@ struct gpu_force_list
     };
 
 //! Driver for gpu_integrator_sum_net_force_kernel()
-hipError_t gpu_integrator_sum_net_force(Scalar4* d_net_force,
-                                        Scalar* d_net_virial,
-                                        const size_t virial_pitch,
-                                        Scalar4* d_net_torque,
-                                        const gpu_force_list& force_list,
-                                        unsigned int nparticles,
-                                        bool clear,
-                                        bool compute_virial);
+cudaError_t gpu_integrator_sum_net_force(Scalar4* d_net_force,
+                                         Scalar* d_net_virial,
+                                         const size_t virial_pitch,
+                                         Scalar4* d_net_torque,
+                                         const gpu_force_list& force_list,
+                                         unsigned int nparticles,
+                                         bool clear,
+                                         bool compute_virial);
 
     } // end namespace kernel
 

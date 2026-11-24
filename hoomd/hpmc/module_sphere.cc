@@ -14,7 +14,7 @@
 #include "UpdaterGCA.h"
 #include "UpdaterMuVT.h"
 
-#ifdef ENABLE_HIP
+#ifdef ENABLE_GPU
 #include "ComputeFreeVolumeGPU.h"
 #include "IntegratorHPMCMonoGPU.h"
 #include "UpdaterGCAGPU.h"
@@ -38,7 +38,7 @@ void export_sphere(pybind11::module& m)
 
     export_ExternalFieldWall<ShapeSphere>(m, "WallSphere");
 
-#ifdef ENABLE_HIP
+#ifdef ENABLE_GPU
     export_IntegratorHPMCMonoGPU<ShapeSphere>(m, "IntegratorHPMCMonoSphereGPU");
     export_ComputeFreeVolumeGPU<ShapeSphere>(m, "ComputeFreeVolumeSphereGPU");
     export_UpdaterGCAGPU<ShapeSphere>(m, "UpdaterGCASphereGPU");

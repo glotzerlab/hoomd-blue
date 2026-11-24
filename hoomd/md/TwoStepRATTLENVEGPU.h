@@ -4,7 +4,7 @@
 #ifndef __TWO_STEP_RATTLE_NVE_GPU_H__
 #define __TWO_STEP_RATTLE_NVE_GPU_H__
 
-#ifdef ENABLE_HIP
+#ifdef ENABLE_GPU
 
 /*! \file TwoStepRATTLENVEGPU.h
 \brief Declares the TwoStepRATTLENVEGPU class
@@ -20,7 +20,7 @@
 #include "hoomd/HOOMDMPI.h"
 #endif
 
-#ifdef __HIPCC__
+#ifdef __NVCC__
 #error This header cannot be compiled by nvcc
 #endif
 
@@ -368,5 +368,5 @@ void export_TwoStepRATTLENVEGPU(pybind11::module& m, const std::string& name)
     } // end namespace md
     } // end namespace hoomd
 
-#endif // ENABLE_HIP
+#endif // ENABLE_GPU
 #endif // #ifndef __TWO_STEP_RATTLE_NVE_GPU_H__

@@ -80,11 +80,11 @@ _test_args = (
 
 @pytest.mark.parametrize(
     "cls, constructor_kwargs",
-    (
+    [
         (cls, constructor_kwargs)
         for cls, arg_list in _test_args
         for constructor_kwargs in arg_list
-    ),
+    ],
     ids=_TestCounter(),
 )
 def test_valid_construction(cls, constructor_kwargs):
@@ -95,7 +95,7 @@ def test_valid_construction(cls, constructor_kwargs):
 
 @pytest.mark.parametrize(
     "cls, constructor_kwargs",
-    ((cls, arg_list[0]) for cls, arg_list in _test_args),
+    [(cls, arg_list[0]) for cls, arg_list in _test_args],
     ids=_TestCounter(),
 )
 def test_immutability(cls, constructor_kwargs):

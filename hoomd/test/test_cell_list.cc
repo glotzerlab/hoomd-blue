@@ -12,7 +12,7 @@
 #include "hoomd/CellList.h"
 #include "hoomd/Initializers.h"
 
-#ifdef ENABLE_HIP
+#ifdef ENABLE_GPU
 #include "hoomd/CellListGPU.h"
 #endif
 
@@ -508,7 +508,7 @@ UP_TEST(CellList_small)
         new ExecutionConfiguration(ExecutionConfiguration::CPU)));
     }
 
-#ifdef ENABLE_HIP
+#ifdef ENABLE_GPU
 //! test case for celllist_small_test on the GPU
 UP_TEST(CellListGPU_small)
     {
@@ -575,7 +575,7 @@ UP_TEST(CellList_large)
         new ExecutionConfiguration(ExecutionConfiguration::CPU)));
     }
 
-#ifdef ENABLE_HIP
+#ifdef ENABLE_GPU
 //! test case for celllist_large_test on the GPU
 UP_TEST(CellListGPU_large)
     {

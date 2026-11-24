@@ -14,14 +14,14 @@
 
 #include <cfloat>
 
-#ifdef __HIPCC__
+#ifdef __NVCC__
 #define DEVICE __device__
 #define HOSTDEVICE __host__ __device__
 #else
 #define DEVICE
 #define HOSTDEVICE
 #include <iostream>
-#if !defined(__HIPCC__) && defined(__SSE__)
+#if !defined(__NVCC__) && defined(__SSE__)
 #include <immintrin.h>
 #endif
 #endif
@@ -51,7 +51,7 @@ struct PolyhedronVertices : ShapeParams
         {
         }
 
-#ifndef __HIPCC__
+#ifndef __NVCC__
     /** Initialize with a given number of vertices
      */
     PolyhedronVertices(unsigned int _N, bool managed = false) : ignore(0)
@@ -218,7 +218,7 @@ struct PolyhedronVertices : ShapeParams
         hull_verts.allocate_shared(ptr, available_bytes);
         }
 
-#ifdef ENABLE_HIP
+#ifdef ENABLE_GPU
     void set_memory_hint() const
         {
         x.set_memory_hint();
@@ -297,7 +297,7 @@ class SupportFuncConvexPolyhedron
 
         if (verts.N > 0)
             {
-#if !defined(__HIPCC__) && defined(__AVX__) && HOOMD_SHORTREAL_SIZE == 32
+#if !defined(__NVCC__) && defined(__AVX__) && HOOMD_SHORTREAL_SIZE == 32
             // process dot products with AVX 8 at a time on the CPU when working with more than
             // 4 verts
             __m256 nx_v = _mm256_broadcast_ss(&n.x);
@@ -350,7 +350,7 @@ class SupportFuncConvexPolyhedron
                     break;
                     }
                 }
-#elif !defined(__HIPCC__) && defined(__SSE__) && HOOMD_SHORTREAL_SIZE == 32
+#elif !defined(__NVCC__) && defined(__SSE__) && HOOMD_SHORTREAL_SIZE == 32
             // process dot products with SSE 4 at a time on the CPU
             __m128 nx_v = _mm_load_ps1(&n.x);
             __m128 ny_v = _mm_load_ps1(&n.y);
@@ -860,7 +860,7 @@ DEVICE inline ShortReal sweep_distance(const vec3<Scalar>& r_ab,
     return distance;
     }
 
-#ifndef __HIPCC__
+#ifndef __NVCC__
 template<> inline std::string getShapeSpec(const ShapeConvexPolyhedron& poly)
     {
     std::ostringstream shapedef;

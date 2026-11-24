@@ -1,7 +1,7 @@
 Change Log
 ==========
 
-7.x
+8.x
 ---
 
 Next release
@@ -11,7 +11,7 @@ Next release
 
 *Changed*
 
-* Support 2D systems with ``hoomd.md.external.field.Periodic`` (#2349).
+* Convert all GPU kernels from HIP to CUDA (#2350).
 
 *Deprecated*
 
@@ -19,6 +19,30 @@ Next release
 
 *Fixed*
 
+* Fix use of uninitialized memory in ``nlist.Tree`` on the GPU (#2350).
+* Prevent out of bounds shared memory access when using ``FIRE`` on the GPU (#2350).
+* Prevent out of bounds shared memory access when using ``Langevin`` on the GPU (#2350).
+
+7.x
+---
+
+7.2.2 (2026-11-09)
+^^^^^^^^^^^^^^^^^^^^
+
+*Fixed*
+
+* Setting ``typeparamdict`` defaults no longer fails for ``hoomd.hpmc.pair.Step`` and other classes that use ``hoomd.data.typeconverter.OnlyIf`` (#2386).
+
+7.2.1 (2026-10-30)
+^^^^^^^^^^^^^^^^^^^^
+
+*Changed*
+
+* Support 2D systems with ``hoomd.md.external.field.Periodic`` (#2349).
+
+*Fixed*
+
+* Fixed bug in calculating Helfrich forces (#2376).
 
 7.2.0 (2026-09-22)
 ^^^^^^^^^^^^^^^^^^^^

@@ -5,7 +5,7 @@
     \brief Declares an updater that changes the MPI domain decomposition to balance the load
 */
 
-#ifdef __HIPCC__
+#ifdef __NVCC__
 #error This header cannot be compiled by nvcc
 #endif
 

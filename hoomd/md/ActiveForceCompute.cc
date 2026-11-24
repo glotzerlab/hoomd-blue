@@ -294,7 +294,7 @@ void ActiveForceCompute::computeForces(uint64_t timestep)
     {
     setForces(); // set forces for particles
 
-#ifdef ENABLE_HIP
+#ifdef ENABLE_GPU
     if (m_exec_conf->isCUDAErrorCheckingEnabled())
         CHECK_CUDA_ERROR();
 #endif

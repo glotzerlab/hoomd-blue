@@ -4,9 +4,10 @@
 #include "hoomd/mpcd/CellList.h"
 #include "hoomd/mpcd/CellThermoCompute.h"
 #include "utils.h"
-#ifdef ENABLE_HIP
+#ifdef ENABLE_GPU
 #include "hoomd/mpcd/CellThermoComputeGPU.h"
-#endif // ENABLE_HIP
+#endif // ENABLE_GPU
+#include "hoomd/mpcd/RequiredDouble.h"
 
 #include "hoomd/SnapshotSystemData.h"
 #include "hoomd/filter/ParticleFilterAll.h"
@@ -45,9 +46,9 @@ template<class CT> void cell_thermo_basic_test(std::shared_ptr<ExecutionConfigur
     thermo->compute(0);
         {
         const Index3D ci = cl->getCellIndexer();
-        ArrayHandle<double4> h_avg_vel(thermo->getCellVelocities(),
-                                       access_location::host,
-                                       access_mode::read);
+        ArrayHandle<mpcd::RequiredDouble4> h_avg_vel(thermo->getCellVelocities(),
+                                                     access_location::host,
+                                                     access_mode::read);
         ArrayHandle<double3> h_cell_energy(thermo->getCellEnergies(),
                                            access_location::host,
                                            access_mode::read);
@@ -100,9 +101,9 @@ template<class CT> void cell_thermo_basic_test(std::shared_ptr<ExecutionConfigur
     thermo->compute(1);
         {
         const Index3D ci = cl->getCellIndexer();
-        ArrayHandle<double4> h_avg_vel(thermo->getCellVelocities(),
-                                       access_location::host,
-                                       access_mode::read);
+        ArrayHandle<mpcd::RequiredDouble4> h_avg_vel(thermo->getCellVelocities(),
+                                                     access_location::host,
+                                                     access_mode::read);
         ArrayHandle<double3> h_cell_energy(thermo->getCellEnergies(),
                                            access_location::host,
                                            access_mode::read);
@@ -163,9 +164,9 @@ template<class CT> void cell_thermo_basic_test(std::shared_ptr<ExecutionConfigur
     thermo->compute(2);
         {
         const Index3D ci = cl->getCellIndexer();
-        ArrayHandle<double4> h_avg_vel(thermo->getCellVelocities(),
-                                       access_location::host,
-                                       access_mode::read);
+        ArrayHandle<mpcd::RequiredDouble4> h_avg_vel(thermo->getCellVelocities(),
+                                                     access_location::host,
+                                                     access_mode::read);
         ArrayHandle<double3> h_cell_energy(thermo->getCellEnergies(),
                                            access_location::host,
                                            access_mode::read);
@@ -263,9 +264,9 @@ template<class CT> void cell_thermo_embed_test(std::shared_ptr<ExecutionConfigur
     thermo->compute(0);
         {
         const Index3D ci = cl->getCellIndexer();
-        ArrayHandle<double4> h_avg_vel(thermo->getCellVelocities(),
-                                       access_location::host,
-                                       access_mode::read);
+        ArrayHandle<mpcd::RequiredDouble4> h_avg_vel(thermo->getCellVelocities(),
+                                                     access_location::host,
+                                                     access_mode::read);
         ArrayHandle<double3> h_cell_energy(thermo->getCellEnergies(),
                                            access_location::host,
                                            access_mode::read);
@@ -334,7 +335,7 @@ UP_TEST(mpcd_cell_thermo_embed)
         new ExecutionConfiguration(ExecutionConfiguration::CPU)));
     }
 
-#ifdef ENABLE_HIP
+#ifdef ENABLE_GPU
 UP_TEST(mpcd_cell_thermo_basic_gpu)
     {
     cell_thermo_basic_test<mpcd::CellThermoComputeGPU>(std::shared_ptr<ExecutionConfiguration>(
@@ -345,4 +346,4 @@ UP_TEST(mpcd_cell_thermo_embed_gpu)
     cell_thermo_embed_test<mpcd::CellThermoComputeGPU>(std::shared_ptr<ExecutionConfiguration>(
         new ExecutionConfiguration(ExecutionConfiguration::GPU)));
     }
-#endif // ENABLE_HIP
+#endif // ENABLE_GPU

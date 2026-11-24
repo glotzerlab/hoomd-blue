@@ -9,9 +9,10 @@
 #ifndef MPCD_CELL_THERMO_TYPES_H_
 #define MPCD_CELL_THERMO_TYPES_H_
 
+#include "RequiredDouble.h"
 #include "hoomd/HOOMDMath.h"
 
-#ifdef __HIPCC__
+#ifdef __NVCC__
 #define DEVICE __device__ __forceinline__
 #else
 #define DEVICE
@@ -41,7 +42,7 @@ struct thermo_index
         };
     };
 
-#ifndef __HIPCC__
+#ifndef __NVCC__
 //! Flags for optional thermo data
 typedef std::bitset<32> ThermoFlags;
 #endif
@@ -56,16 +57,16 @@ struct thermo_options
 
 struct CellVelocityPackOp
     {
-    typedef double4 element;
+    typedef RequiredDouble4 element;
 
-    DEVICE element pack(const double4& val) const
+    DEVICE element pack(const RequiredDouble4& val) const
         {
         return val;
         }
 
-    DEVICE double4 unpack(const element& e, const double4& val) const
+    DEVICE RequiredDouble4 unpack(const element& e, const RequiredDouble4& val) const
         {
-        return make_double4(e.x + val.x, e.y + val.y, e.z + val.z, e.w + val.w);
+        return make_RequiredDouble4(e.x + val.x, e.y + val.y, e.z + val.z, e.w + val.w);
         }
     };
 

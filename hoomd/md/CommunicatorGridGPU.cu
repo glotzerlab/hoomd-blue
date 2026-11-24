@@ -1,20 +1,14 @@
 // Copyright (c) 2009-2026 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
-#include "hip/hip_runtime.h"
-
-#ifdef __HIP_PLATFORM_HCC__
-#include <hipfft.h>
-#else
+#include <cuda_runtime.h>
 #include <cufft.h>
-typedef cufftComplex hipfftComplex;
-#endif
 
 #include "CommunicatorGridGPU.cuh"
 //! Define plus operator for complex data type (needed by CommunicatorMesh)
-__device__ inline hipfftComplex operator+(hipfftComplex& lhs, const hipfftComplex& rhs)
+__device__ inline cufftComplex operator+(cufftComplex& lhs, const cufftComplex& rhs)
     {
-    hipfftComplex res;
+    cufftComplex res;
     res.x = lhs.x + rhs.x;
     res.y = lhs.y + rhs.y;
     return res;
@@ -83,15 +77,8 @@ void gpu_gridcomm_scatter_send_cells(unsigned int n_send_cells,
     unsigned int block_size = 256;
     unsigned int n_blocks = n_send_cells / block_size + 1;
 
-    hipLaunchKernelGGL((gpu_gridcomm_scatter_send_cells_kernel<T>),
-                       dim3(n_blocks),
-                       dim3(block_size),
-                       0,
-                       0,
-                       n_send_cells,
-                       d_send_idx,
-                       d_grid,
-                       d_send_buf);
+    gpu_gridcomm_scatter_send_cells_kernel<T>
+        <<<n_blocks, block_size>>>(n_send_cells, d_send_idx, d_grid, d_send_buf);
     }
 
 template<typename T>
@@ -109,51 +96,43 @@ void gpu_gridcomm_scatter_add_recv_cells(unsigned int n_unique_recv_cells,
 
     if (add_outer)
         {
-        hipLaunchKernelGGL((gpu_gridcomm_scatter_add_recv_cells_kernel<T, true>),
-                           dim3(n_blocks),
-                           dim3(block_size),
-                           0,
-                           0,
-                           n_unique_recv_cells,
-                           d_recv_buf,
-                           d_grid,
-                           d_cell_recv,
-                           d_cell_recv_begin,
-                           d_cell_recv_end,
-                           d_recv_idx);
+        gpu_gridcomm_scatter_add_recv_cells_kernel<T, true>
+            <<<n_blocks, block_size>>>(n_unique_recv_cells,
+                                       d_recv_buf,
+                                       d_grid,
+                                       d_cell_recv,
+                                       d_cell_recv_begin,
+                                       d_cell_recv_end,
+                                       d_recv_idx);
         }
     else
         {
-        hipLaunchKernelGGL((gpu_gridcomm_scatter_add_recv_cells_kernel<T, false>),
-                           dim3(n_blocks),
-                           dim3(block_size),
-                           0,
-                           0,
-                           n_unique_recv_cells,
-                           d_recv_buf,
-                           d_grid,
-                           d_cell_recv,
-                           d_cell_recv_begin,
-                           d_cell_recv_end,
-                           d_recv_idx);
+        gpu_gridcomm_scatter_add_recv_cells_kernel<T, false>
+            <<<n_blocks, block_size>>>(n_unique_recv_cells,
+                                       d_recv_buf,
+                                       d_grid,
+                                       d_cell_recv,
+                                       d_cell_recv_begin,
+                                       d_cell_recv_end,
+                                       d_recv_idx);
         }
     }
 
-//! Template instantiation for hipfftComplex
-template void gpu_gridcomm_scatter_send_cells<hipfftComplex>(unsigned int n_send_cells,
-                                                             unsigned int* d_send_idx,
-                                                             const hipfftComplex* d_grid,
-                                                             hipfftComplex* d_send_buf);
+//! Template instantiation for cufftComplex
+template void gpu_gridcomm_scatter_send_cells<cufftComplex>(unsigned int n_send_cells,
+                                                            unsigned int* d_send_idx,
+                                                            const cufftComplex* d_grid,
+                                                            cufftComplex* d_send_buf);
 
 template void
-gpu_gridcomm_scatter_add_recv_cells<hipfftComplex>(unsigned int n_unique_recv_cells,
-                                                   const hipfftComplex* d_recv_buf,
-                                                   hipfftComplex* d_grid,
-                                                   const unsigned int* d_cell_recv,
-                                                   const unsigned int* d_cell_recv_begin,
-                                                   const unsigned int* d_cell_recv_end,
-                                                   const unsigned int* d_recv_idx,
-                                                   bool add_outer);
+gpu_gridcomm_scatter_add_recv_cells<cufftComplex>(unsigned int n_unique_recv_cells,
+                                                  const cufftComplex* d_recv_buf,
+                                                  cufftComplex* d_grid,
+                                                  const unsigned int* d_cell_recv,
+                                                  const unsigned int* d_cell_recv_begin,
+                                                  const unsigned int* d_cell_recv_end,
+                                                  const unsigned int* d_recv_idx,
+                                                  bool add_outer);
 
 //! Template instantiation for Scalar
 template void gpu_gridcomm_scatter_send_cells<Scalar>(unsigned int n_send_cells,

@@ -7,7 +7,7 @@
 
 #include <dfft_lib_config.h>
 
-#ifdef ENABLE_HIP
+#ifdef ENABLE_GPU
 #include "dfft_common.h"
 
 #ifndef NVCC
@@ -49,6 +49,6 @@ EXTERN_DFFT int dfft_cuda_execute(cuda_cpx_t *id_in, cuda_cpx_t *d_out, int dir,
 
 #undef EXTERN_DFFT
 #endif
-#endif // ENABLE_HIP
+#endif // ENABLE_GPU
 
 #endif

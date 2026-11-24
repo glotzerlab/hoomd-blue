@@ -14,7 +14,7 @@
 #include "UpdaterGCA.h"
 #include "UpdaterMuVT.h"
 
-#ifdef ENABLE_HIP
+#ifdef ENABLE_GPU
 #include "ComputeFreeVolumeGPU.h"
 #include "IntegratorHPMCMonoGPU.h"
 #include "UpdaterGCAGPU.h"
@@ -45,7 +45,7 @@ void export_union_convex_polyhedron(pybind11::module& m)
     export_ExternalFieldWall<ShapeUnion<ShapeSpheropolyhedron>>(m,
                                                                 "WallConvexSpheropolyhedronUnion");
 
-#ifdef ENABLE_HIP
+#ifdef ENABLE_GPU
 
     export_IntegratorHPMCMonoGPU<ShapeUnion<ShapeSpheropolyhedron>>(
         m,

@@ -5,7 +5,7 @@
 
 // need to declare these class methods with __device__ qualifiers when building in nvcc
 // DEVICE is __device__ when included in nvcc and blank when included into the host compiler
-#ifdef __HIPCC__
+#ifdef __NVCC__
 #define HOSTDEVICE __host__ __device__
 #else
 #define HOSTDEVICE
@@ -21,10 +21,10 @@ namespace detail
 // !helper to call CPU or GPU signbit
 template<class T> HOSTDEVICE inline int signbit(const T& a)
     {
-#ifdef __HIP_DEVICE_COMPILE__
+#ifdef __CUDA_ARCH__
     return ::signbit(a);
 #else
-#ifndef __HIPCC__
+#ifndef __NVCC__
     return std::signbit(a);
 #else
     return (a >= 0);
@@ -34,10 +34,10 @@ template<class T> HOSTDEVICE inline int signbit(const T& a)
 
 template<class T> HOSTDEVICE inline T min(const T& a, const T& b)
     {
-#ifdef __HIP_DEVICE_COMPILE__
+#ifdef __CUDA_ARCH__
     return ::min(a, b);
 #else
-#ifndef __HIPCC__
+#ifndef __NVCC__
     return std::min(a, b);
 #else
     return (a < b) ? a : b;
@@ -47,11 +47,11 @@ template<class T> HOSTDEVICE inline T min(const T& a, const T& b)
 
 template<class T> HOSTDEVICE inline T max(const T& a, const T& b)
     {
-#ifdef __HIP_DEVICE_COMPILE__
+#ifdef __CUDA_ARCH__
     return ::max(a, b);
 #else
 
-#ifndef __HIPCC__
+#ifndef __NVCC__
     return std::max(a, b);
 #else
     return (a > b) ? a : b;

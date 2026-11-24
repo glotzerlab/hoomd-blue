@@ -18,43 +18,43 @@ namespace md
 namespace kernel
     {
 //! Kernel driver for the first part of the NVE update called by TwoStepNVEGPU
-hipError_t gpu_nve_step_one(Scalar4* d_pos,
-                            Scalar4* d_vel,
-                            const Scalar3* d_accel,
-                            int3* d_image,
-                            unsigned int* d_group_members,
-                            const unsigned int group_size,
-                            const BoxDim& box,
-                            Scalar deltaT,
-                            bool limit,
-                            Scalar limit_val,
-                            bool zero_force,
-                            unsigned int block_size,
-                            unsigned int n_dimensions);
+cudaError_t gpu_nve_step_one(Scalar4* d_pos,
+                             Scalar4* d_vel,
+                             const Scalar3* d_accel,
+                             int3* d_image,
+                             unsigned int* d_group_members,
+                             const unsigned int group_size,
+                             const BoxDim& box,
+                             Scalar deltaT,
+                             bool limit,
+                             Scalar limit_val,
+                             bool zero_force,
+                             unsigned int block_size,
+                             unsigned int n_dimensions);
 
 //! Kernel driver for the first part of the angular NVE update (NO_SQUISH) by TwoStepNVEPU
-hipError_t gpu_nve_angular_step_one(Scalar4* d_orientation,
-                                    Scalar4* d_angmom,
-                                    const Scalar3* d_inertia,
-                                    const Scalar4* d_net_torque,
-                                    unsigned int* d_group_members,
-                                    const unsigned int group_size,
-                                    Scalar deltaT,
-                                    unsigned int n_dimensions,
-                                    Scalar scale,
-                                    const unsigned int block_size);
+cudaError_t gpu_nve_angular_step_one(Scalar4* d_orientation,
+                                     Scalar4* d_angmom,
+                                     const Scalar3* d_inertia,
+                                     const Scalar4* d_net_torque,
+                                     unsigned int* d_group_members,
+                                     const unsigned int group_size,
+                                     Scalar deltaT,
+                                     unsigned int n_dimensions,
+                                     Scalar scale,
+                                     const unsigned int block_size);
 
 //! Kernel driver for the second part of the angular NVE update (NO_SQUISH) by TwoStepNVEPU
-hipError_t gpu_nve_angular_step_two(const Scalar4* d_orientation,
-                                    Scalar4* d_angmom,
-                                    const Scalar3* d_inertia,
-                                    const Scalar4* d_net_torque,
-                                    unsigned int* d_group_members,
-                                    const unsigned int group_size,
-                                    Scalar deltaT,
-                                    unsigned int n_dimensions,
-                                    Scalar scale,
-                                    const unsigned int block_size);
+cudaError_t gpu_nve_angular_step_two(const Scalar4* d_orientation,
+                                     Scalar4* d_angmom,
+                                     const Scalar3* d_inertia,
+                                     const Scalar4* d_net_torque,
+                                     unsigned int* d_group_members,
+                                     const unsigned int group_size,
+                                     Scalar deltaT,
+                                     unsigned int n_dimensions,
+                                     Scalar scale,
+                                     const unsigned int block_size);
 
     } // end namespace kernel
     } // end namespace md

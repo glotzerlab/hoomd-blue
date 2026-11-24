@@ -10,7 +10,9 @@
  */
 
 #include <cuda_runtime.h>
+#include <stdint.h>
 
+#include "RequiredDouble.h"
 #include "hoomd/HOOMDMath.h"
 #include "hoomd/Index1D.h"
 
@@ -37,7 +39,7 @@ cudaError_t srd_rotate(Scalar4* d_vel,
                        Scalar4* d_vel_embed,
                        const unsigned int* d_embed_group,
                        const unsigned int* d_embed_cell_ids,
-                       const double4* d_cell_vel,
+                       const RequiredDouble4* d_cell_vel,
                        const double3* d_rotvec,
                        const double angle,
                        const double* d_factors,

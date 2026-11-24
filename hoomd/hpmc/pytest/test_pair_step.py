@@ -189,3 +189,19 @@ def test_logging():
             }
         },
     )
+
+
+@pytest.mark.cpu
+def test_default_can_be_set_despite_only_if(mc_simulation_factory):
+    step = hoomd.hpmc.pair.Step()
+    step.params.default = {"epsilon": [1, 2], "r": [1, 2]}
+
+    simulation = mc_simulation_factory()
+    simulation.operations.integrator.shape["A"] = {"diameter": 1}
+    simulation.operations.integrator.pair_potentials.append(step)
+    simulation.run(0)
+
+    assert simulation.operations.integrator.pair_potentials[0].params.default == {
+        "epsilon": [1.0, 2.0],
+        "r": [1.0, 2.0],
+    }

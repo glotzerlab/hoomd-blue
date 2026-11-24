@@ -6,7 +6,7 @@
 */
 
 #ifdef ENABLE_MPI
-#ifdef ENABLE_HIP
+#ifdef ENABLE_GPU
 
 #include "CommunicatorGPU.h"
 #include "System.h"
@@ -33,14 +33,14 @@ CommunicatorGPU::CommunicatorGPU(std::shared_ptr<SystemDefinition> sysdef,
     initializeCommunicationStages();
 
     // create cuda event
-    hipEventCreateWithFlags(&m_event, hipEventDisableTiming);
+    cudaEventCreateWithFlags(&m_event, cudaEventDisableTiming);
     }
 
 //! Destructor
 CommunicatorGPU::~CommunicatorGPU()
     {
     m_exec_conf->msg->notice(5) << "Destroying CommunicatorGPU";
-    hipEventDestroy(m_event);
+    cudaEventDestroy(m_event);
     }
 
 void CommunicatorGPU::updateMeshDefinition()
@@ -812,7 +812,7 @@ void CommunicatorGPU::GroupCommunicatorGPU<group_data>::migrateGroups(bool incom
                 }
 
             std::vector<MPI_Status> stats(reqs.size());
-            MPI_Waitall((unsigned int)reqs.size(), &reqs.front(), &stats.front());
+            MPI_Waitall((unsigned int)reqs.size(), reqs.data(), stats.data());
             }
 
             {
@@ -1167,7 +1167,7 @@ void CommunicatorGPU::GroupCommunicatorGPU<group_data>::migrateGroups(bool incom
                 }
 
             std::vector<MPI_Status> stats(reqs.size());
-            MPI_Waitall((unsigned int)reqs.size(), &reqs.front(), &stats.front());
+            MPI_Waitall((unsigned int)reqs.size(), reqs.data(), stats.data());
             }
 
         unsigned int n_recv_unique = 0;
@@ -1619,7 +1619,7 @@ void CommunicatorGPU::GroupCommunicatorGPU<group_data>::exchangeGhostGroups(
                     }
 
                 std::vector<MPI_Status> stats(reqs.size());
-                MPI_Waitall((unsigned int)reqs.size(), &reqs.front(), &stats.front());
+                MPI_Waitall((unsigned int)reqs.size(), reqs.data(), stats.data());
                 } // end ArrayHandle scope
 
             unsigned int old_n_ghost = m_gdata->getNGhosts();
@@ -2013,7 +2013,7 @@ void CommunicatorGPU::migrateParticles()
                 }
 
             std::vector<MPI_Status> stats(reqs.size());
-            MPI_Waitall((unsigned int)(reqs.size()), &reqs.front(), &stats.front());
+            MPI_Waitall((unsigned int)(reqs.size()), reqs.data(), stats.data());
             }
 
             {
@@ -2583,7 +2583,7 @@ void CommunicatorGPU::exchangeGhosts()
                                                                    access_mode::read);
 
             // lump together into one synchronization call
-            hipDeviceSynchronize();
+            cudaDeviceSynchronize();
 
             ArrayHandle<unsigned int> h_unique_neighbors(m_unique_neighbors,
                                                          access_location::host,
@@ -2913,7 +2913,7 @@ void CommunicatorGPU::exchangeGhosts()
                 } // end neighbor loop
 
             std::vector<MPI_Status> stats(reqs.size());
-            MPI_Waitall((unsigned int)reqs.size(), &reqs.front(), &stats.front());
+            MPI_Waitall((unsigned int)reqs.size(), reqs.data(), stats.data());
             } // end ArrayHandle scope
             // only unpack in non-CUDA MPI builds
             {
@@ -3187,8 +3187,8 @@ void CommunicatorGPU::beginUpdateGhosts(uint64_t timestep)
                                                          access_mode::read);
 
             // lump together into one synchronization call
-            hipEventRecord(m_event);
-            hipEventSynchronize(m_event);
+            cudaEventRecord(m_event);
+            cudaEventSynchronize(m_event);
 
             // access send buffers
             m_reqs.clear();
@@ -3337,7 +3337,7 @@ void CommunicatorGPU::beginUpdateGhosts(uint64_t timestep)
                 {
                 // complete communication
                 std::vector<MPI_Status> stats(m_reqs.size());
-                MPI_Waitall((unsigned int)m_reqs.size(), &m_reqs.front(), &stats.front());
+                MPI_Waitall((unsigned int)m_reqs.size(), m_reqs.data(), stats.data());
                 }
             } // end ArrayHandle scope
 
@@ -3424,7 +3424,7 @@ void CommunicatorGPU::finishUpdateGhosts(uint64_t timestep)
 
         // complete communication
         std::vector<MPI_Status> stats(m_reqs.size());
-        MPI_Waitall((unsigned int)m_reqs.size(), &m_reqs.front(), &stats.front());
+        MPI_Waitall((unsigned int)m_reqs.size(), m_reqs.data(), stats.data());
 
         // only unpack in non-CUDA-MPI builds
         assert(m_num_stages == 1);
@@ -3795,7 +3795,7 @@ void CommunicatorGPU::updateNetForce(uint64_t timestep)
 
             // complete communication
             std::vector<MPI_Status> stats(m_reqs.size());
-            MPI_Waitall((unsigned int)m_reqs.size(), &m_reqs.front(), &stats.front());
+            MPI_Waitall((unsigned int)m_reqs.size(), m_reqs.data(), stats.data());
             } // end ArrayHandle scope
 
             {
@@ -3880,5 +3880,5 @@ void export_CommunicatorGPU(pybind11::module& m)
 
     } // end namespace hoomd
 
-#endif // ENABLE_HIP
+#endif // ENABLE_GPU
 #endif // ENABLE_MPI

@@ -16,7 +16,7 @@
 #include "ShapeMoves.h"
 #include "UpdaterShape.h"
 
-#ifdef ENABLE_HIP
+#ifdef ENABLE_GPU
 #include "ComputeFreeVolumeGPU.h"
 #include "IntegratorHPMCMonoGPU.h"
 #include "UpdaterGCAGPU.h"
@@ -45,7 +45,7 @@ void export_convex_spheropolyhedron(pybind11::module& m)
 
     export_ExternalFieldWall<ShapeSpheropolyhedron>(m, "WallConvexSpheropolyhedron");
 
-#ifdef ENABLE_HIP
+#ifdef ENABLE_GPU
 
     export_IntegratorHPMCMonoGPU<ShapeSpheropolyhedron>(m, "IntegratorHPMCMonoSpheropolyhedronGPU");
     export_ComputeFreeVolumeGPU<ShapeSpheropolyhedron>(

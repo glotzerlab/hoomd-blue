@@ -2,9 +2,9 @@
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #include "hoomd/mpcd/PlanarPoreGeometryFiller.h"
-#ifdef ENABLE_HIP
+#ifdef ENABLE_GPU
 #include "hoomd/mpcd/PlanarPoreGeometryFillerGPU.h"
-#endif // ENABLE_HIP
+#endif // ENABLE_GPU
 
 #include "hoomd/SnapshotSystemData.h"
 #include "hoomd/test/upp11_config.h"
@@ -189,10 +189,10 @@ UP_TEST(planar_pore_fill_basic)
     planar_pore_fill_basic_test<mpcd::PlanarPoreGeometryFiller>(
         std::make_shared<ExecutionConfiguration>(ExecutionConfiguration::CPU));
     }
-#ifdef ENABLE_HIP
+#ifdef ENABLE_GPU
 UP_TEST(planar_pore_fill_basic_gpu)
     {
     planar_pore_fill_basic_test<mpcd::PlanarPoreGeometryFillerGPU>(
         std::make_shared<ExecutionConfiguration>(ExecutionConfiguration::GPU));
     }
-#endif // ENABLE_HIP
+#endif // ENABLE_GPU

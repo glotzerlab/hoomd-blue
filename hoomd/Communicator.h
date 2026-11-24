@@ -21,7 +21,7 @@
 #include <hoomd/extern/nano-signal-slot/nano_signal_slot.hpp>
 #include <memory>
 
-#ifndef __HIPCC__
+#ifndef __NVCC__
 #include <pybind11/pybind11.h>
 #endif
 

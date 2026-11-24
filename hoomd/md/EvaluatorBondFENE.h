@@ -4,7 +4,7 @@
 #ifndef __BOND_EVALUATOR_FENE_H__
 #define __BOND_EVALUATOR_FENE_H__
 
-#ifndef __HIPCC__
+#ifndef __NVCC__
 #include <string>
 #endif
 
@@ -17,7 +17,7 @@
 // need to declare these class methods with __device__ qualifiers when building in nvcc
 // DEVICE is __host__ __device__ when included in nvcc and blank when included into the host
 // compiler
-#ifdef __HIPCC__
+#ifdef __NVCC__
 #define DEVICE __device__
 #else
 #define DEVICE
@@ -35,7 +35,7 @@ struct fene_params
     Scalar sigma_6;
     Scalar delta;
 
-#ifndef __HIPCC__
+#ifndef __NVCC__
     fene_params()
         {
         k = 0;
@@ -155,7 +155,7 @@ class EvaluatorBondFENE
         return true;
         }
 
-#ifndef __HIPCC__
+#ifndef __NVCC__
     //! Get the name of this potential
     /*! \returns The potential name.
      */

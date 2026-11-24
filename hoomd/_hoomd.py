@@ -23,10 +23,6 @@ class BuildInfo:
         pass
 
     @staticmethod
-    def getGPUPlatform():
-        pass
-
-    @staticmethod
     def getCXXCompiler():
         pass
 

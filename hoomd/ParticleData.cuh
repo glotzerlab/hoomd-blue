@@ -3,7 +3,7 @@
 
 #pragma once
 
-#ifdef ENABLE_HIP
+#ifdef ENABLE_GPU
 #include "BoxDim.h"
 
 #include "hoomd/CachedAllocator.h"
@@ -12,7 +12,7 @@
     \brief Declares GPU kernel code and data structure functions used by ParticleData
 */
 
-#ifdef __HIPCC__
+#ifdef __NVCC__
 //! Sentinel value in \a body to signify that this particle does not belong to a body
 const unsigned int NO_BODY = 0xffffffff;
 
@@ -29,7 +29,7 @@ namespace hoomd
     {
 namespace detail
     {
-#ifdef __HIPCC__
+#ifdef __NVCC__
 //! Compact particle data storage
 struct pdata_element
     {

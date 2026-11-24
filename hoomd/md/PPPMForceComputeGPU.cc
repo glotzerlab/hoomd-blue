@@ -3,7 +3,6 @@
 
 #include "PPPMForceComputeGPU.h"
 
-#ifdef ENABLE_HIP
 #include "PPPMForceComputeGPU.cuh"
 
 namespace hoomd
@@ -48,11 +47,7 @@ PPPMForceComputeGPU::~PPPMForceComputeGPU()
     {
     if (m_local_fft && m_cufft_initialized)
         {
-#ifdef __HIP_PLATFORM_HCC__
-        CHECK_HIPFFT_ERROR(hipfftDestroy(m_hipfft_plan));
-#else
-        CHECK_HIPFFT_ERROR(cufftDestroy(m_hipfft_plan));
-#endif
+        CHECK_CUFFT_ERROR(cufftDestroy(m_hipfft_plan));
         }
 #ifdef ENABLE_MPI
     else if (m_cuda_dfft_initialized)
@@ -68,11 +63,7 @@ void PPPMForceComputeGPU::initializeFFT()
     // free plans if they have already been initialized
     if (m_local_fft && m_cufft_initialized)
         {
-#ifdef __HIP_PLATFORM_HCC__
-        CHECK_HIPFFT_ERROR(hipfftDestroy(m_hipfft_plan));
-#else
-        CHECK_HIPFFT_ERROR(cufftDestroy(m_hipfft_plan));
-#endif
+        CHECK_CUFFT_ERROR(cufftDestroy(m_hipfft_plan));
         }
 #ifdef ENABLE_MPI
     else if (m_cuda_dfft_initialized)
@@ -129,7 +120,7 @@ void PPPMForceComputeGPU::initializeFFT()
         ArrayHandle<unsigned int> h_cart_ranks(m_pdata->getDomainDecomposition()->getCartRanks(),
                                                access_location::host,
                                                access_mode::read);
-#ifndef USE_HOST_DFFT
+
         dfft_cuda_create_plan(&m_dfft_plan_forward,
                               3,
                               gdim,
@@ -154,32 +145,6 @@ void PPPMForceComputeGPU::initializeFFT()
                               1,
                               m_exec_conf->getMPICommunicator(),
                               (int*)h_cart_ranks.data);
-#else
-        dfft_create_plan(&m_dfft_plan_forward,
-                         3,
-                         gdim,
-                         embed,
-                         NULL,
-                         pdim,
-                         pidx,
-                         row_m,
-                         0,
-                         1,
-                         m_exec_conf->getMPICommunicator(),
-                         (int*)h_cart_ranks.data);
-        dfft_create_plan(&m_dfft_plan_inverse,
-                         3,
-                         gdim,
-                         NULL,
-                         embed,
-                         pdim,
-                         pidx,
-                         row_m,
-                         0,
-                         1,
-                         m_exec_conf->getMPICommunicator(),
-                         (int*)h_cart_ranks.data);
-#endif
 
         m_cuda_dfft_initialized = true;
         }
@@ -187,36 +152,28 @@ void PPPMForceComputeGPU::initializeFFT()
 
     if (m_local_fft)
         {
-// create plan on every device
-#ifdef __HIP_PLATFORM_HCC__
-        CHECK_HIPFFT_ERROR(hipfftPlan3d(&m_hipfft_plan,
-                                        m_mesh_points.z,
-                                        m_mesh_points.y,
-                                        m_mesh_points.x,
-                                        HIPFFT_C2C));
-#else
-        CHECK_HIPFFT_ERROR(cufftPlan3d(&m_hipfft_plan,
-                                       m_mesh_points.z,
-                                       m_mesh_points.y,
-                                       m_mesh_points.x,
-                                       CUFFT_C2C));
-#endif
+        // create plan on every device
+        CHECK_CUFFT_ERROR(cufftPlan3d(&m_hipfft_plan,
+                                      m_mesh_points.z,
+                                      m_mesh_points.y,
+                                      m_mesh_points.x,
+                                      CUFFT_C2C));
         m_cufft_initialized = true;
         }
 
     // pad with offset
-    GPUArray<hipfftComplex> mesh(m_n_cells + m_ghost_offset, m_exec_conf);
+    GPUArray<cufftComplex> mesh(m_n_cells + m_ghost_offset, m_exec_conf);
     m_mesh.swap(mesh);
 
     // pad with offset
     unsigned int inv_mesh_elements = m_n_cells + m_ghost_offset;
-    GPUArray<hipfftComplex> inv_fourier_mesh_x(inv_mesh_elements, m_exec_conf);
+    GPUArray<cufftComplex> inv_fourier_mesh_x(inv_mesh_elements, m_exec_conf);
     m_inv_fourier_mesh_x.swap(inv_fourier_mesh_x);
 
-    GPUArray<hipfftComplex> inv_fourier_mesh_y(inv_mesh_elements, m_exec_conf);
+    GPUArray<cufftComplex> inv_fourier_mesh_y(inv_mesh_elements, m_exec_conf);
     m_inv_fourier_mesh_y.swap(inv_fourier_mesh_y);
 
-    GPUArray<hipfftComplex> inv_fourier_mesh_z(inv_mesh_elements, m_exec_conf);
+    GPUArray<cufftComplex> inv_fourier_mesh_z(inv_mesh_elements, m_exec_conf);
     m_inv_fourier_mesh_z.swap(inv_fourier_mesh_z);
 
     unsigned int n_blocks
@@ -239,10 +196,10 @@ void PPPMForceComputeGPU::assignParticles()
     ArrayHandle<Scalar4> d_postype(m_pdata->getPositions(),
                                    access_location::device,
                                    access_mode::read);
-    ArrayHandle<hipfftComplex> d_mesh(m_mesh, access_location::device, access_mode::overwrite);
-    ArrayHandle<hipfftComplex> d_mesh_scratch(m_mesh_scratch,
-                                              access_location::device,
-                                              access_mode::overwrite);
+    ArrayHandle<cufftComplex> d_mesh(m_mesh, access_location::device, access_mode::overwrite);
+    ArrayHandle<cufftComplex> d_mesh_scratch(m_mesh_scratch,
+                                             access_location::device,
+                                             access_mode::overwrite);
     ArrayHandle<Scalar> d_charge(m_pdata->getCharges(), access_location::device, access_mode::read);
 
     // access the group
@@ -285,13 +242,8 @@ void PPPMForceComputeGPU::updateMeshes()
     if (m_local_fft)
         {
         // locally transform the particle mesh
-        ArrayHandle<hipfftComplex> d_mesh(m_mesh, access_location::device, access_mode::read);
-
-#ifdef __HIP_PLATFORM_HCC__
-        CHECK_HIPFFT_ERROR(hipfftExecC2C(m_hipfft_plan, d_mesh.data, d_mesh.data, HIPFFT_FORWARD));
-#else
-        CHECK_HIPFFT_ERROR(cufftExecC2C(m_hipfft_plan, d_mesh.data, d_mesh.data, CUFFT_FORWARD));
-#endif
+        ArrayHandle<cufftComplex> d_mesh(m_mesh, access_location::device, access_mode::read);
+        CHECK_CUFFT_ERROR(cufftExecC2C(m_hipfft_plan, d_mesh.data, d_mesh.data, CUFFT_FORWARD));
         }
 #ifdef ENABLE_MPI
     else
@@ -302,8 +254,8 @@ void PPPMForceComputeGPU::updateMeshes()
 
         // perform a distributed FFT
         m_exec_conf->msg->notice(8) << "charge.pppm: Distributed FFT mesh" << std::endl;
-#ifndef USE_HOST_DFFT
-        ArrayHandle<hipfftComplex> d_mesh(m_mesh, access_location::device, access_mode::read);
+
+        ArrayHandle<cufftComplex> d_mesh(m_mesh, access_location::device, access_mode::read);
 
         if (m_exec_conf->isCUDAErrorCheckingEnabled())
             dfft_cuda_check_errors(&m_dfft_plan_forward, 1);
@@ -314,28 +266,20 @@ void PPPMForceComputeGPU::updateMeshes()
                           d_mesh.data + m_ghost_offset,
                           0,
                           &m_dfft_plan_forward);
-#else
-        ArrayHandle<hipfftComplex> h_mesh(m_mesh, access_location::host, access_mode::read);
-
-        dfft_execute((cpx_t*)(h_mesh.data + m_ghost_offset),
-                     (cpx_t*)(h_fourier_mesh.data + m_ghost_offset),
-                     0,
-                     m_dfft_plan_forward);
-#endif
         }
 #endif
 
         {
-        ArrayHandle<hipfftComplex> d_mesh(m_mesh, access_location::device, access_mode::readwrite);
-        ArrayHandle<hipfftComplex> d_inv_fourier_mesh_x(m_inv_fourier_mesh_x,
-                                                        access_location::device,
-                                                        access_mode::overwrite);
-        ArrayHandle<hipfftComplex> d_inv_fourier_mesh_y(m_inv_fourier_mesh_y,
-                                                        access_location::device,
-                                                        access_mode::overwrite);
-        ArrayHandle<hipfftComplex> d_inv_fourier_mesh_z(m_inv_fourier_mesh_z,
-                                                        access_location::device,
-                                                        access_mode::overwrite);
+        ArrayHandle<cufftComplex> d_mesh(m_mesh, access_location::device, access_mode::readwrite);
+        ArrayHandle<cufftComplex> d_inv_fourier_mesh_x(m_inv_fourier_mesh_x,
+                                                       access_location::device,
+                                                       access_mode::overwrite);
+        ArrayHandle<cufftComplex> d_inv_fourier_mesh_y(m_inv_fourier_mesh_y,
+                                                       access_location::device,
+                                                       access_mode::overwrite);
+        ArrayHandle<cufftComplex> d_inv_fourier_mesh_z(m_inv_fourier_mesh_z,
+                                                       access_location::device,
+                                                       access_mode::overwrite);
 
         ArrayHandle<Scalar> d_inf_f(m_inf_f, access_location::device, access_mode::read);
         ArrayHandle<Scalar3> d_k(m_k, access_location::device, access_mode::read);
@@ -360,63 +304,48 @@ void PPPMForceComputeGPU::updateMeshes()
     if (m_local_fft)
         {
         // do local inverse transform of all three components of the force mesh
-        ArrayHandle<hipfftComplex> d_inv_fourier_mesh_x(m_inv_fourier_mesh_x,
-                                                        access_location::device,
-                                                        access_mode::overwrite);
-        ArrayHandle<hipfftComplex> d_inv_fourier_mesh_y(m_inv_fourier_mesh_y,
-                                                        access_location::device,
-                                                        access_mode::overwrite);
-        ArrayHandle<hipfftComplex> d_inv_fourier_mesh_z(m_inv_fourier_mesh_z,
-                                                        access_location::device,
-                                                        access_mode::overwrite);
+        ArrayHandle<cufftComplex> d_inv_fourier_mesh_x(m_inv_fourier_mesh_x,
+                                                       access_location::device,
+                                                       access_mode::overwrite);
+        ArrayHandle<cufftComplex> d_inv_fourier_mesh_y(m_inv_fourier_mesh_y,
+                                                       access_location::device,
+                                                       access_mode::overwrite);
+        ArrayHandle<cufftComplex> d_inv_fourier_mesh_z(m_inv_fourier_mesh_z,
+                                                       access_location::device,
+                                                       access_mode::overwrite);
 
         // do inverse FFT in-place
 
         m_exec_conf->setDevice();
 
-#ifdef __HIP_PLATFORM_HCC__
-        CHECK_HIPFFT_ERROR(hipfftExecC2C(m_hipfft_plan,
-                                         d_inv_fourier_mesh_x.data,
-                                         d_inv_fourier_mesh_x.data,
-                                         HIPFFT_BACKWARD));
-        CHECK_HIPFFT_ERROR(hipfftExecC2C(m_hipfft_plan,
-                                         d_inv_fourier_mesh_y.data,
-                                         d_inv_fourier_mesh_y.data,
-                                         HIPFFT_BACKWARD));
-        CHECK_HIPFFT_ERROR(hipfftExecC2C(m_hipfft_plan,
-                                         d_inv_fourier_mesh_z.data,
-                                         d_inv_fourier_mesh_z.data,
-                                         HIPFFT_BACKWARD));
-#else
-        CHECK_HIPFFT_ERROR(cufftExecC2C(m_hipfft_plan,
-                                        d_inv_fourier_mesh_x.data,
-                                        d_inv_fourier_mesh_x.data,
-                                        CUFFT_INVERSE));
-        CHECK_HIPFFT_ERROR(cufftExecC2C(m_hipfft_plan,
-                                        d_inv_fourier_mesh_y.data,
-                                        d_inv_fourier_mesh_y.data,
-                                        CUFFT_INVERSE));
-        CHECK_HIPFFT_ERROR(cufftExecC2C(m_hipfft_plan,
-                                        d_inv_fourier_mesh_z.data,
-                                        d_inv_fourier_mesh_z.data,
-                                        CUFFT_INVERSE));
-#endif
+        CHECK_CUFFT_ERROR(cufftExecC2C(m_hipfft_plan,
+                                       d_inv_fourier_mesh_x.data,
+                                       d_inv_fourier_mesh_x.data,
+                                       CUFFT_INVERSE));
+        CHECK_CUFFT_ERROR(cufftExecC2C(m_hipfft_plan,
+                                       d_inv_fourier_mesh_y.data,
+                                       d_inv_fourier_mesh_y.data,
+                                       CUFFT_INVERSE));
+        CHECK_CUFFT_ERROR(cufftExecC2C(m_hipfft_plan,
+                                       d_inv_fourier_mesh_z.data,
+                                       d_inv_fourier_mesh_z.data,
+                                       CUFFT_INVERSE));
         }
 #ifdef ENABLE_MPI
     else
         {
         // Distributed inverse transform of force mesh
         m_exec_conf->msg->notice(8) << "charge.pppm: Distributed iFFT" << std::endl;
-#ifndef USE_HOST_DFFT
-        ArrayHandle<hipfftComplex> d_inv_fourier_mesh_x(m_inv_fourier_mesh_x,
-                                                        access_location::device,
-                                                        access_mode::overwrite);
-        ArrayHandle<hipfftComplex> d_inv_fourier_mesh_y(m_inv_fourier_mesh_y,
-                                                        access_location::device,
-                                                        access_mode::overwrite);
-        ArrayHandle<hipfftComplex> d_inv_fourier_mesh_z(m_inv_fourier_mesh_z,
-                                                        access_location::device,
-                                                        access_mode::overwrite);
+
+        ArrayHandle<cufftComplex> d_inv_fourier_mesh_x(m_inv_fourier_mesh_x,
+                                                       access_location::device,
+                                                       access_mode::overwrite);
+        ArrayHandle<cufftComplex> d_inv_fourier_mesh_y(m_inv_fourier_mesh_y,
+                                                       access_location::device,
+                                                       access_mode::overwrite);
+        ArrayHandle<cufftComplex> d_inv_fourier_mesh_z(m_inv_fourier_mesh_z,
+                                                       access_location::device,
+                                                       access_mode::overwrite);
 
         if (m_exec_conf->isCUDAErrorCheckingEnabled())
             dfft_cuda_check_errors(&m_dfft_plan_inverse, 1);
@@ -435,29 +364,6 @@ void PPPMForceComputeGPU::updateMeshes()
                           d_inv_fourier_mesh_z.data + m_ghost_offset,
                           1,
                           &m_dfft_plan_inverse);
-#else
-        ArrayHandle<hipfftComplex> h_inv_fourier_mesh_x(m_inv_fourier_mesh_x,
-                                                        access_location::host,
-                                                        access_mode::overwrite);
-        ArrayHandle<hipfftComplex> h_inv_fourier_mesh_y(m_inv_fourier_mesh_y,
-                                                        access_location::host,
-                                                        access_mode::overwrite);
-        ArrayHandle<hipfftComplex> h_inv_fourier_mesh_z(m_inv_fourier_mesh_z,
-                                                        access_location::host,
-                                                        access_mode::overwrite);
-        dfft_execute((cpx_t*)h_inv_fourier_mesh_x.data + m_ghost_offset,
-                     (cpx_t*)h_inv_fourier_mesh_x.data + m_ghost_offset,
-                     1,
-                     m_dfft_plan_inverse);
-        dfft_execute((cpx_t*)h_inv_fourier_mesh_y.data + m_ghost_offset,
-                     (cpx_t*)h_inv_fourier_mesh_y.data + m_ghost_offset,
-                     1,
-                     m_dfft_plan_inverse);
-        dfft_execute((cpx_t*)h_inv_fourier_mesh_z.data + m_ghost_offset,
-                     (cpx_t*)h_inv_fourier_mesh_z.data + m_ghost_offset,
-                     1,
-                     m_dfft_plan_inverse);
-#endif
         }
 #endif
 
@@ -479,15 +385,15 @@ void PPPMForceComputeGPU::interpolateForces()
     ArrayHandle<Scalar4> d_postype(m_pdata->getPositions(),
                                    access_location::device,
                                    access_mode::read);
-    ArrayHandle<hipfftComplex> d_inv_fourier_mesh_x(m_inv_fourier_mesh_x,
-                                                    access_location::device,
-                                                    access_mode::read);
-    ArrayHandle<hipfftComplex> d_inv_fourier_mesh_y(m_inv_fourier_mesh_y,
-                                                    access_location::device,
-                                                    access_mode::read);
-    ArrayHandle<hipfftComplex> d_inv_fourier_mesh_z(m_inv_fourier_mesh_z,
-                                                    access_location::device,
-                                                    access_mode::read);
+    ArrayHandle<cufftComplex> d_inv_fourier_mesh_x(m_inv_fourier_mesh_x,
+                                                   access_location::device,
+                                                   access_mode::read);
+    ArrayHandle<cufftComplex> d_inv_fourier_mesh_y(m_inv_fourier_mesh_y,
+                                                   access_location::device,
+                                                   access_mode::read);
+    ArrayHandle<cufftComplex> d_inv_fourier_mesh_z(m_inv_fourier_mesh_z,
+                                                   access_location::device,
+                                                   access_mode::read);
     ArrayHandle<Scalar> d_charge(m_pdata->getCharges(), access_location::device, access_mode::read);
 
     ArrayHandle<Scalar4> d_force(m_force, access_location::device, access_mode::overwrite);
@@ -529,7 +435,7 @@ void PPPMForceComputeGPU::interpolateForces()
 
 void PPPMForceComputeGPU::computeVirial()
     {
-    ArrayHandle<hipfftComplex> d_mesh(m_mesh, access_location::device, access_mode::read);
+    ArrayHandle<cufftComplex> d_mesh(m_mesh, access_location::device, access_mode::read);
     ArrayHandle<Scalar> d_inf_f(m_inf_f, access_location::device, access_mode::read);
     ArrayHandle<Scalar3> d_k(m_k, access_location::device, access_mode::read);
     ArrayHandle<Scalar> d_virial_mesh(m_virial_mesh,
@@ -585,7 +491,7 @@ void PPPMForceComputeGPU::computeVirial()
 
 Scalar PPPMForceComputeGPU::computePE()
     {
-    ArrayHandle<hipfftComplex> d_mesh(m_mesh, access_location::device, access_mode::read);
+    ArrayHandle<cufftComplex> d_mesh(m_mesh, access_location::device, access_mode::read);
     ArrayHandle<Scalar> d_inf_f(m_inf_f, access_location::device, access_mode::read);
 
     ArrayHandle<Scalar> d_sum_partial(m_sum_partial,
@@ -759,5 +665,3 @@ void export_PPPMForceComputeGPU(pybind11::module& m)
     } // end namespace detail
     } // end namespace md
     } // end namespace hoomd
-
-#endif // ENABLE_HIP

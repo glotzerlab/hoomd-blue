@@ -11,7 +11,7 @@
 #include <memory>
 
 #include "hoomd/md/PotentialExternal.h"
-#ifdef ENABLE_HIP
+#ifdef ENABLE_GPU
 #include "hoomd/md/PotentialExternalGPU.h"
 #endif
 #include "hoomd/md/EvaluatorExternalPeriodic.h"
@@ -26,7 +26,7 @@ using namespace hoomd;
 using namespace hoomd::md;
 
 typedef PotentialExternal<EvaluatorExternalPeriodic> PotentialExternalPeriodic;
-#ifdef ENABLE_HIP
+#ifdef ENABLE_GPU
 typedef PotentialExternalGPU<EvaluatorExternalPeriodic> PotentialExternalPeriodicGPU;
 #endif
 
@@ -188,7 +188,7 @@ base_class_periodic_creator(std::shared_ptr<SystemDefinition> sysdef)
     return std::shared_ptr<PotentialExternalPeriodic>(new PotentialExternalPeriodic(sysdef));
     }
 
-#ifdef ENABLE_HIP
+#ifdef ENABLE_GPU
 //! LJForceComputeGPU creator for unit tests
 std::shared_ptr<PotentialExternalPeriodic>
 gpu_periodic_creator(std::shared_ptr<SystemDefinition> sysdef)
@@ -210,7 +210,7 @@ UP_TEST(PotentialExternalPeriodic_particle)
                                      new ExecutionConfiguration(ExecutionConfiguration::CPU)));
     }
 
-#ifdef ENABLE_HIP
+#ifdef ENABLE_GPU
 //! test case for particle test on GPU
 UP_TEST(PotentialExternalLamellaGPU_particle)
     {

@@ -32,7 +32,7 @@ namespace hpmc
 namespace detail
     {
 //! HPMC kernel for ComputeFreeVolumeGPU
-template hipError_t
+template cudaError_t
 gpu_hpmc_free_volume<SHAPE_CLASS(SHAPE)>(const hpmc_free_volume_args_t& args,
                                          const typename SHAPE_CLASS(SHAPE)::param_type* d_params);
     } // namespace detail

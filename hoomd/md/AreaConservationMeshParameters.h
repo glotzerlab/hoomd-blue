@@ -3,7 +3,7 @@
 
 #include "hoomd/HOOMDMath.h"
 
-#ifndef __HIPCC__
+#ifndef __NVCC__
 #include <pybind11/pybind11.h>
 #endif
 
@@ -18,7 +18,7 @@ struct area_conservation_param_t
     Scalar k;
     Scalar A0;
 
-#ifndef __HIPCC__
+#ifndef __NVCC__
     area_conservation_param_t() : k(0), A0(0) { }
 
     area_conservation_param_t(pybind11::dict params)

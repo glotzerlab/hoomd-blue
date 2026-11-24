@@ -5,7 +5,7 @@
     \brief Defines the ParticleData class and associated utilities
 */
 
-#ifdef __HIPCC__
+#ifdef __NVCC__
 #error This header cannot be compiled by nvcc
 #endif
 
@@ -16,7 +16,7 @@
 #include "HOOMDMath.h"
 #include "PythonLocalDataAccess.h"
 
-#ifdef ENABLE_HIP
+#ifdef ENABLE_GPU
 #include "ParticleData.cuh"
 #endif
 
@@ -28,7 +28,7 @@
 #include <hoomd/extern/nano-signal-slot/nano_signal_slot.hpp>
 #include <memory>
 
-#ifndef __HIPCC__
+#ifndef __NVCC__
 #include <pybind11/numpy.h>
 #include <pybind11/pybind11.h>
 #endif
@@ -1180,7 +1180,7 @@ class PYBIND11_EXPORT ParticleData
      */
     void addParticles(const std::vector<detail::pdata_element>& in);
 
-#ifdef ENABLE_HIP
+#ifdef ENABLE_GPU
     //! Pack particle data into a buffer (GPU version)
     /*! \param out Buffer into which particle data is packed
      *  \param comm_flags Buffer into which communication flags is packed
@@ -1201,7 +1201,7 @@ class PYBIND11_EXPORT ParticleData
     /*! \param in List of particle data elements to fill the particle data with
      */
     void addParticlesGPU(const GPUVector<detail::pdata_element>& in);
-#endif // ENABLE_HIP
+#endif // ENABLE_GPU
 
 #endif // ENABLE_MPI
 
@@ -1593,7 +1593,7 @@ class PYBIND11_EXPORT LocalParticleData : public GhostLocalDataAccess<Output, Pa
 
 namespace detail
     {
-#ifndef __HIPCC__
+#ifndef __NVCC__
 //! Exports the BoxDim class to python
 void export_BoxDim(pybind11::module& m);
 //! Exports ParticleData to python

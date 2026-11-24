@@ -1,7 +1,7 @@
 // Copyright (c) 2009-2026 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
-#include "hip/hip_runtime.h"
+#include <cuda_runtime.h>
 // Copyright (c) 2009-2019 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
@@ -120,49 +120,40 @@ __global__ void gpu_rattle_nve_step_one_kernel(Scalar4* d_pos,
    particles in the group See gpu_rattle_nve_step_one_kernel() for full documentation, this function
    is just a driver.
 */
-hipError_t gpu_rattle_nve_step_one(Scalar4* d_pos,
-                                   Scalar4* d_vel,
-                                   const Scalar3* d_accel,
-                                   int3* d_image,
-                                   unsigned int* d_group_members,
-                                   const unsigned int group_size,
-                                   const BoxDim& box,
-                                   Scalar deltaT,
-                                   bool limit,
-                                   Scalar limit_val,
-                                   unsigned int block_size)
+cudaError_t gpu_rattle_nve_step_one(Scalar4* d_pos,
+                                    Scalar4* d_vel,
+                                    const Scalar3* d_accel,
+                                    int3* d_image,
+                                    unsigned int* d_group_members,
+                                    const unsigned int group_size,
+                                    const BoxDim& box,
+                                    Scalar deltaT,
+                                    bool limit,
+                                    Scalar limit_val,
+                                    unsigned int block_size)
     {
     unsigned int max_block_size;
-    hipFuncAttributes attr;
-    hipFuncGetAttributes(&attr, (const void*)gpu_rattle_nve_step_one_kernel);
+    cudaFuncAttributes attr;
+    cudaFuncGetAttributes(&attr, (const void*)gpu_rattle_nve_step_one_kernel);
     max_block_size = attr.maxThreadsPerBlock;
 
     unsigned int run_block_size = min(block_size, max_block_size);
 
     unsigned int nwork = group_size;
 
-    // setup the grid to run the kernel
-    dim3 grid((nwork / run_block_size) + 1, 1, 1);
-    dim3 threads(run_block_size, 1, 1);
+    gpu_rattle_nve_step_one_kernel<<<(nwork / run_block_size) + 1, run_block_size>>>(
+        d_pos,
+        d_vel,
+        d_accel,
+        d_image,
+        d_group_members,
+        nwork,
+        box,
+        deltaT,
+        limit,
+        limit_val);
 
-    // run the kernel
-    hipLaunchKernelGGL((gpu_rattle_nve_step_one_kernel),
-                       dim3(grid),
-                       dim3(threads),
-                       0,
-                       0,
-                       d_pos,
-                       d_vel,
-                       d_accel,
-                       d_image,
-                       d_group_members,
-                       nwork,
-                       box,
-                       deltaT,
-                       limit,
-                       limit_val);
-
-    return hipSuccess;
+    return cudaSuccess;
     }
 
 //! NO_SQUISH angular part of the first half step
@@ -301,45 +292,36 @@ __global__ void gpu_rattle_nve_angular_step_one_kernel(Scalar4* d_orientation,
     \param group_size Number of members in the group
     \param deltaT timestep
 */
-hipError_t gpu_rattle_nve_angular_step_one(Scalar4* d_orientation,
-                                           Scalar4* d_angmom,
-                                           const Scalar3* d_inertia,
-                                           const Scalar4* d_net_torque,
-                                           unsigned int* d_group_members,
-                                           const unsigned int group_size,
-                                           Scalar deltaT,
-                                           Scalar scale,
-                                           const unsigned int block_size)
+cudaError_t gpu_rattle_nve_angular_step_one(Scalar4* d_orientation,
+                                            Scalar4* d_angmom,
+                                            const Scalar3* d_inertia,
+                                            const Scalar4* d_net_torque,
+                                            unsigned int* d_group_members,
+                                            const unsigned int group_size,
+                                            Scalar deltaT,
+                                            Scalar scale,
+                                            const unsigned int block_size)
     {
     unsigned int max_block_size;
-    hipFuncAttributes attr;
-    hipFuncGetAttributes(&attr, (const void*)gpu_rattle_nve_angular_step_one_kernel);
+    cudaFuncAttributes attr;
+    cudaFuncGetAttributes(&attr, (const void*)gpu_rattle_nve_angular_step_one_kernel);
     max_block_size = attr.maxThreadsPerBlock;
 
     unsigned int run_block_size = min(block_size, max_block_size);
 
     unsigned int nwork = group_size;
 
-    // setup the grid to run the kernel
-    dim3 grid((nwork / run_block_size) + 1, 1, 1);
-    dim3 threads(run_block_size, 1, 1);
+    gpu_rattle_nve_angular_step_one_kernel<<<(nwork / run_block_size) + 1, run_block_size>>>(
+        d_orientation,
+        d_angmom,
+        d_inertia,
+        d_net_torque,
+        d_group_members,
+        nwork,
+        deltaT,
+        scale);
 
-    // run the kernel
-    hipLaunchKernelGGL((gpu_rattle_nve_angular_step_one_kernel),
-                       dim3(grid),
-                       dim3(threads),
-                       0,
-                       0,
-                       d_orientation,
-                       d_angmom,
-                       d_inertia,
-                       d_net_torque,
-                       d_group_members,
-                       nwork,
-                       deltaT,
-                       scale);
-
-    return hipSuccess;
+    return cudaSuccess;
     }
 
 //! NO_SQUISH angular part of the second half step
@@ -410,45 +392,36 @@ __global__ void gpu_rattle_nve_angular_step_two_kernel(const Scalar4* d_orientat
     \param group_size Number of members in the group
     \param deltaT timestep
 */
-hipError_t gpu_rattle_nve_angular_step_two(const Scalar4* d_orientation,
-                                           Scalar4* d_angmom,
-                                           const Scalar3* d_inertia,
-                                           const Scalar4* d_net_torque,
-                                           unsigned int* d_group_members,
-                                           const unsigned int group_size,
-                                           Scalar deltaT,
-                                           Scalar scale,
-                                           const unsigned int block_size)
+cudaError_t gpu_rattle_nve_angular_step_two(const Scalar4* d_orientation,
+                                            Scalar4* d_angmom,
+                                            const Scalar3* d_inertia,
+                                            const Scalar4* d_net_torque,
+                                            unsigned int* d_group_members,
+                                            const unsigned int group_size,
+                                            Scalar deltaT,
+                                            Scalar scale,
+                                            const unsigned int block_size)
     {
     unsigned int max_block_size;
-    hipFuncAttributes attr;
-    hipFuncGetAttributes(&attr, (const void*)gpu_rattle_nve_angular_step_two_kernel);
+    cudaFuncAttributes attr;
+    cudaFuncGetAttributes(&attr, (const void*)gpu_rattle_nve_angular_step_two_kernel);
     max_block_size = attr.maxThreadsPerBlock;
 
     unsigned int run_block_size = min(block_size, max_block_size);
 
     unsigned int nwork = group_size;
 
-    // setup the grid to run the kernel
-    dim3 grid((nwork / run_block_size) + 1, 1, 1);
-    dim3 threads(run_block_size, 1, 1);
+    gpu_rattle_nve_angular_step_two_kernel<<<(nwork / run_block_size) + 1, run_block_size>>>(
+        d_orientation,
+        d_angmom,
+        d_inertia,
+        d_net_torque,
+        d_group_members,
+        nwork,
+        deltaT,
+        scale);
 
-    // run the kernel
-    hipLaunchKernelGGL((gpu_rattle_nve_angular_step_two_kernel),
-                       dim3(grid),
-                       dim3(threads),
-                       0,
-                       0,
-                       d_orientation,
-                       d_angmom,
-                       d_inertia,
-                       d_net_torque,
-                       d_group_members,
-                       nwork,
-                       deltaT,
-                       scale);
-
-    return hipSuccess;
+    return cudaSuccess;
     }
     } // end namespace kernel
     } // end namespace md

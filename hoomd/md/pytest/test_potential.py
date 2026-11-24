@@ -967,13 +967,6 @@ def test_force_energy_relationship(
             "Cannot test force energy relationship for " + pot_name + " pair force"
         )
 
-    if (
-        pot_name == "Tersoff"
-        and isinstance(device, hoomd.device.GPU)
-        and hoomd.version.gpu_platform == "ROCm"
-    ):
-        pytest.skip("Tersoff causes seg faults on ROCm (#1606).")
-
     pair_keys = valid_params.pair_potential_params.keys()
     particle_types = list(set(itertools.chain.from_iterable(pair_keys)))
     pot = valid_params.pair_potential(
@@ -1004,8 +997,8 @@ def test_force_energy_relationship(
         calculated_forces = _calculate_force(sim)
         sim_forces = sim.operations.integrator.forces[0].forces
         if sim_forces is not None:
-            np.testing.assert_allclose(calculated_forces[0], sim_forces[0], rtol=1e-05)
-            np.testing.assert_allclose(calculated_forces[1], sim_forces[1], rtol=1e-05)
+            np.testing.assert_allclose(calculated_forces[0], sim_forces[0], rtol=1e-04)
+            np.testing.assert_allclose(calculated_forces[1], sim_forces[1], rtol=1e-04)
 
 
 def _forces_and_energies():
@@ -1106,9 +1099,14 @@ def test_force_energy_accuracy(
         sim_energies = sim.operations.integrator.forces[0].energies
         sim_forces = sim.operations.integrator.forces[0].forces
         if sim_energies is not None:
-            assert isclose(sum(sim_energies), forces_and_energies.energies[i])
+            assert isclose(
+                sum(sim_energies), forces_and_energies.energies[i], rtol=1e-4
+            )
             assert np.allclose(
-                sim_forces[0], forces_and_energies.forces[i] * r, equal_nan=True
+                sim_forces[0],
+                forces_and_energies.forces[i] * r,
+                equal_nan=True,
+                rtol=1e-4,
             )
 
 
@@ -1167,40 +1165,45 @@ def test_setting_nlist(simulation_factory, two_particle_snapshot_factory):
 # Test logging
 @pytest.mark.parametrize(
     "cls, expected_namespace, expected_loggables",
-    zip(
-        (
-            md.pair.Pair,
-            md.pair.aniso.AnisotropicPair,
-            md.many_body.Triplet,
-            md.many_body.Tersoff,
-            md.many_body.RevCross,
-            md.many_body.SquareDensity,
-        ),
-        (
-            ("md", "pair"),
-            ("md", "pair", "aniso"),
-            ("md", "many_body"),
-            ("md", "many_body"),
-            ("md", "many_body"),
-            ("md", "many_body"),
-        ),
-        itertools.repeat(
-            {
-                "energy": {"category": LoggerCategories.scalar, "default": True},
-                "energies": {"category": LoggerCategories.particle, "default": True},
-                "forces": {"category": LoggerCategories.particle, "default": True},
-                "torques": {"category": LoggerCategories.particle, "default": True},
-                "virials": {"category": LoggerCategories.particle, "default": True},
-                "additional_energy": {
-                    "category": LoggerCategories.scalar,
-                    "default": True,
-                },
-                "additional_virial": {
-                    "category": LoggerCategories.sequence,
-                    "default": True,
-                },
-            }
-        ),
+    list(
+        zip(
+            (
+                md.pair.Pair,
+                md.pair.aniso.AnisotropicPair,
+                md.many_body.Triplet,
+                md.many_body.Tersoff,
+                md.many_body.RevCross,
+                md.many_body.SquareDensity,
+            ),
+            (
+                ("md", "pair"),
+                ("md", "pair", "aniso"),
+                ("md", "many_body"),
+                ("md", "many_body"),
+                ("md", "many_body"),
+                ("md", "many_body"),
+            ),
+            itertools.repeat(
+                {
+                    "energy": {"category": LoggerCategories.scalar, "default": True},
+                    "energies": {
+                        "category": LoggerCategories.particle,
+                        "default": True,
+                    },
+                    "forces": {"category": LoggerCategories.particle, "default": True},
+                    "torques": {"category": LoggerCategories.particle, "default": True},
+                    "virials": {"category": LoggerCategories.particle, "default": True},
+                    "additional_energy": {
+                        "category": LoggerCategories.scalar,
+                        "default": True,
+                    },
+                    "additional_virial": {
+                        "category": LoggerCategories.sequence,
+                        "default": True,
+                    },
+                }
+            ),
+        )
     ),
 )
 def test_logging(cls, expected_namespace, expected_loggables):

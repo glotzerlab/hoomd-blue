@@ -1,7 +1,7 @@
 // Copyright (c) 2009-2026 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
-#ifdef __HIPCC__
+#ifdef __NVCC__
 #error This header cannot be compiled by nvcc
 #endif
 
@@ -47,7 +47,7 @@ template<class T> class GPUVector : public GPUArray<T>
               const T& value,
               std::shared_ptr<const ExecutionConfiguration> exec_conf);
 
-#ifdef ENABLE_HIP
+#ifdef ENABLE_GPU
     //! Constructs an empty GPUVector
     GPUVector(std::shared_ptr<const ExecutionConfiguration> exec_conf, bool mapped);
 
@@ -346,7 +346,7 @@ template<class T> void GPUVector<T>::clear()
  */
 template<class T> T* GPUVector<T>::acquireHost(const access_mode::Enum mode) const
     {
-#ifdef ENABLE_HIP
+#ifdef ENABLE_GPU
     return GPUArray<T>::acquire(access_location::host, access_mode::readwrite, false);
 #else
     return GPUArray<T>::acquire(access_location::host, access_mode::readwrite);

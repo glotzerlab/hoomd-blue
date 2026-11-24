@@ -80,7 +80,7 @@ def test_construction(cls):
     assert len(wall_pot.walls) == 10
 
 
-@pytest.mark.parametrize("wall_pot", (cls([]) for cls in _potential_cls))
+@pytest.mark.parametrize("wall_pot", [cls([]) for cls in _potential_cls])
 def test_wall_setting(wall_pot):
     walls = [w for w in WallGenerator.generate_n(10)]
     wall_pot.walls = walls
@@ -125,7 +125,7 @@ def _params(r_cut=None, r_extrap=None):
 _params.rng = np.random.default_rng(26456)
 
 
-@pytest.mark.parametrize("cls, params", zip(_potential_cls, _params()))
+@pytest.mark.parametrize("cls, params", list(zip(_potential_cls, _params())))
 def test_potential_params(cls, params):
     wall_pot = cls(WallGenerator.generate_n(2))
     wall_pot.params["A"] = params
@@ -137,7 +137,7 @@ def test_potential_params(cls, params):
         assert wall_pot.params["foo"][attr] == params[attr]
 
 
-@pytest.mark.parametrize("cls, params", zip(_potential_cls, _params()))
+@pytest.mark.parametrize("cls, params", list(zip(_potential_cls, _params())))
 def test_attaching(simulation, cls, params):
     wall_pot = cls(WallGenerator.generate_n(2))
     simulation.operations.integrator.forces.append(wall_pot)
@@ -149,7 +149,7 @@ def test_attaching(simulation, cls, params):
         assert np.isclose(wall_pot.params["A"][attr], params[attr])
 
 
-@pytest.mark.parametrize("cls, params", zip(_potential_cls, _params(2.5, 0.0)))
+@pytest.mark.parametrize("cls, params", list(zip(_potential_cls, _params(2.5, 0.0))))
 def test_plane(simulation, cls, params):
     """Test that particles stay in box slice defined by two plane walls."""
     wall_pot = cls(
@@ -167,7 +167,7 @@ def test_plane(simulation, cls, params):
             assert np.all(snap.particles.position[:, 2] > -1)
 
 
-@pytest.mark.parametrize("cls, params", zip(_potential_cls, _params(2.5, 0.0)))
+@pytest.mark.parametrize("cls, params", list(zip(_potential_cls, _params(2.5, 0.0))))
 def test_sphere(simulation, cls, params):
     """Test that particles stay within a sphere wall."""
     radius = 5
@@ -180,7 +180,7 @@ def test_sphere(simulation, cls, params):
             assert np.all(np.linalg.norm(snap.particles.position, axis=1) < radius)
 
 
-@pytest.mark.parametrize("cls, params", zip(_potential_cls, _params(2.5, 0.0)))
+@pytest.mark.parametrize("cls, params", list(zip(_potential_cls, _params(2.5, 0.0))))
 def test_cylinder(simulation, cls, params):
     """Test that particles stay within the pipe defined by a cylinder wall."""
     n = np.array([1, 1, 1])
@@ -198,7 +198,7 @@ def test_cylinder(simulation, cls, params):
                 assert np.linalg.norm(r - (np.dot(r, n) * n)) < radius
 
 
-@pytest.mark.parametrize("cls, params", zip(_potential_cls, _params(2.5, 0.0)))
+@pytest.mark.parametrize("cls, params", list(zip(_potential_cls, _params(2.5, 0.0))))
 def test_outside(simulation, cls, params):
     """Test that particles stay outside a sphere wall when inside=False."""
     radius = 5.0
@@ -216,7 +216,7 @@ def test_outside(simulation, cls, params):
             assert np.all(np.linalg.norm(snap.particles.position, axis=1) > radius)
 
 
-@pytest.mark.parametrize("cls, params", zip(_potential_cls, _params(2.5, 1.1)))
+@pytest.mark.parametrize("cls, params", list(zip(_potential_cls, _params(2.5, 1.1))))
 def test_r_extrap(simulation, cls, params):
     """Test a force is generated in the other half space with r_extrap set."""
     radius = 5.0
@@ -239,17 +239,19 @@ def test_r_extrap(simulation, cls, params):
 # Test Logging
 @pytest.mark.parametrize(
     "cls, expected_namespace, expected_loggables",
-    zip(
-        _potential_cls,
-        itertools.repeat(("md", "external", "wall")),
-        itertools.repeat(expected_loggable_params),
+    list(
+        zip(
+            _potential_cls,
+            itertools.repeat(("md", "external", "wall")),
+            itertools.repeat(expected_loggable_params),
+        )
     ),
 )
 def test_logging(cls, expected_namespace, expected_loggables):
     logging_check(cls, expected_namespace, expected_loggables)
 
 
-@pytest.mark.parametrize("cls, params", zip(_potential_cls, _params()))
+@pytest.mark.parametrize("cls, params", list(zip(_potential_cls, _params())))
 def test_kernel_parameters(simulation, cls, params):
     wall_pot = cls(WallGenerator.generate_n(2))
     simulation.operations.integrator.forces.append(wall_pot)
@@ -263,7 +265,7 @@ def test_kernel_parameters(simulation, cls, params):
 
 
 # Pickle Testing
-@pytest.mark.parametrize("cls, params", zip(_potential_cls, _params()))
+@pytest.mark.parametrize("cls, params", list(zip(_potential_cls, _params())))
 def test_pickling(simulation, cls, params):
     """Test pickling on a small simulation."""
     wall_pot = cls(WallGenerator.generate_n(2))

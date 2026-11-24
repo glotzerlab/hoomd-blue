@@ -6,7 +6,7 @@
 */
 
 #ifdef ENABLE_MPI
-#include <hip/hip_runtime.h>
+#include <cuda_runtime.h>
 
 #include "LoadBalancerGPU.cuh"
 
@@ -110,25 +110,20 @@ void gpu_load_balance_mark_rank(unsigned int* d_ranks,
                                 const unsigned int block_size)
     {
     unsigned int max_block_size;
-    hipFuncAttributes attr;
-    hipFuncGetAttributes(&attr, (const void*)gpu_load_balance_mark_rank_kernel);
+    cudaFuncAttributes attr;
+    cudaFuncGetAttributes(&attr, (const void*)gpu_load_balance_mark_rank_kernel);
     max_block_size = attr.maxThreadsPerBlock;
 
     unsigned int run_block_size = min(block_size, max_block_size);
     unsigned int n_blocks = N / run_block_size + 1;
 
-    hipLaunchKernelGGL(gpu_load_balance_mark_rank_kernel,
-                       dim3(n_blocks),
-                       dim3(run_block_size),
-                       0,
-                       0,
-                       d_ranks,
-                       d_pos,
-                       d_cart_ranks,
-                       rank_pos,
-                       box,
-                       di,
-                       N);
+    gpu_load_balance_mark_rank_kernel<<<n_blocks, run_block_size>>>(d_ranks,
+                                                                    d_pos,
+                                                                    d_cart_ranks,
+                                                                    rank_pos,
+                                                                    box,
+                                                                    di,
+                                                                    N);
     }
 
 //! Functor for selecting ranks not equal to the current rank

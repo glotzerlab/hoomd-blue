@@ -43,7 +43,7 @@ unpack_cell_buffer(T* d_props,
                    const unsigned int num_cells,
                    const unsigned int block_size);
 
-#ifdef __HIPCC__
+#ifdef __NVCC__
 
 namespace kernel
     {
@@ -218,7 +218,7 @@ cudaError_t unpack_cell_buffer(T* d_props,
 
     return cudaSuccess;
     }
-#endif // __HIPCC__
+#endif // __NVCC__
 
     } // end namespace gpu
     } // end namespace mpcd

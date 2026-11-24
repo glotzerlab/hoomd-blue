@@ -6,11 +6,11 @@
    the GPU
 */
 
-#ifdef __HIPCC__
+#ifdef __NVCC__
 #error This header cannot be compiled by nvcc
 #endif
 
-#ifdef ENABLE_HIP
+#ifdef ENABLE_GPU
 
 #pragma once
 
@@ -64,4 +64,4 @@ void export_LoadBalancerGPU(pybind11::module& m);
 
     } // end namespace hoomd
 
-#endif // ENABLE_HIP
+#endif // ENABLE_GPU

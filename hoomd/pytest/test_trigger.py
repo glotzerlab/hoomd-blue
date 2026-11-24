@@ -80,11 +80,11 @@ def _test_name(arg):
 # Go over all class and constructor pairs
 @pytest.mark.parametrize(
     "cls, kwargs",
-    (
+    [
         (cls, kwarg)
         for cls, kwargs in zip(_classes, _kwargs)
         for kwarg in _cartesian(kwargs)
-    ),
+    ],
     ids=_test_name,
 )
 def test_properties(cls, kwargs):
@@ -112,7 +112,9 @@ def triggers():
 
 
 @pytest.mark.parametrize(
-    "trigger, instance_string", zip(triggers(), _strings_beginning), ids=_test_name
+    "trigger, instance_string",
+    list(zip(triggers(), _strings_beginning)),
+    ids=_test_name,
 )
 def test_str(trigger, instance_string):
     assert str(trigger).startswith(instance_string)
@@ -131,7 +133,7 @@ _eval_funcs = [
 
 
 @pytest.mark.parametrize(
-    "trigger, eval_func", zip(triggers(), _eval_funcs), ids=_test_name
+    "trigger, eval_func", list(zip(triggers(), _eval_funcs)), ids=_test_name
 )
 def test_eval(trigger, eval_func):
     for i in range(10000):
@@ -141,7 +143,7 @@ def test_eval(trigger, eval_func):
         assert trigger(i) == eval_func(i)
 
 
-@pytest.mark.parametrize("trigger", triggers(), ids=_test_name)
+@pytest.mark.parametrize("trigger", list(triggers()), ids=_test_name)
 def test_pickling(trigger):
     pkled_trigger = pickle.loads(pickle.dumps(trigger))
     assert trigger == pkled_trigger

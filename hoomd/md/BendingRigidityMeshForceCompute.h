@@ -9,7 +9,7 @@
     \brief Declares a class for computing bending rigidity energy forces
 */
 
-#ifdef __HIPCC__
+#ifdef __NVCC__
 #error This header cannot be compiled by nvcc
 #endif
 
@@ -26,7 +26,7 @@ struct bending_params
     {
     Scalar k;
 
-#ifndef __HIPCC__
+#ifndef __NVCC__
     bending_params() : k(0) { }
 
     bending_params(pybind11::dict params) : k(params["k"].cast<Scalar>()) { }

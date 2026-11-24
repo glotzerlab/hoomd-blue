@@ -13,15 +13,15 @@
 
 #include <array>
 
-// Don't include MPI when compiling with __HIPCC__
-#if defined(ENABLE_MPI) && !defined(__HIPCC__)
+// Don't include MPI when compiling with __NVCC__
+#if defined(ENABLE_MPI) && !defined(__NVCC__)
 #include "HOOMDMPI.h"
 #endif
 
 // need to declare these class methods with __device__ qualifiers when building in nvcc
 // DEVICE is __host__ __device__ when included in nvcc and blank when included into the host
 // compiler
-#ifdef __HIPCC__
+#ifdef __NVCC__
 #define HOSTDEVICE __host__ __device__ inline
 #else
 #define HOSTDEVICE inline __attribute__((always_inline))
@@ -75,7 +75,7 @@ namespace hoomd
 
 */
 struct
-#ifndef __HIPCC__
+#ifndef __NVCC__
     __attribute__((visibility("default")))
 #endif
     BoxDim
@@ -383,7 +383,7 @@ struct
         Scalar3 w = v;
         Scalar3 L = getL();
 
-#ifdef __HIPCC__
+#ifdef __NVCC__
         if (m_periodic.z)
             {
             Scalar img = slow::rint(w.z * m_Linv.z);
@@ -476,7 +476,7 @@ struct
         Scalar3 v = dv;
         const Scalar3 L = getL();
 
-#ifdef __HIPCC__
+#ifdef __NVCC__
         if (m_periodic.z)
             {
             const Scalar img = slow::rint(r.z * m_Linv.z);

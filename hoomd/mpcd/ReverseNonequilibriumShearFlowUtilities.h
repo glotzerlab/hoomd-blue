@@ -11,11 +11,11 @@
 
 #include "hoomd/HOOMDMath.h"
 
-#ifdef __HIPCC__
+#ifdef __NVCC__
 #define HOSTDEVICE __host__ __device__ inline
 #else
 #define HOSTDEVICE inline __attribute__((always_inline))
-#endif // __HIPCC__
+#endif // __NVCC__
 
 namespace hoomd
     {

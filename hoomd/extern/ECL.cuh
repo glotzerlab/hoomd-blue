@@ -37,7 +37,7 @@ Authors: Jayadharini Jaiganesh and Martin Burtscher
 
 // Maintainer: jglaser
 
-#include <hip/hip_runtime.h>
+#include <cuda_runtime.h>
 
 #pragma once
 
@@ -47,21 +47,16 @@ inline void ecl_connected_components(const int nodes,
     const int* d_nlist,
     const int *d_nstat,
     const int *d_wl,
-    const hipDeviceProp_t& deviceProp);
+    const cudaDeviceProp& deviceProp);
 
 #include <stdlib.h>
 #include <stdio.h>
-#include <hip/hip_runtime.h>
 #include <set>
 
 static const int Device = 0;
 static const int ThreadsPerBlock = 256;
 
-#ifdef __HIP_PLATFORM_NVCC__
 static const int warpsize = 32;
-#else
-static const int warpsize = 64;
-#endif
 
 static __device__ int topL, posL, topH, posH;
 
@@ -166,11 +161,7 @@ void compute2(const int nodes, const int* const __restrict__ nidx, const int* co
   int idx;
   if (lane == 0) idx = atomicAdd(&posL, 1);
 
-  #ifdef __HIP_PLATFORM_NVCC__
   idx = __shfl_sync(0xffffffff,idx, 0);
-  #else
-  idx = __shfl(idx,0);
-  #endif
   while (idx < topL) {
     const int v = wl[idx];
     int vstat = representative(v, nstat);
@@ -200,11 +191,7 @@ void compute2(const int nodes, const int* const __restrict__ nidx, const int* co
     }
     if (lane == 0) idx = atomicAdd(&posL, 1);
 
-    #ifdef __HIP_PLATFORM_NVCC__
     idx = __shfl_sync(0xffffffff,idx, 0);
-    #else
-    idx = __shfl(idx,0);
-    #endif
   }
 }
 
@@ -279,152 +266,15 @@ inline void ecl_connected_components(const int nodes,
     const int *d_nlist,
     int *d_nstat,
     int *d_wl,
-    const hipDeviceProp_t& deviceProp)
+    const cudaDeviceProp& deviceProp)
     {
     const int SMs = deviceProp.multiProcessorCount;
     const int mTSM = deviceProp.maxThreadsPerMultiProcessor;
 
     const int blocks = SMs * mTSM / ThreadsPerBlock;
-    hipLaunchKernelGGL(init, dim3(blocks), dim3(ThreadsPerBlock), 0, 0, nodes, d_nidx, d_nlist, d_nstat);
-    hipLaunchKernelGGL(compute1, dim3(blocks), dim3(ThreadsPerBlock), 0, 0, nodes, d_nidx, d_nlist, d_nstat, d_wl);
-    hipLaunchKernelGGL(compute2, dim3(blocks), dim3(ThreadsPerBlock), 0, 0, nodes, d_nidx, d_nlist, d_nstat, d_wl);
-    hipLaunchKernelGGL(compute3, dim3(blocks), dim3(ThreadsPerBlock), 0, 0, nodes, d_nidx, d_nlist, d_nstat, d_wl);
-    hipLaunchKernelGGL(flatten, dim3(blocks), dim3(ThreadsPerBlock), 0, 0, nodes, d_nidx, d_nlist, d_nstat);
+    init<<<blocks, ThreadsPerBlock>>>(nodes, d_nidx, d_nlist, d_nstat);
+    compute1<<<blocks, ThreadsPerBlock>>>(nodes, d_nidx, d_nlist, d_nstat, d_wl);
+    compute2<<<blocks, ThreadsPerBlock>>>(nodes, d_nidx, d_nlist, d_nstat, d_wl);
+    compute3<<<blocks, ThreadsPerBlock>>>(nodes, d_nidx, d_nlist, d_nstat, d_wl);
+    flatten<<<blocks, ThreadsPerBlock>>>(nodes, d_nidx, d_nlist, d_nstat);
     }
-
-
-#if 0
-struct GPUTimer
-{
-  hipEvent_t beg, end;
-  GPUTimer() {hipEventCreate(&beg);  hipEventCreate(&end);}
-  ~GPUTimer() {hipEventDestroy(beg);  hipEventDestroy(end);}
-  void start() {hipEventRecord(beg, 0);}
-  double stop() {hipEventRecord(end, 0);  hipEventSynchronize(end);  float ms;  hipEventElapsedTime(&ms, beg, end);  return 0.001 * ms;}
-};
-
-static void computeCC(const int nodes, const int edges, const int* const __restrict__ nidx, const int* const __restrict__ nlist, int* const __restrict__ nstat)
-{
-  hipSetDevice(Device);
-  hipDeviceProp_t deviceProp;
-  hipGetDeviceProperties(&deviceProp, Device);
-  if ((deviceProp.major == 9999) && (deviceProp.minor == 9999)) {fprintf(stderr, "ERROR: there is no CUDA capable device\n\n");  exit(-1);}
-  const int SMs = deviceProp.multiProcessorCount;
-  const int mTSM = deviceProp.maxThreadsPerMultiProcessor;
-  printf("gpu: %s with %d SMs and %d mTpSM (%.1f MHz and %.1f MHz)\n", deviceProp.name, SMs, mTSM, deviceProp.clockRate * 0.001, deviceProp.memoryClockRate * 0.001);
-
-  int* nidx_d;
-  int* nlist_d;
-  int* nstat_d;
-  int* wl_d;
-
-  if (hipSuccess != hipMalloc((void **)&nidx_d, (nodes + 1) * sizeof(int))) {fprintf(stderr, "ERROR: could not allocate nidx_d\n\n");  exit(-1);}
-  if (hipSuccess != hipMalloc((void **)&nlist_d, edges * sizeof(int))) {fprintf(stderr, "ERROR: could not allocate nlist_d\n\n");  exit(-1);}
-  if (hipSuccess != hipMalloc((void **)&nstat_d, nodes * sizeof(int))) {fprintf(stderr, "ERROR: could not allocate nstat_d,\n\n");  exit(-1);}
-  if (hipSuccess != hipMalloc((void **)&wl_d, nodes * sizeof(int))) {fprintf(stderr, "ERROR: could not allocate wl_d,\n\n");  exit(-1);}
-
-  if (hipSuccess != hipMemcpy(nidx_d, nidx, (nodes + 1) * sizeof(int), hipMemcpyHostToDevice)) {fprintf(stderr, "ERROR: copying to device failed\n\n");  exit(-1);}
-  if (hipSuccess != hipMemcpy(nlist_d, nlist, edges * sizeof(int), hipMemcpyHostToDevice)) {fprintf(stderr, "ERROR: copying to device failed\n\n");  exit(-1);}
-
-  hipFuncSetCacheConfig(init, hipFuncCachePreferL1);
-  hipFuncSetCacheConfig(compute1, hipFuncCachePreferL1);
-  hipFuncSetCacheConfig(compute2, hipFuncCachePreferL1);
-  hipFuncSetCacheConfig(compute3, hipFuncCachePreferL1);
-  hipFuncSetCacheConfig(flatten, hipFuncCachePreferL1);
-
-  const int blocks = SMs * mTSM / ThreadsPerBlock;
-  GPUTimer timer;
-  timer.start();
-  init<<<blocks, ThreadsPerBlock>>>(nodes, nidx_d, nlist_d, nstat_d);
-  compute1<<<blocks, ThreadsPerBlock>>>(nodes, nidx_d, nlist_d, nstat_d, wl_d);
-  compute2<<<blocks, ThreadsPerBlock>>>(nodes, nidx_d, nlist_d, nstat_d, wl_d);
-  compute3<<<blocks, ThreadsPerBlock>>>(nodes, nidx_d, nlist_d, nstat_d, wl_d);
-  flatten<<<blocks, ThreadsPerBlock>>>(nodes, nidx_d, nlist_d, nstat_d);
-  double runtime = timer.stop();
-
-  printf("compute time: %.4f s\n", runtime);
-  printf("throughput: %.3f Mnodes/s\n", nodes * 0.000001 / runtime);
-  printf("throughput: %.3f Medges/s\n", edges * 0.000001 / runtime);
-
-  if (hipSuccess != hipMemcpy(nstat, nstat_d, nodes * sizeof(int), hipMemcpyDeviceToHost)) {fprintf(stderr, "ERROR: copying from device failed\n\n");  exit(-1);}
-
-  hipFree(wl_d);
-  hipFree(nstat_d);
-  hipFree(nlist_d);
-  hipFree(nidx_d);
-}
-
-static void verify(const int v, const int id, const int* const __restrict__ nidx, const int* const __restrict__ nlist, int* const __restrict__ nstat)
-{
-  if (nstat[v] >= 0) {
-    if (nstat[v] != id) {fprintf(stderr, "ERROR: found incorrect ID value\n\n");  exit(-1);}
-    nstat[v] = -1;
-    for (int i = nidx[v]; i < nidx[v + 1]; i++) {
-      verify(nlist[i], id, nidx, nlist, nstat);
-    }
-  }
-}
-
-int main(int argc, char* argv[])
-{
-  printf("ECL-CC v1.0 (%s)\n", __FILE__);
-  printf("Copyright 2017 Texas State University\n");
-
-  if (argc != 2) {fprintf(stderr, "USAGE: %s input_file_name\n\n", argv[0]);  exit(-1);}
-
-  ECLgraph g = readECLgraph(argv[1]);
-
-  int* nodestatus = NULL;
-  hipHostAlloc(&nodestatus, g.nodes * sizeof(int), hipHostAllocDefault);
-  if (nodestatus == NULL) {fprintf(stderr, "ERROR: nodestatus - host memory allocation failed\n\n");  exit(-1);}
-
-  printf("input graph: %d nodes and %d edges (%s)\n", g.nodes, g.edges, argv[1]);
-  printf("average degree: %.2f edges per node\n", 1.0 * g.edges / g.nodes);
-  int mindeg = g.nodes;
-  int maxdeg = 0;
-  for (int v = 0; v < g.nodes; v++) {
-    int deg = g.nindex[v + 1] - g.nindex[v];
-    mindeg = std::min(mindeg, deg);
-    maxdeg = std::max(maxdeg, deg);
-  }
-  printf("minimum degree: %d edges\n", mindeg);
-  printf("maximum degree: %d edges\n", maxdeg);
-
-  computeCC(g.nodes, g.edges, g.nindex, g.nlist, nodestatus);
-
-  std::set<int> s1;
-  for (int v = 0; v < g.nodes; v++) {
-    s1.insert(nodestatus[v]);
-  }
-  printf("number of connected components: %d\n", s1.size());
-
-  /* verification code (may need extra runtime stack space due to deep recursion) */
-
-  for (int v = 0; v < g.nodes; v++) {
-    for (int i = g.nindex[v]; i < g.nindex[v + 1]; i++) {
-      if (nodestatus[g.nlist[i]] != nodestatus[v]) {fprintf(stderr, "ERROR: found adjacent nodes in different components\n\n");  exit(-1);}
-    }
-  }
-
-  for (int v = 0; v < g.nodes; v++) {
-    if (nodestatus[v] < 0) {fprintf(stderr, "ERROR: found negative component number\n\n");  exit(-1);}
-  }
-
-  std::set<int> s2;
-  int count = 0;
-  for (int v = 0; v < g.nodes; v++) {
-    if (nodestatus[v] >= 0) {
-      count++;
-      s2.insert(nodestatus[v]);
-      verify(v, nodestatus[v], g.nindex, g.nlist, nodestatus);
-    }
-  }
-  if (s1.size() != s2.size()) {fprintf(stderr, "ERROR: number of components do not match\n\n");  exit(-1);}
-  if (s1.size() != count) {fprintf(stderr, "ERROR: component IDs are not unique\n\n");  exit(-1);}
-
-  printf("all good\n\n");
-
-  hipFreeHost(nodestatus);
-  return 0;
-}
-#endif

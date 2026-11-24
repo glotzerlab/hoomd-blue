@@ -9,7 +9,7 @@
 */
 #include <vector>
 
-#include <hip/hip_runtime.h>
+#include <cuda_runtime.h>
 
 #include "hoomd/HOOMDMath.h"
 #include "hoomd/Index1D.h"
@@ -32,16 +32,16 @@ namespace kernel
 const unsigned int NeighborListTypeSentinel = 0xffffffff;
 
 //! Kernel driver to generate morton code-type keys for particles and reorder by type
-hipError_t gpu_nlist_mark_types(unsigned int* d_types,
-                                unsigned int* d_indexes,
-                                unsigned int* d_lbvh_errors,
-                                Scalar4* d_last_pos,
-                                const Scalar4* d_pos,
-                                const unsigned int N,
-                                const unsigned int nghosts,
-                                const BoxDim& box,
-                                const Scalar3 ghost_width,
-                                const unsigned int block_size);
+cudaError_t gpu_nlist_mark_types(unsigned int* d_types,
+                                 unsigned int* d_indexes,
+                                 unsigned int* d_lbvh_errors,
+                                 Scalar4* d_last_pos,
+                                 const Scalar4* d_pos,
+                                 const unsigned int N,
+                                 const unsigned int nghosts,
+                                 const BoxDim& box,
+                                 const Scalar3 ghost_width,
+                                 const unsigned int block_size);
 
 //! Kernel driver to sort particles by type
 uchar2 gpu_nlist_sort_types(void* d_tmp,
@@ -54,19 +54,19 @@ uchar2 gpu_nlist_sort_types(void* d_tmp,
                             const unsigned int num_bits);
 
 //! Kernel driver to count particles by type
-hipError_t gpu_nlist_count_types(unsigned int* d_first,
-                                 unsigned int* d_last,
-                                 const unsigned int* d_types,
-                                 const unsigned int ntypes,
-                                 const unsigned int N,
-                                 const unsigned int block_size);
+cudaError_t gpu_nlist_count_types(unsigned int* d_first,
+                                  unsigned int* d_last,
+                                  const unsigned int* d_types,
+                                  const unsigned int ntypes,
+                                  const unsigned int N,
+                                  const unsigned int block_size);
 
 //! Kernel driver to rearrange primitives for faster traversal
-hipError_t gpu_nlist_copy_primitives(unsigned int* d_traverse_order,
-                                     const unsigned int* d_indexes,
-                                     const unsigned int* d_primitives,
-                                     const unsigned int N,
-                                     const unsigned int block_size);
+cudaError_t gpu_nlist_copy_primitives(unsigned int* d_traverse_order,
+                                      const unsigned int* d_indexes,
+                                      const unsigned int* d_primitives,
+                                      const unsigned int N,
+                                      const unsigned int block_size);
 
 //! Wrapper around the neighbor::LBVH class
 /*!
@@ -84,7 +84,7 @@ class LBVHWrapper
     ~LBVHWrapper();
 
     //! Setup the LBVH
-    void setup(const Scalar4* points, const unsigned int* map, unsigned int N, hipStream_t stream);
+    void setup(const Scalar4* points, const unsigned int* map, unsigned int N, cudaStream_t stream);
 
     //! Build the LBVH
     void build(const Scalar4* points,
@@ -92,7 +92,7 @@ class LBVHWrapper
                unsigned int N,
                const Scalar3& lo,
                const Scalar3& hi,
-               hipStream_t stream,
+               cudaStream_t stream,
                unsigned int block_size);
 
     //! Get the underlying LBVH
@@ -158,14 +158,14 @@ class LBVHTraverserWrapper
     ~LBVHTraverserWrapper();
 
     //! Setup the LBVH traverser
-    void setup(const unsigned int* map, neighbor::LBVH& lbvh, hipStream_t stream);
+    void setup(const unsigned int* map, neighbor::LBVH& lbvh, cudaStream_t stream);
 
     //! Traverse the LBVH
     void traverse(TraverserArgs& args,
                   neighbor::LBVH& lbvh,
                   const Scalar3* images,
                   const unsigned int Nimages,
-                  hipStream_t stream,
+                  cudaStream_t stream,
                   unsigned int block_size);
 
     //! Get the list of tunable parameters

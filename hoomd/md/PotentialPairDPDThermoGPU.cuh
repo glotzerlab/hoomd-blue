@@ -1,7 +1,7 @@
 // Copyright (c) 2009-2026 The Regents of the University of Michigan.
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
-#include "hip/hip_runtime.h"
+#include <cuda_runtime.h>
 // Copyright (c) 2009-2021 The Regents of the University of Michigan
 // This file is part of the HOOMD-blue project, released under the BSD 3-Clause License.
 
@@ -15,9 +15,9 @@
 #include "hoomd/Index1D.h"
 #include "hoomd/ParticleData.cuh"
 #include "hoomd/TextureTools.h"
-#ifdef __HIPCC__
+#ifdef __NVCC__
 #include "hoomd/WarpTools.cuh"
-#endif // __HIPCC__
+#endif // __NVCC__
 #include <cassert>
 
 namespace hoomd
@@ -27,11 +27,7 @@ namespace md
 namespace kernel
     {
 // currently this is hardcoded, we should set it to the max of platforms
-#if defined(__HIP_PLATFORM_NVCC__)
 const int gpu_dpd_pair_force_max_tpp = 32;
-#elif defined(__HIP_PLATFORM_HCC__)
-const int gpu_dpd_pair_force_max_tpp = 64;
-#endif
 
 //! args struct for passing additional options to gpu_compute_dpd_forces
 struct dpd_pair_args_t
@@ -60,7 +56,7 @@ struct dpd_pair_args_t
                     const unsigned int _shift_mode,
                     const unsigned int _compute_virial,
                     const unsigned int _threads_per_particle,
-                    const hipDeviceProp_t& _devprop)
+                    const cudaDeviceProp& _devprop)
         : d_force(_d_force), d_virial(_d_virial), virial_pitch(_virial_pitch), N(_N), n_max(_n_max),
           d_pos(_d_pos), d_vel(_d_vel), d_tag(_d_tag), box(_box), d_n_neigh(_d_n_neigh),
           d_nlist(_d_nlist), d_head_list(_d_head_list), d_rcutsq(_d_rcutsq),
@@ -95,10 +91,10 @@ struct dpd_pair_args_t
     const unsigned int
         threads_per_particle; //!< Number of threads per particle (maximum: 32==1 warp)
 
-    const hipDeviceProp_t& devprop; //!< Device properties
+    const cudaDeviceProp& devprop; //!< Device properties
     };
 
-#ifdef __HIPCC__
+#ifdef __NVCC__
 
 //! Kernel for calculating pair forces
 /*! This kernel is called to calculate the pair forces on all N particles. Actual evaluation of the
@@ -168,7 +164,7 @@ __global__ void gpu_compute_dpd_forces_kernel(Scalar4* d_force,
     const unsigned int num_typ_parameters = typpair_idx.getNumElements();
 
     // shared arrays for per type pair parameters
-    HIP_DYNAMIC_SHARED(char, s_data)
+    extern __shared__ char s_data[];
     typename evaluator::param_type* s_params = (typename evaluator::param_type*)(&s_data[0]);
     Scalar* s_rcutsq
         = (Scalar*)(&s_data[num_typ_parameters * sizeof(typename evaluator::param_type)]);
@@ -338,8 +334,8 @@ __global__ void gpu_compute_dpd_forces_kernel(Scalar4* d_force,
 
 template<typename T> int dpd_get_max_block_size(T func)
     {
-    hipFuncAttributes attr;
-    hipFuncGetAttributes(&attr, (const void*)func);
+    cudaFuncAttributes attr;
+    cudaFuncGetAttributes(&attr, (const void*)func);
     int max_threads = attr.maxThreadsPerBlock;
     // number of threads has to be multiple of warp size
     max_threads -= max_threads % gpu_dpd_pair_force_max_tpp;
@@ -396,35 +392,30 @@ struct DPDForceComputeKernel
                                                                                   tpp>);
 
             block_size = block_size < max_block_size ? block_size : max_block_size;
-            dim3 grid(args.N / (block_size / tpp) + 1, 1, 1);
 
-            hipLaunchKernelGGL((gpu_compute_dpd_forces_kernel<evaluator,
-                                                              shift_mode,
-                                                              compute_virial,
-                                                              use_gmem_nlist,
-                                                              tpp>),
-                               dim3(grid),
-                               dim3(block_size),
-                               shared_bytes,
-                               0,
-                               args.d_force,
-                               args.d_virial,
-                               args.virial_pitch,
-                               args.N,
-                               args.d_pos,
-                               args.d_vel,
-                               args.d_tag,
-                               args.box,
-                               args.d_n_neigh,
-                               args.d_nlist,
-                               args.d_head_list,
-                               d_params,
-                               args.d_rcutsq,
-                               args.seed,
-                               args.timestep,
-                               args.deltaT,
-                               args.T,
-                               args.ntypes);
+            gpu_compute_dpd_forces_kernel<evaluator,
+                                          shift_mode,
+                                          compute_virial,
+                                          use_gmem_nlist,
+                                          tpp>
+                <<<args.N / (block_size / tpp) + 1, block_size, shared_bytes>>>(args.d_force,
+                                                                                args.d_virial,
+                                                                                args.virial_pitch,
+                                                                                args.N,
+                                                                                args.d_pos,
+                                                                                args.d_vel,
+                                                                                args.d_tag,
+                                                                                args.box,
+                                                                                args.d_n_neigh,
+                                                                                args.d_nlist,
+                                                                                args.d_head_list,
+                                                                                d_params,
+                                                                                args.d_rcutsq,
+                                                                                args.seed,
+                                                                                args.timestep,
+                                                                                args.deltaT,
+                                                                                args.T,
+                                                                                args.ntypes);
             }
         else
             {
@@ -454,7 +445,7 @@ struct DPDForceComputeKernel<evaluator, shift_mode, compute_virial, use_gmem_nli
     This is just a driver function for gpu_compute_dpd_forces_kernel(), see it for details.
 */
 template<class evaluator>
-__attribute__((visibility("default"))) hipError_t
+__attribute__((visibility("default"))) cudaError_t
 gpu_compute_dpd_forces(const dpd_pair_args_t& args, const typename evaluator::param_type* d_params)
     {
     assert(d_params);
@@ -479,7 +470,7 @@ gpu_compute_dpd_forces(const dpd_pair_args_t& args, const typename evaluator::pa
             break;
             }
         default:
-            return hipErrorUnknown;
+            return cudaErrorUnknown;
             }
         }
     else
@@ -499,15 +490,15 @@ gpu_compute_dpd_forces(const dpd_pair_args_t& args, const typename evaluator::pa
             break;
             }
         default:
-            return hipErrorUnknown;
+            return cudaErrorUnknown;
             }
         }
 
-    return hipSuccess;
+    return cudaSuccess;
     }
 #else
 template<class evaluator>
-__attribute__((visibility("default"))) hipError_t
+__attribute__((visibility("default"))) cudaError_t
 gpu_compute_dpd_forces(const dpd_pair_args_t& args, const typename evaluator::param_type* d_params);
 #endif
 

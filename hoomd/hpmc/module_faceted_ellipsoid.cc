@@ -13,7 +13,7 @@
 #include "UpdaterGCA.h"
 #include "UpdaterMuVT.h"
 
-#ifdef ENABLE_HIP
+#ifdef ENABLE_GPU
 #include "ComputeFreeVolumeGPU.h"
 #include "IntegratorHPMCMonoGPU.h"
 #include "UpdaterGCAGPU.h"
@@ -36,7 +36,7 @@ void export_faceted_ellipsoid(pybind11::module& m)
 
     export_ExternalFieldWall<ShapeFacetedEllipsoid>(m, "WallFacetedEllipsoid");
 
-#ifdef ENABLE_HIP
+#ifdef ENABLE_GPU
     export_IntegratorHPMCMonoGPU<ShapeFacetedEllipsoid>(m, "IntegratorHPMCMonoFacetedEllipsoidGPU");
     export_ComputeFreeVolumeGPU<ShapeFacetedEllipsoid>(m, "ComputeFreeVolumeFacetedEllipsoidGPU");
     export_UpdaterGCAGPU<ShapeFacetedEllipsoid>(m, "UpdaterGCAFacetedEllipsoidGPU");

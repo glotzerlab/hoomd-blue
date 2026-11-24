@@ -178,7 +178,7 @@ void ConstantForceCompute::computeForces(uint64_t timestep)
         m_parameters_updated = false;
         }
 
-#ifdef ENABLE_HIP
+#ifdef ENABLE_GPU
     if (m_exec_conf->isCUDAErrorCheckingEnabled())
         CHECK_CUDA_ERROR();
 #endif

@@ -33,9 +33,9 @@ include(FindLocalFFT.cmake)
 #find_package(CUDA)
 #if(CUDA_FOUND)
 #    set(CUDA_NVCC_FLAGS "${CUDA_NVCC_FLAGS};-arch=sm_20")
-#    option(ENABLE_HIP "CUDA support" ON)
+#    option(ENABLE_GPU "CUDA support" ON)
 #else()
-#    option(ENABLE_HIP "CUDA support" OFF)
+#    option(ENABLE_GPU "CUDA support" OFF)
 #endif()
 
 # include(CUDA_MPI.cmake)
@@ -54,7 +54,7 @@ install(FILES "${HOOMD_BINARY_DIR}/hoomd/include/dfft_lib_config.h" DESTINATION 
 # unit tests
 #add_subdirectory(test)
 
-if(ENABLE_HIP)
+if(ENABLE_GPU)
     # CUFFT is default for CUDA
     set(CUDA_SOURCES ${CMAKE_CURRENT_SOURCE_DIR}/src/cufft_single_interface.cc)
 

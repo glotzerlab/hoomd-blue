@@ -53,9 +53,6 @@ class BuildInfo
     /// Format the cuda API version as a string
     static std::string getGPUAPIVersion();
 
-    /// Get the GPU platform
-    static std::string getGPUPlatform();
-
     /// Get the c++ compiler description
     static std::string getCXXCompiler();
 

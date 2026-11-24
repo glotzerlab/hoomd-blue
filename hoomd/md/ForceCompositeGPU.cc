@@ -132,8 +132,8 @@ void ForceCompositeGPU::computeForces(uint64_t timestep)
 
         if (nelem != 0)
             {
-            hipMemsetAsync(d_force.data, 0, sizeof(Scalar4) * nelem);
-            hipMemsetAsync(d_torque.data, 0, sizeof(Scalar4) * nelem);
+            cudaMemsetAsync(d_force.data, 0, sizeof(Scalar4) * nelem);
+            cudaMemsetAsync(d_torque.data, 0, sizeof(Scalar4) * nelem);
             }
 
         if (m_exec_conf->isCUDAErrorCheckingEnabled())
@@ -198,7 +198,7 @@ void ForceCompositeGPU::computeForces(uint64_t timestep)
 
         if (nelem != 0)
             {
-            hipMemsetAsync(d_virial.data, 0, sizeof(Scalar) * m_virial.getNumElements());
+            cudaMemsetAsync(d_virial.data, 0, sizeof(Scalar) * m_virial.getNumElements());
             }
 
         if (m_exec_conf->isCUDAErrorCheckingEnabled())

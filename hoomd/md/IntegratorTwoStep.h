@@ -9,7 +9,7 @@
 
 #pragma once
 
-#ifdef __HIPCC__
+#ifdef __NVCC__
 #error This header cannot be compiled by nvcc
 #endif
 
@@ -78,7 +78,7 @@ class PYBIND11_EXPORT IntegratorTwoStep : public Integrator
     /// helper function to compute net force/virial
     virtual void computeNetForce(uint64_t timestep);
 
-#ifdef ENABLE_HIP
+#ifdef ENABLE_GPU
     /// helper function to compute net force/virial on the GPU
     virtual void computeNetForceGPU(uint64_t timestep);
 #endif

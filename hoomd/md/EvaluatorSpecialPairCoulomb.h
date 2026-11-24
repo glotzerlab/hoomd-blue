@@ -4,7 +4,7 @@
 #ifndef __BOND_EVALUATOR_COULOMB_H__
 #define __BOND_EVALUATOR_COULOMB_H__
 
-#ifndef __HIPCC__
+#ifndef __NVCC__
 #include <string>
 #endif
 
@@ -22,7 +22,7 @@
 // need to declare these class methods with __device__ qualifiers when building in nvcc
 // DEVICE is __host__ __device__ when included in nvcc and blank when included into the host
 // compiler
-#ifdef __HIPCC__
+#ifdef __NVCC__
 #define DEVICE __device__
 #else
 #define DEVICE
@@ -37,7 +37,7 @@ struct special_coulomb_params
     Scalar alpha;
     Scalar r_cutsq;
 
-#ifdef ENABLE_HIP
+#ifdef ENABLE_GPU
     //! Set CUDA memory hints
     void set_memory_hint() const
         {
@@ -45,7 +45,7 @@ struct special_coulomb_params
         }
 #endif
 
-#ifndef __HIPCC__
+#ifndef __NVCC__
     special_coulomb_params() : alpha(0.), r_cutsq(0.) { }
 
     special_coulomb_params(pybind11::dict v)
@@ -126,7 +126,7 @@ class EvaluatorSpecialPairCoulomb
         return true;
         }
 
-#ifndef __HIPCC__
+#ifndef __NVCC__
     //! Get the name of this potential
     /*! \returns The potential name.
      */

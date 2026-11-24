@@ -558,7 +558,7 @@ def _base_expected_loggable(include_type_shapes=False):
 
 @pytest.mark.parametrize(
     "cls,log_check_params",
-    (
+    [
         (cls, log_check_params)
         for cls, log_check_params in zip(
             (md.pair.aniso.GayBerne, md.pair.aniso.Dipole, md.pair.aniso.ALJ),
@@ -568,7 +568,7 @@ def _base_expected_loggable(include_type_shapes=False):
                 _base_expected_loggable(True),
             ),
         )
-    ),
+    ],
 )
 def test_logging(cls, log_check_params):
     logging_check(cls, ("md", "pair", "aniso"), log_check_params)

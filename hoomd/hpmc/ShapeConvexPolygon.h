@@ -9,14 +9,14 @@
 #include "hoomd/HOOMDMath.h"
 #include "hoomd/VectorMath.h"
 
-#ifdef __HIPCC__
+#ifdef __NVCC__
 #define DEVICE __device__
 #define HOSTDEVICE __host__ __device__
 #else
 #define DEVICE
 #define HOSTDEVICE
 #include <iostream>
-#if !defined(__HIPCC__) && defined(__SSE__)
+#if !defined(__NVCC__) && defined(__SSE__)
 #include <immintrin.h>
 #endif
 #endif
@@ -71,12 +71,12 @@ struct PolygonVertices : ShapeParams
             }
         }
 
-#ifdef ENABLE_HIP
+#ifdef ENABLE_GPU
     /// Set CUDA memory hint
     void set_memory_hint() const { }
 #endif
 
-#ifndef __HIPCC__
+#ifndef __NVCC__
 
     /// Construct from a Python dictionary
     PolygonVertices(pybind11::dict v, bool managed = false)
@@ -168,7 +168,7 @@ class SupportFuncConvexPolygon
 
         if (verts.N > 0)
             {
-#if !defined(__HIPCC__) && defined(__AVX__) && HOOMD_SHORTREAL_SIZE == 32
+#if !defined(__NVCC__) && defined(__AVX__) && HOOMD_SHORTREAL_SIZE == 32
             // process dot products with AVX 8 at a time on the CPU when working with more than 4
             // verts
             __m256 nx_v = _mm256_broadcast_ss(&n.x);
@@ -217,7 +217,7 @@ class SupportFuncConvexPolygon
                     }
                 }
 
-#elif !defined(__HIPCC__) && defined(__SSE__) && HOOMD_SHORTREAL_SIZE == 32
+#elif !defined(__NVCC__) && defined(__SSE__) && HOOMD_SHORTREAL_SIZE == 32
             // process dot products with SSE 4 at a time on the CPU
             __m128 nx_v = _mm_load_ps1(&n.x);
             __m128 ny_v = _mm_load_ps1(&n.y);
@@ -565,7 +565,7 @@ DEVICE inline bool test_overlap<ShapeConvexPolygon, ShapeConvexPolygon>(const ve
                                                                         unsigned int& err)
     {
     vec2<ShortReal> dr(ShortReal(r_ab.x), ShortReal(r_ab.y));
-#ifdef __HIPCC__
+#ifdef __NVCC__
     return detail::xenocollide_2d(detail::SupportFuncConvexPolygon(a.verts),
                                   detail::SupportFuncConvexPolygon(b.verts),
                                   dr,
@@ -581,7 +581,7 @@ DEVICE inline bool test_overlap<ShapeConvexPolygon, ShapeConvexPolygon>(const ve
 #endif
     }
 
-#ifndef __HIPCC__
+#ifndef __NVCC__
 template<> inline std::string getShapeSpec(const ShapeConvexPolygon& poly)
     {
     std::ostringstream shapedef;

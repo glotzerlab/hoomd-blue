@@ -1,5 +1,5 @@
 /*
- * hipfft (single precision) backend for distributed FFT, implementation
+ * cufft (single precision) backend for distributed FFT, implementation
  */
 
 #include "cufft_single_interface.h"
@@ -36,17 +36,10 @@ int dfft_cuda_create_1d_plan(
     int dims[1];
     dims[0] = dim;
 
-    #ifdef __HIP_PLATFORM_HCC__
-    hipfftResult res;
-    res = hipfftPlanMany(plan, 1, dims, dims, istride, idist, dims,
-        ostride, odist, HIPFFT_C2C, howmany);
-    if (res != HIPFFT_SUCCESS)
-    #else
     cufftResult res;
     res = cufftPlanMany(plan, 1, dims, dims, istride, idist, dims,
         ostride, odist, CUFFT_C2C, howmany);
     if (res != CUFFT_SUCCESS)
-    #endif
         {
         printf("CUFFT Error: %d\n", res);
         return 1;
@@ -71,17 +64,10 @@ int dfft_cuda_create_nd_plan(
     int odist,
     int dir)
     {
-    #ifdef __HIP_PLATFORM_HCC__
-    hipfftResult res;
-    res = hipfftPlanMany(plan, ndim, dim, iembed, istride, idist, oembed,
-        ostride, odist, HIPFFT_C2C, howmany);
-    if (res != HIPFFT_SUCCESS)
-    #else
     cufftResult res;
     res = cufftPlanMany(plan, ndim, dim, iembed, istride, idist, oembed,
         ostride, odist, CUFFT_C2C, howmany);
     if (res != CUFFT_SUCCESS)
-    #endif
         {
         printf("CUFFT Error: %d\n", res);
         return 1;
@@ -92,27 +78,22 @@ int dfft_cuda_create_nd_plan(
 
 int dfft_cuda_allocate_aligned_memory(cuda_cpx_t **ptr, size_t size)
     {
-    hipMalloc((void **) ptr,size);
+    cudaMalloc((void **) ptr,size);
     return 0;
     }
 
 void dfft_cuda_free_aligned_memory(cuda_cpx_t *ptr)
     {
-    hipFree(ptr);
+    cudaFree(ptr);
     }
 
 /* Destroy a 1d plan */
 int dfft_cuda_destroy_local_plan(cuda_plan_t *p)
     {
-    #ifdef __HIP_PLATFORM_HCC__
-    hipfftResult res = hipfftDestroy(*p);
-    if (res != HIPFFT_SUCCESS)
-    #else
     cufftResult res = cufftDestroy(*p);
     if (res != CUFFT_SUCCESS)
-    #endif
         {
-        printf("hipfftDestroy error: %d\n", res);
+        printf("cufftDestroy error: %d\n", res);
         return res;
         }
     return 0;
@@ -127,13 +108,8 @@ int dfft_cuda_local_fft(
     cuda_plan_t p,
     int dir)
     {
-    #ifdef __HIP_PLATFORM_HCC__
-    hipfftResult res;
-    res = hipfftExecC2C(p, in, out, dir ? HIPFFT_BACKWARD : HIPFFT_FORWARD);
-    #else
     cufftResult res;
     res = cufftExecC2C(p, in, out, dir ? CUFFT_INVERSE : CUFFT_FORWARD);
-    #endif
     return res;
     }
 

@@ -1,6 +1,6 @@
 include_directories(${MPI_INCLUDE_PATH} ${CUDA_TOOLKIT_INCLUDE})
 
-if(ENABLE_HIP)
+if(ENABLE_GPU)
     # CUFFT is default for CUDA
     set(CUDA_SOURCES cufft_single_interface.c)
 

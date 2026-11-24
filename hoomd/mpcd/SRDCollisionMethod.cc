@@ -7,6 +7,7 @@
  */
 
 #include "SRDCollisionMethod.h"
+#include "RequiredDouble.h"
 #include "hoomd/RNGIdentifiers.h"
 #include "hoomd/RandomNumbers.h"
 
@@ -162,9 +163,9 @@ void mpcd::SRDCollisionMethod::rotate(uint64_t timestep)
         }
 
     // acquire cell velocities
-    ArrayHandle<double4> h_cell_vel(m_thermo->getCellVelocities(),
-                                    access_location::host,
-                                    access_mode::read);
+    ArrayHandle<RequiredDouble4> h_cell_vel(m_thermo->getCellVelocities(),
+                                            access_location::host,
+                                            access_mode::read);
 
     // load rotation vector and precompute functions for rotation matrix
     ArrayHandle<double3> h_rotvec(m_rotvec, access_location::host, access_mode::read);
@@ -206,7 +207,7 @@ void mpcd::SRDCollisionMethod::rotate(uint64_t timestep)
             }
 
         // subtract average velocity
-        const double4 avg_vel = h_cell_vel.data[cell];
+        const RequiredDouble4 avg_vel = h_cell_vel.data[cell];
         vel.x -= avg_vel.x;
         vel.y -= avg_vel.y;
         vel.z -= avg_vel.z;

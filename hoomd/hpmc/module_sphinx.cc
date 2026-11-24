@@ -13,7 +13,7 @@
 #include "UpdaterGCA.h"
 #include "UpdaterMuVT.h"
 
-#ifdef ENABLE_HIP
+#ifdef ENABLE_GPU
 #include "ComputeFreeVolumeGPU.h"
 #include "IntegratorHPMCMonoGPU.h"
 #include "UpdaterGCAGPU.h"
@@ -36,7 +36,7 @@ void export_sphinx(pybind11::module& m)
 
     export_ExternalFieldWall<ShapeSphinx>(m, "WallSphinx");
 
-#ifdef ENABLE_HIP
+#ifdef ENABLE_GPU
 #ifdef ENABLE_SPHINX_GPU
 
     export_IntegratorHPMCMonoGPU<ShapeSphinx>(m, "IntegratorHPMCMonoSphinxGPU");

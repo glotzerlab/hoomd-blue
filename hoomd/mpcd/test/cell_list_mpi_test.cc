@@ -2,9 +2,9 @@
 // Part of HOOMD-blue, released under the BSD 3-Clause License.
 
 #include "hoomd/mpcd/CellList.h"
-#ifdef ENABLE_HIP
+#ifdef ENABLE_GPU
 #include "hoomd/mpcd/CellListGPU.h"
-#endif // ENABLE_HIP
+#endif // ENABLE_GPU
 
 #include "hoomd/Communicator.h"
 #include "hoomd/SnapshotSystemData.h"
@@ -57,8 +57,8 @@ void checkDomainBoundaries(std::shared_ptr<SystemDefinition> sysdef,
             n_expect_recv = num_comm[dir - 1];
 
         unsigned int n_recv;
-        MPI_Isend(&n_send, 1, MPI_UNSIGNED, send_neighbor, 0, mpi_comm, &reqs[0]);
-        MPI_Irecv(&n_recv, 1, MPI_UNSIGNED, recv_neighbor, 0, mpi_comm, &reqs[1]);
+        MPI_Isend(&n_send, 1, MPI_UNSIGNED, send_neighbor, 0, mpi_comm, reqs);
+        MPI_Irecv(&n_recv, 1, MPI_UNSIGNED, recv_neighbor, 0, mpi_comm, reqs + 1);
         MPI_Waitall(2, reqs, status);
         UP_ASSERT_EQUAL(n_recv, n_expect_recv);
 
@@ -92,8 +92,8 @@ void checkDomainBoundaries(std::shared_ptr<SystemDefinition> sysdef,
                 }
             }
 
-        MPI_Isend(&send_cells[0], n_send, MPI_INT, send_neighbor, 1, mpi_comm, &reqs[0]);
-        MPI_Irecv(&recv_cells[0], n_recv, MPI_INT, recv_neighbor, 1, mpi_comm, &reqs[1]);
+        MPI_Isend(send_cells.data(), n_send, MPI_INT, send_neighbor, 1, mpi_comm, reqs);
+        MPI_Irecv(recv_cells.data(), n_recv, MPI_INT, recv_neighbor, 1, mpi_comm, reqs + 1);
         MPI_Waitall(2, reqs, status);
 
         for (unsigned int i = 0; i < n_recv; ++i)
@@ -1111,7 +1111,7 @@ void celllist_edge_test(std::shared_ptr<ExecutionConfiguration> exec_conf,
                                    access_location::host,
                                    access_mode::read);
 
-        int3 cell;
+        int3 cell = make_int3(0, 0, 0);
         switch (my_rank)
             {
         case 0:
@@ -1160,7 +1160,7 @@ void celllist_edge_test(std::shared_ptr<ExecutionConfiguration> exec_conf,
                                    access_location::host,
                                    access_mode::read);
 
-        int3 cell;
+        int3 cell = make_int3(0, 0, 0);
         switch (my_rank)
             {
         case 0:
@@ -1242,7 +1242,7 @@ void celllist_edge_test(std::shared_ptr<ExecutionConfiguration> exec_conf,
                                    access_location::host,
                                    access_mode::read);
 
-        int3 cell;
+        int3 cell = make_int3(0, 0, 0);
         switch (my_rank)
             {
         case 0:
@@ -1292,7 +1292,7 @@ void celllist_edge_test(std::shared_ptr<ExecutionConfiguration> exec_conf,
                                    access_location::host,
                                    access_mode::read);
 
-        int3 cell;
+        int3 cell = make_int3(0, 0, 0);
         switch (my_rank)
             {
         case 0:
@@ -1341,7 +1341,7 @@ void celllist_edge_test(std::shared_ptr<ExecutionConfiguration> exec_conf,
                                    access_location::host,
                                    access_mode::read);
 
-        int3 cell;
+        int3 cell = make_int3(0, 0, 0);
         switch (my_rank)
             {
         case 0:
@@ -1539,7 +1539,7 @@ UP_TEST(mpcd_cell_list_edge_test_triclinic)
         make_scalar3(0.5, -0.75, 1.0));
     }
 
-#ifdef ENABLE_HIP
+#ifdef ENABLE_GPU
 //! dimension test case for MPCD CellListGPU class
 UP_TEST(mpcd_cell_list_gpu_dimensions)
     {
@@ -1706,4 +1706,4 @@ UP_TEST(mpcd_cell_list_gpu_edge_test_triclinic)
         make_scalar3(5.0, 5.0, 5.0),
         make_scalar3(0.5, -0.75, 1.0));
     }
-#endif // ENABLE_HIP
+#endif // ENABLE_GPU
