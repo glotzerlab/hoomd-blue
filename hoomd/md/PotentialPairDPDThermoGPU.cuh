@@ -287,7 +287,7 @@ __global__ void gpu_compute_dpd_forces_kernel(Scalar4* d_force,
                 // calculate the virial (FLOPS: 3)
                 if (compute_virial)
                     {
-                    Scalar force_div2r = Scalar(0.5) * force_divr;
+                    const Scalar force_div2r = Scalar(0.5) * force_divr;
                     virial[0] += dx.x * dx.x * force_div2r;
                     virial[1] += dx.x * dx.y * force_div2r;
                     virial[2] += dx.x * dx.z * force_div2r;

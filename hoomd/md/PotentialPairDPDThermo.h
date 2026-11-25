@@ -227,12 +227,13 @@ template<class evaluator> void PotentialPairDPDThermo<evaluator>::computeForces(
                 {
                 // compute the virial (FLOPS: 2)
                 Scalar pair_virial[6];
-                pair_virial[0] = Scalar(0.5) * dx.x * dx.x * force_divr;
-                pair_virial[1] = Scalar(0.5) * dx.x * dx.y * force_divr;
-                pair_virial[2] = Scalar(0.5) * dx.x * dx.z * force_divr;
-                pair_virial[3] = Scalar(0.5) * dx.y * dx.y * force_divr;
-                pair_virial[4] = Scalar(0.5) * dx.y * dx.z * force_divr;
-                pair_virial[5] = Scalar(0.5) * dx.z * dx.z * force_divr;
+                const Scalar force_div2r = Scalar(0.5) * force_divr;
+                pair_virial[0] = dx.x * dx.x * force_div2r;
+                pair_virial[1] = dx.x * dx.y * force_div2r;
+                pair_virial[2] = dx.x * dx.z * force_div2r;
+                pair_virial[3] = dx.y * dx.y * force_div2r;
+                pair_virial[4] = dx.y * dx.z * force_div2r;
+                pair_virial[5] = dx.z * dx.z * force_div2r;
 
                 // add the force, potential energy and virial to the particle i
                 // (FLOPS: 8)
