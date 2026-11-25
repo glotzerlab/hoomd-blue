@@ -23,8 +23,7 @@ namespace md
     {
 
 template<class ParticleLoaderT>
-class PYBIND11_EXPORT ReverseNonequilibriumShearFlow
-    : public Updater
+class PYBIND11_EXPORT ReverseNonequilibriumShearFlow : public Updater
     {
     public:
     //! Constructor
@@ -160,10 +159,10 @@ ReverseNonequilibriumShearFlow<ParticleLoaderT>::ReverseNonequilibriumShearFlow(
     Scalar slab_width,
     Scalar target_momentum,
     std::shared_ptr<ParticleGroup> group)
-    : Updater(sysdef, trigger), m_particle_loader(sysdef, group),
-      m_num_swap(num_swap), m_slab_width(slab_width), m_target_momentum(target_momentum),
-      m_summed_momentum_exchange(0), m_num_lo(0), m_particles_lo(m_exec_conf), m_num_hi(0),
-      m_particles_hi(m_exec_conf), m_update_slabs(true)
+    : Updater(sysdef, trigger), m_particle_loader(sysdef, group), m_num_swap(num_swap),
+      m_slab_width(slab_width), m_target_momentum(target_momentum), m_summed_momentum_exchange(0),
+      m_num_lo(0), m_particles_lo(m_exec_conf), m_num_hi(0), m_particles_hi(m_exec_conf),
+      m_update_slabs(true)
     {
     m_exec_conf->msg->notice(5) << "Constructing ReverseNonequilibriumShearFlow" << std::endl;
 

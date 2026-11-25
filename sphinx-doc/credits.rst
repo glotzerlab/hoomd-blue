@@ -95,6 +95,7 @@ The following people have contributed to HOOMD-blue:
 * Nathan Horst
 * Nipuli Gunaratne, University of Michigan
 * Nicholas Cal Craven, Vanderbilt University
+* Osemwengie Oluwadare Obaseki, University of Houston
 * Pablo Zubieta, PME, The University of Chicago
 * Patrick Lawton, University of Michigan
 * Paul Dodd, University of Michigan

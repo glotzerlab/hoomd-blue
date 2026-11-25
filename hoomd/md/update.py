@@ -214,11 +214,6 @@ class ReverseNonequilibriumShearFlow(Updater):
         return self._cpp_obj.summed_exchanged_momentum
 
 
-__all__ = [
-    "ReverseNonequilibriumShearFlow",
-]
-
-
 class ReversePerturbationFlow(Updater):
     """Reverse Perturbation method to establish shear flow.
 
@@ -620,6 +615,7 @@ class MeshDynamicalBonding(Updater):
 __all__ = [
     "ActiveRotationalDiffusion",
     "MeshDynamicalBonding",
+    "ReverseNonequilibriumShearFlow",
     "ReversePerturbationFlow",
     "ZeroMomentum",
 ]
