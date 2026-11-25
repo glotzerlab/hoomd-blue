@@ -5,6 +5,7 @@ Next release
 ^^^^^^^^^^^^^^^^^^^^
 
 *Added*
+* Add ``hoomd.md.update.ReverseNonequilibriumShearFlow`` (#???).
 
 *Changed*
 

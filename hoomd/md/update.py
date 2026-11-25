@@ -90,7 +90,7 @@ class ReverseNonequilibriumShearFlow(Updater):
     *x* by imposing a momentum flux on MD particles in *y*. Particles are
     selected from two momentum-exchange slabs with normal to *y*, width *w*,
     and separated by :math:`L_y/2`. The lower slab accordingly has particles
-    with :math:`-L_y/2 \le y < L_y/2 + w`, while the upper slab has particles
+    with :math:`-L_y/2 \le y < -L_y/2 + w`, while the upper slab has particles
     with :math:`0 \le y < w`.
 
     MD particles are sorted into these slabs, and the particles whose *x*
